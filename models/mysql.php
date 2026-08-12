@@ -1,5 +1,5 @@
 <?php
-class BaseDatos {
+class mysql{
 
     private $conexion;
     private $ipServidor = "localhost";
@@ -28,6 +28,9 @@ class BaseDatos {
             die("Error de conexión: " . $e->getMessage());
         }
     }
+    public function prepare($sql) {
+    return $this->conexion->prepare($sql);
+}
 
     public function desconectar() {
         $this->conexion = null;
