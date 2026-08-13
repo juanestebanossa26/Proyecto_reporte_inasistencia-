@@ -1,13 +1,27 @@
 <?php
-if (!isset($nombreUsuario)) { $nombreUsuario = 'Juan Camilo Vanegas'; }
-if (!isset($rolActivo))     { $rolActivo = 'admin'; }
+ //Nos aseguramos de que la sesión esté iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
+//  Tomamos el nombre y el rol directamente de las variables de sesión
+// 
+$nombreUsuario = $_SESSION['nombre'] ?? 'Usuario Invitado';
+$rolActivo     = $_SESSION['rol'] ?? 'invitado';
+
+// 3. Diccionario para mostrar el nombre del rol "bonito" en pantalla.
+// Lo pasamos a minúsculas para evitar errores si en la BD dice "Administrador" o "admin"
 $etiquetasRol = [
-    'admin'      => 'Administrador',
-    'instructor' => 'Instructor',
-    'aprendiz'   => 'Aprendiz',
+    'admin'         => 'Administrador',
+    'administrador' => 'Administrador',
+    'instructor'    => 'Instructor',
+    'aprendiz'      => 'Aprendiz',
 ];
-$etiquetaRol = $etiquetasRol[$rolActivo] ?? 'Usuario';
+
+// Si encuentra el rol en el diccionario lo usa, si no, pone la primera letra en mayúscula del rol que traiga
+$etiquetaRol = $etiquetasRol[strtolower($rolActivo)] ?? ucfirst($rolActivo);
+
+// Lógica para extraer las iniciales (Tu código original, que está perfecto)
 $iniciales = '';
 foreach (explode(' ', $nombreUsuario) as $parte) {
     if ($parte !== '') $iniciales .= strtoupper($parte[0]);
@@ -51,18 +65,24 @@ foreach (explode(' ', $nombreUsuario) as $parte) {
         <!-- Usuario -->
         <div class="dropdown">
             <button class="btn d-flex align-items-center gap-2 border rounded-3 py-1 px-2" type="button" data-bs-toggle="dropdown">
+                
+                <!-- Aquí se imprimen las iniciales -->
                 <span class="avatar-circ"><?= htmlspecialchars($iniciales ?: 'US') ?></span>
+                
                 <span class="d-none d-md-block text-start">
+                    <!-- Aquí se imprime el nombre completo -->
                     <div class="fw-semibold" style="font-size:.82rem; line-height:1.1;"><?= htmlspecialchars($nombreUsuario) ?></div>
+                    
+                    <!-- Aquí se imprime el rol -->
                     <div class="text-suave" style="font-size:.72rem;"><?= htmlspecialchars($etiquetaRol) ?></div>
                 </span>
                 <i class="bi bi-chevron-down text-suave" style="font-size:.7rem;"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="perfil.php"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuración</a></li>
+     
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="index.php"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
+                <li><a class="dropdown-item text-danger" href="../index.php"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
             </ul>
         </div>
     </div>

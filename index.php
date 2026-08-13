@@ -66,23 +66,13 @@ $tituloPagina = 'Iniciar sesión';
                 <p class="text-suave mb-0">Ingresa tus credenciales para continuar</p>
             </div>
 
-            <!-- Selector de rol: solo visual/UX, el backend valida el rol real del usuario -->
-            <div class="btn-group w-100 role-toggle mb-4" role="group" aria-label="Selector de rol">
-                <input type="radio" class="btn-check" name="rolSeleccionado" id="rolAdmin" value="admin" checked>
-                <label class="btn btn-outline-sena" for="rolAdmin"><i class="bi bi-person-gear me-1"></i>Admin</label>
-
-                <input type="radio" class="btn-check" name="rolSeleccionado" id="rolInstructor" value="instructor">
-                <label class="btn btn-outline-sena" for="rolInstructor"><i class="bi bi-person-badge me-1"></i>Instructor</label>
-
-                <input type="radio" class="btn-check" name="rolSeleccionado" id="rolAprendiz" value="aprendiz">
-                <label class="btn btn-outline-sena" for="rolAprendiz"><i class="bi bi-mortarboard me-1"></i>Aprendiz</label>
-            </div>
+           
 
             <!-- TODO (backend): action="procesar_login.php" method="POST" -->
-            <form action="views/dashboard.php" method="POST" novalidate>
+            <form action="./controllers/login.php" method="POST" novalidate>
 
                 <div class="form-floating mb-3">
-                    <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Usuario o documento" required>
+                    <input type="text" class="form-control" id="usuario" name="documento" placeholder="Usuario o documento" required>
                     <label for="usuario">Usuario o número de documento</label>
                 </div>
 

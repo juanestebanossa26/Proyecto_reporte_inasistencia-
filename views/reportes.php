@@ -25,6 +25,8 @@ $filas = [
 <html lang="es">
 <head>
 <?php include '../includes/head.php'; ?>
+<!-- CSS de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 </head>
 <body>
 <div class="app-shell">
@@ -105,10 +107,13 @@ $filas = [
             <div class="card p-3">
                 <h2 class="h6 fw-bold mb-3">Detalle por aprendiz</h2>
                 <div class="table-responsive">
-                    <table class="table table-app align-middle mb-0">
+                    <!-- ID agregado a la tabla para conectarla con DataTables -->
+                    <table id="tablaReportes" class="table table-app align-middle mb-0" style="width:100%">
                         <thead>
                             <tr>
-                                <th>Aprendiz</th><th>Ficha</th><th>Instructor</th>
+                                <th>Aprendiz</th>
+                                <th>Ficha</th>
+                                <th>Instructor</th>
                                 <th class="text-center">Retardos</th>
                                 <th class="text-center">Min. retardo</th>
                                 <th class="text-center">Inasistencias</th>
@@ -140,5 +145,25 @@ $filas = [
 </div>
 
 <?php include '../includes/scripts.php'; ?>
+
+<!-- Scripts de DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#tablaReportes').DataTable({
+        // Configuración de idioma a español
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        },
+        // Evita que la tabla se ordene automáticamente al cargar la página
+        order: [],
+        pageLength: 10,
+        responsive: true
+    });
+});
+</script>
 </body>
 </html>

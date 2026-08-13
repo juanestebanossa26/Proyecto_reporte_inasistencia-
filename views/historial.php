@@ -28,6 +28,8 @@ $etiquetas = [
 <html lang="es">
 <head>
 <?php include '../includes/head.php'; ?>
+<!-- Asegúrate de tener los estilos de DataTables en head.php, ej: -->
+ <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"> 
 </head>
 <body>
 <div class="app-shell">
@@ -72,16 +74,25 @@ $etiquetas = [
             </div>
 
             <div class="card p-3">
+                <!-- DataTables ya trae su propio buscador, así que puedes decidir si dejas este filtro por fechas o lo adaptas después -->
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     <input type="date" class="form-control" style="max-width:180px;">
                     <span class="align-self-center text-suave">a</span>
                     <input type="date" class="form-control" style="max-width:180px;">
                     <button class="btn btn-outline-sena">Filtrar</button>
                 </div>
+                
                 <div class="table-responsive">
-                    <table class="table table-app align-middle mb-0">
+                    <!-- Se agregó el ID "tablaHistorial" a la tabla -->
+                    <table id="tablaHistorial" class="table table-app align-middle mb-0" style="width:100%">
                         <thead>
-                            <tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Estado</th><th>Nota</th></tr>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Estado</th>
+                                <th>Nota</th>
+                            </tr>
                         </thead>
                         <tbody>
                         <?php foreach ($historial as $h): ?>
@@ -102,5 +113,25 @@ $etiquetas = [
 </div>
 
 <?php include '../includes/scripts.php'; ?>
+<!-- Asegúrate de tener jQuery y los scripts de DataTables en scripts.php, ej: -->
+ <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script> 
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script> 
+ <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script> 
+
+<script>
+$(document).ready(function() {
+    $('#tablaHistorial').DataTable({
+        // Cambiar el idioma a español
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        },
+        // Evita que ordene automáticamente la primera columna al cargar la página
+        order: [],
+        // Puedes personalizar el diseño (dom) para que encaje mejor con Bootstrap si lo deseas
+        pageLength: 10,
+        responsive: true
+    });
+});
+</script>
 </body>
 </html>

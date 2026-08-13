@@ -24,6 +24,8 @@ $aprendices = [
 <html lang="es">
 <head>
 <?php include '../includes/head.php'; ?>
+<!-- CSS de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 </head>
 <body>
 <div class="app-shell">
@@ -45,20 +47,13 @@ $aprendices = [
             </div>
 
             <div class="card p-3">
-                <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
-                    <div class="input-group" style="max-width:320px;">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="search" class="form-control border-start-0" placeholder="Buscar por nombre o documento...">
-                    </div>
-                    <select class="form-select" style="max-width:200px;">
-                        <option>Todas las fichas</option>
-                        <option>2589451 · ADSO</option>
-                        <option>2678903 · Multimedia</option>
-                    </select>
-                </div>
+                <!-- Buscador manual y filtro original -->
+           
+                  
 
                 <div class="table-responsive">
-                    <table class="table table-app align-middle mb-0">
+                    <!-- Se agregó el ID "tablaAprendices" a la tabla -->
+                    <table id="tablaAprendices" class="table table-app align-middle mb-0" style="width:100%">
                         <thead>
                             <tr>
                                 <th>Aprendiz</th>
@@ -157,5 +152,28 @@ $aprendices = [
 </div>
 
 <?php include '../includes/scripts.php'; ?>
+
+<!-- Scripts de DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#tablaAprendices').DataTable({
+        // Configuración de idioma a español
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        },
+        order: [], // Evita que se ordene automáticamente al cargar
+        pageLength: 10,
+        responsive: true,
+        columnDefs: [
+            // Desactiva el ordenamiento y buscador para la columna de "Acciones" (índice 5)
+            { targets: 5, orderable: false, searchable: false }
+        ]
+    });
+});
+</script>
 </body>
 </html>

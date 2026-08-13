@@ -42,13 +42,13 @@ echo"metodo de envio de datos es diferente ";
 
 }
 
-$sql = "SELECT id_usuario FROM usuarios WHERE num_documento = :documento";
+$sql = "SELECT id_usuario FROM usuarios WHERE num_documento = :doc";
 
 // Accedes a ->conexion que creaste en el método conectar()
-$stmt = $db->prepare($sql);
-$stmt->execute([':documento' => $documento]);
+$resultado= $db->prepare($sql);
+$resultado->execute([':doc' => $documento]);
 
-if ($stmt->fetchColumn()) {
+if ($resultado->fetchColumn()) {
     echo "<script>
             alert('El usuario ya existe.');
             window.location='../views/instructores.php';
@@ -57,7 +57,21 @@ if ($stmt->fetchColumn()) {
     $db->desconectar();
     exit();
 }
+$sql = "SELECT id_usuario FROM usuarios WHERE correo_electronico = :correo";
 
+
+$resultado= $db->prepare($sql);
+$resultado->execute([':correo' => $correo]);
+
+if ($resultado->fetchColumn()) {
+    echo "<script>
+            alert('El correo ya existe ');
+            window.location='../views/instructores.php';
+          </script>";
+
+    $db->desconectar();
+    exit();
+}
 
 $password=password_hash($password,PASSWORD_BCRYPT);
 

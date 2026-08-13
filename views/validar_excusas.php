@@ -23,6 +23,8 @@ $excusas = [
 <html lang="es">
 <head>
 <?php include '../includes/head.php'; ?>
+<!-- CSS de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 </head>
 <body>
 <div class="app-shell">
@@ -44,7 +46,8 @@ $excusas = [
 
             <div class="card p-3">
                 <div class="table-responsive">
-                    <table class="table table-app align-middle mb-0">
+                    <!-- Se agregó el ID "tablaExcusas" a la tabla -->
+                    <table id="tablaExcusas" class="table table-app align-middle mb-0" style="width:100%">
                         <thead>
                             <tr>
                                 <th>Aprendiz</th>
@@ -53,6 +56,7 @@ $excusas = [
                                 <th>Motivo</th>
                                 <th>Soporte</th>
                                 <th>Estado</th>
+                                <!-- Se agrega una clase para alinear correctamente -->
                                 <th class="text-end">Acciones</th>
                             </tr>
                         </thead>
@@ -87,5 +91,28 @@ $excusas = [
 </div>
 
 <?php include '../includes/scripts.php'; ?>
+<!-- JS de DataTables (Asegúrate de que no tengan comentarios HTML a los lados) -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#tablaExcusas').DataTable({
+        // Configuración de idioma español
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+        },
+        // Evitar que DataTables ordene automáticamente la primera columna al inicio
+        order: [],
+        pageLength: 10,
+        responsive: true,
+        // Configuración para desactivar el filtrado/ordenamiento en la última columna de "Acciones" (columna índice 6)
+        columnDefs: [
+            { targets: 6, orderable: false, searchable: false }
+        ]
+    });
+});
+</script>
 </body>
 </html>

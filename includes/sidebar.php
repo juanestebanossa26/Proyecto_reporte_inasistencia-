@@ -1,13 +1,15 @@
 <?php
-/**
- * includes/sidebar.php
- *
- * Variables que espera la vista que lo incluye:
- *   $rolActivo   -> 'admin' | 'instructor' | 'aprendiz'  (de momento fijo por vista,
- *                    el backend deberá tomarlo de $_SESSION['rol'])
- *   $paginaActiva -> slug de la página actual para resaltar el link (ej: 'dashboard')
- */
-if (!isset($rolActivo))    { $rolActivo = 'admin'; }
+
+
+//  Nos aseguramos de que la sesión esté iniciada para poder leer los datos
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+//  Tomamos el rol directamente de la variable de sesión que creaste en el login.
+// Si no hay sesión, asignamos 'invitado'
+$rolActivo = $_SESSION['rol'] ?? 'invitado'; 
+
 if (!isset($paginaActiva)) { $paginaActiva = ''; }
 
 function navLink($href, $icon, $label, $slug, $paginaActiva) {
@@ -30,10 +32,12 @@ function navLink($href, $icon, $label, $slug, $paginaActiva) {
     <nav class="sidebar-nav">
         <ul class="nav flex-column">
 
-            <div class="sidebar-section-label">General</div>
-            <?php navLink('dashboard.php', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
+           
 
-            <?php if ($rolActivo === 'admin'): ?>
+            <!-- Validamos los roles convirtiendo el texto a minúsculas para evitar errores de tipeo en la BD -->
+            <?php if (strtolower($rolActivo) === 'admin' || strtolower($rolActivo) === 'administrador'): ?>
+                 <div class="sidebar-section-label">General</div>
+            <?php navLink('dashboard.php', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
                 <div class="sidebar-section-label">Gestión</div>
                 <?php navLink('aprendices.php', 'bi-people-fill', 'Aprendices', 'aprendices', $paginaActiva); ?>
                 <?php navLink('instructores.php', 'bi-person-badge-fill', 'Instructores', 'instructores', $paginaActiva); ?>
@@ -46,15 +50,17 @@ function navLink($href, $icon, $label, $slug, $paginaActiva) {
                 <div class="sidebar-section-label">Reportes</div>
                 <?php navLink('reportes.php', 'bi-bar-chart-line-fill', 'Reportes', 'reportes', $paginaActiva); ?>
 
-            <?php elseif ($rolActivo === 'instructor'): ?>
+            <?php elseif (strtolower($rolActivo) === 'instructor'): ?>
+                 <div class="sidebar-section-label">General</div>
+            <?php navLink('dashboard.php', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
                 <div class="sidebar-section-label">Mi ficha</div>
                 <?php navLink('fichas.php', 'bi-journal-bookmark-fill', 'Horarios de ficha', 'fichas', $paginaActiva); ?>
                 <?php navLink('validar_excusas.php', 'bi-file-earmark-medical-fill', 'Validar excusas', 'validar_excusas', $paginaActiva); ?>
                 <?php navLink('reportes.php', 'bi-bar-chart-line-fill', 'Reportes de mi ficha', 'reportes', $paginaActiva); ?>
 
-            <?php elseif ($rolActivo === 'aprendiz'): ?>
+            <?php elseif (strtolower($rolActivo) === 'aprendiz'): ?>
                 <div class="sidebar-section-label">Mi asistencia</div>
-                <?php navLink('marcaje.php', 'bi-wifi', 'Marcar ingreso', 'marcaje', $paginaActiva); ?>
+            
                 <?php navLink('historial.php', 'bi-clock-history', 'Mi historial', 'historial', $paginaActiva); ?>
                 <?php navLink('excusas.php', 'bi-file-earmark-medical-fill', 'Anexar excusa médica', 'excusas', $paginaActiva); ?>
             <?php endif; ?>
