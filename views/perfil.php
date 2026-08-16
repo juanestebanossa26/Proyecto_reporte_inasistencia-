@@ -1,11 +1,12 @@
 <?php
-/**
- * perfil.php — Perfil del usuario autenticado
- * TODO (backend): precargar datos desde `usuarios` + tabla de rol correspondiente;
- * el formulario debe enviarse a actualizar_perfil.php
- */
+session_start();
+if (!isset($_SESSION["Documento"])) {
+    header("Location: ../index.php");
+    exit();
+}
+require_once("../models/mysql.php");
 $rolActivo     = $_GET['rol'] ?? 'admin';
-$nombreUsuario = 'Juan Camilo Vanegas';
+$nombreUsuario ;
 $paginaActiva  = 'perfil';
 $tituloPagina  = 'Mi perfil';
 ?>
@@ -23,7 +24,7 @@ $tituloPagina  = 'Mi perfil';
             <div class="page-header">
                 <div class="eyebrow">Cuenta</div>
                 <h1 class="h4 fw-bold mb-0">Mi perfil</h1>
-                <p class="text-suave mb-0">Actualiza tu información personal y contraseña.</p>
+                <p class="text-suave mb-0">Mi Informacion Personal</p>
             </div>
 
             <div class="row g-3">
@@ -33,38 +34,31 @@ $tituloPagina  = 'Mi perfil';
                             <?= strtoupper(substr($nombreUsuario,0,1)) ?>
                         </span>
                         <h2 class="h6 fw-bold mb-0"><?= htmlspecialchars($nombreUsuario) ?></h2>
-                        <p class="text-suave mb-3"><?= ucfirst($rolActivo) ?></p>
-                        <button class="btn btn-outline-sena btn-sm">Cambiar foto</button>
+                        <p class="text-suave mb-3"><?= $rolActivo ?></p>
+                    
                     </div>
                 </div>
                 <div class="col-lg-8">
                     <div class="card p-4">
-                        <!-- TODO (backend): action="actualizar_perfil.php" method="POST" -->
-                        <form>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Nombre completo</label>
-                                    <input type="text" class="form-control" value="<?= htmlspecialchars($nombreUsuario) ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Correo electrónico</label>
-                                    <input type="email" class="form-control" value="juan.vanegas@sena.edu.co">
-                                </div>
+                        <!-- Se eliminó la etiqueta <form> ya que ahora es solo visualización -->
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted mb-1">Nombre</label>
+                                <p class="fs-6 fw-medium text-dark"><?= htmlspecialchars($nombreUsuario) ?></p>
                             </div>
-                            <hr class="my-4">
-                            <h2 class="h6 fw-bold mb-3">Cambiar contraseña</h2>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Nueva contraseña</label>
-                                    <input type="password" class="form-control">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Confirmar contraseña</label>
-                                    <input type="password" class="form-control">
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted mb-1">Apellido</label>
+                                <p class="fs-6 fw-medium text-dark"><?php echo $_SESSION["apellidos"] ?? ''; ?></p>
                             </div>
-                            <button type="submit" class="btn btn-sena mt-4">Guardar cambios</button>
-                        </form>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted mb-1">Numero Documento</label>
+                                <p class="fs-6 fw-medium text-dark"><?php echo $_SESSION["Documento"] ?? ''; ?></p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted mb-1">Correo electrónico</label>
+                                <p class="fs-6 fw-medium text-dark"><?php echo $_SESSION["Correo"] ?? ''; ?></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

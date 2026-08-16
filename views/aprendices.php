@@ -1,3 +1,4 @@
+<!-- bobadilla -->
 <?php
 /**
  * aprendices.php — Gestión de aprendices (HU 1, 14)
@@ -9,7 +10,7 @@
  *     solo cambia estado a inactivo)
  */
 $rolActivo     = 'admin';
-$nombreUsuario = 'Juan Camilo Vanegas';
+$nombreUsuario ;
 $paginaActiva  = 'aprendices';
 $tituloPagina  = 'Aprendices';
 

@@ -12,6 +12,8 @@ $sql = "SELECT
     usuarios.nombre_completo,
     usuarios.num_documento,
     usuarios.contrasena,
+    usuarios.correo_electronico,
+    usuarios.apellido,
     roles.nombre_role 
     FROM usuarios 
     JOIN roles ON roles.id_role = usuarios.id_role
@@ -30,6 +32,9 @@ if ($fila && password_verify($password, $fila["contrasena"])) {
 
    
     $_SESSION["nombre"] = $fila['nombre_completo'];
+    $_SESSION["apellidos"] = $fila['apellido'];
+    $_SESSION["Documento"] = $fila['num_documento'];
+    $_SESSION["Correo"] = $fila['correo_electronico'];
     $_SESSION["rol"]    = $fila['nombre_role'];
     
    if($_SESSION["rol"]=="Administrador" ||$_SESSION["rol"]=="Instructor" )

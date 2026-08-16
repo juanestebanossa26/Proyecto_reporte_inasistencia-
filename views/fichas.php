@@ -1,3 +1,5 @@
+<!-- bobadilla -->
+
 <?php
 /**
  * fichas.php — Fichas y horarios (HU 9, 10)
