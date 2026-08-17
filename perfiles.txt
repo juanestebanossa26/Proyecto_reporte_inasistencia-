@@ -3,4 +3,4 @@ documento:1111 contraseña:123
 Admin
 documento:123456 contraseña:123
 Instructor
-docuemnto:42017364
+docuemnto:42017364 contraseña:123

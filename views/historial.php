@@ -1,24 +1,47 @@
 <?php
-/**
- * historial.php — Historial personal de asistencia (HU 6, 15), vista aprendiz
- *
- * TODO (backend):
- *   - Reemplazar $historial por el resultado de obtener_inasistencias_reales()
- *     (función expuesta por el módulo de reportes, ver contrato de datos)
- *   - El botón "Descargar mi reporte" debe generar un PDF/Excel individual
- */
+session_start();
+
+require_once("../models/mysql.php");
+$db= new mysql();
+$db->conectar();
+
+//consulta para ver el historial de insistencias 
+$sql = "SELECT asistencias.* 
+        FROM asistencias 
+        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
+        WHERE aprendices.id_usuario = :id_usuario";
+
+$resultado= $db->prepare($sql);
+$resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$resultado->execute();
+// esta consulta la hice para hacer un contador de de inasistencias
+$sql = "SELECT COUNT(asistencias.id_asistencia) 
+        FROM asistencias 
+        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
+        WHERE aprendices.id_usuario = :id_usuario and estado='inasistencia'";
+
+$conta_inasistencia= $db->prepare($sql);
+$conta_inasistencia->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$conta_inasistencia->execute();
+
+//esta consulta es para hacer un contador  retardos 
+
+$sql = "SELECT COUNT(asistencias.id_asistencia) 
+        FROM asistencias 
+        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
+        WHERE aprendices.id_usuario = :id_usuario and estado='retardo'";
+
+$conta_retardo= $db->prepare($sql);
+$conta_retardo->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$conta_retardo->execute();
+
+
 $rolActivo     = 'aprendiz';
-$nombreUsuario = 'Laura Martínez';
+$nombreUsuario;
 $paginaActiva  = 'historial';
 $tituloPagina  = 'Mi historial de asistencia';
 
-$historial = [
-    ['fecha'=>'11/08/2026','entrada'=>'6:58 a.m.','salida'=>'12:30 p.m.','estado'=>'a-tiempo'],
-    ['fecha'=>'10/08/2026','entrada'=>'7:15 a.m.','salida'=>'12:30 p.m.','estado'=>'retardo'],
-    ['fecha'=>'07/08/2026','entrada'=>'—','salida'=>'—','estado'=>'inasistencia'],
-    ['fecha'=>'06/08/2026','entrada'=>'6:55 a.m.','salida'=>'11:40 a.m.','estado'=>'salida-anticipada'],
-    ['fecha'=>'05/08/2026','entrada'=>'—','salida'=>'—','estado'=>'a-tiempo', 'nota'=>'Excusa médica aprobada'],
-];
+
 $etiquetas = [
     'a-tiempo' => 'A tiempo', 'retardo' => 'Retardo',
     'inasistencia' => 'Inasistencia', 'salida-anticipada' => 'Salida anticipada',
@@ -46,41 +69,37 @@ $etiquetas = [
                 <button class="btn btn-outline-sena"><i class="bi bi-download me-1"></i> Descargar mi reporte</button>
             </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 text-center">
-                        <div class="text-suave" style="font-size:.76rem;">Asistencias</div>
-                        <div class="h4 fw-bold mb-0 text-sena">18</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 text-center">
-                        <div class="text-suave" style="font-size:.76rem;">Retardos</div>
-                        <div class="h4 fw-bold mb-0" style="color:#8a6300;">2</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 text-center">
-                        <div class="text-suave" style="font-size:.76rem;">Inasistencias</div>
-                        <div class="h4 fw-bold mb-0" style="color:#B4212B;">1</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 text-center">
-                        <div class="text-suave" style="font-size:.76rem;">Excusas aprobadas</div>
-                        <div class="h4 fw-bold mb-0" style="color:#2F6FED;">1</div>
-                    </div>
-                </div>
-            </div>
+        <div class="row g-3 mb-3 justify-content-center">
+    
+    <div class="col-6 col-md-3">
+        <?php $total_retardo = $conta_retardo->fetchColumn(); ?>
+        <div class="card kpi-card p-3 text-center">
+            <div class="text-suave" style="font-size:.76rem;">Retardos</div>
+            <div class="h4 fw-bold mb-0" style="color:#8a6300;"><?php echo $total_retardo; ?></div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-3">
+        <?php $total_inasistencia = $conta_inasistencia->fetchColumn(); ?>
+        <div class="card kpi-card p-3 text-center">
+            <div class="text-suave" style="font-size:.76rem;">Inasistencias</div>
+            <div class="h4 fw-bold mb-0" style="color:#B4212B;"><?php echo $total_inasistencia; ?></div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-3">
+        <div class="card kpi-card p-3 text-center">
+            <div class="text-suave" style="font-size:.76rem;">Excusas aprobadas</div>
+        
+            <div class="h4 fw-bold mb-0" style="color:#2F6FED;">1</div>
+        </div>
+    </div>
+
+</div>
 
             <div class="card p-3">
                 <!-- DataTables ya trae su propio buscador, así que puedes decidir si dejas este filtro por fechas o lo adaptas después -->
-                <div class="d-flex flex-wrap gap-2 mb-3">
-                    <input type="date" class="form-control" style="max-width:180px;">
-                    <span class="align-self-center text-suave">a</span>
-                    <input type="date" class="form-control" style="max-width:180px;">
-                    <button class="btn btn-outline-sena">Filtrar</button>
-                </div>
+           
                 
                 <div class="table-responsive">
                     <!-- Se agregó el ID "tablaHistorial" a la tabla -->
@@ -91,19 +110,19 @@ $etiquetas = [
                                 <th>Entrada</th>
                                 <th>Salida</th>
                                 <th>Estado</th>
-                                <th>Nota</th>
+                          
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($historial as $h): ?>
+                        <?php while ($fila=$resultado->fetch()){  ?>
                             <tr>
-                                <td><?= htmlspecialchars($h['fecha']) ?></td>
-                                <td><?= htmlspecialchars($h['entrada']) ?></td>
-                                <td><?= htmlspecialchars($h['salida']) ?></td>
-                                <td><span class="badge-estado badge-<?= $h['estado'] ?>"><?= $etiquetas[$h['estado']] ?></span></td>
-                                <td class="text-suave" style="font-size:.82rem;"><?= htmlspecialchars($h['nota'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($fila['fecha']) ?></td>
+                                <td><?= htmlspecialchars($fila['hora_entrada_real']) ?></td>
+                                <td><?= htmlspecialchars($fila['hora_salida_real']) ?></td>
+                                <td><span class="badge-estado badge-<?= $fila['estado'] ?>"><?= $etiquetas[$fila['estado']] ?></span></td>
+                               
                             </tr>
-                        <?php endforeach; ?>
+                        <?php }; ?>
                         </tbody>
                     </table>
                 </div>

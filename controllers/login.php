@@ -9,6 +9,7 @@ $documento = $_POST['documento'];
 $password  = $_POST['password'];
 
 $sql = "SELECT
+ usuarios.id_usuario,
     usuarios.nombre_completo,
     usuarios.num_documento,
     usuarios.contrasena,
@@ -30,7 +31,7 @@ $fila = $resultado->fetch(PDO::FETCH_ASSOC);
 //Validamos DIRECTAMENTE si la fila existe y la contraseña coincide
 if ($fila && password_verify($password, $fila["contrasena"])) {
 
-   
+    $_SESSION["id"] = $fila['id_usuario'];
     $_SESSION["nombre"] = $fila['nombre_completo'];
     $_SESSION["apellidos"] = $fila['apellido'];
     $_SESSION["Documento"] = $fila['num_documento'];
