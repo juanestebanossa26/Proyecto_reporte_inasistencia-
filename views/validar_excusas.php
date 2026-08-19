@@ -1,5 +1,9 @@
 <?php
 session_start();
+if (!isset($_SESSION["Documento"])) {
+    header("Location: ../index.php");
+    exit();
+}
 require_once("../models/mysql.php");
 $db=new mysql();
 $db->conectar();

@@ -72,8 +72,8 @@ $tituloPagina = 'Iniciar sesión';
             <form action="./controllers/login.php" method="POST" novalidate>
 
                 <div class="form-floating mb-3">
-                    <input type="text" class="form-control" id="usuario" name="documento" placeholder="Usuario o documento" required>
-                    <label for="usuario">Usuario o número de documento</label>
+                    <input type="text" class="form-control" id="usuario" name="documento" placeholder="documento" required>
+                    <label for="usuario">número de documento</label>
                 </div>
 
                 <div class="form-floating mb-2 position-relative">

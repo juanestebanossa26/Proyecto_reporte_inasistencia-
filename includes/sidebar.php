@@ -67,7 +67,7 @@ function navLink($href, $icon, $label, $slug, $paginaActiva) {
 
             <div class="sidebar-section-label">Cuenta</div>
             <?php navLink('perfil.php', 'bi-person-circle', 'Mi perfil', 'perfil', $paginaActiva); ?>
-            <?php navLink('../index.php', 'bi-box-arrow-right', 'Cerrar sesión', 'salir', $paginaActiva); ?>
+            <?php navLink('../controllers/logout.php', 'bi-box-arrow-right', 'Cerrar sesión', 'salir', $paginaActiva); ?>
         </ul>
     </nav>
 

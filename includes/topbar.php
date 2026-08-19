@@ -82,7 +82,7 @@ foreach (explode(' ', $nombreUsuario) as $parte) {
                 <li><a class="dropdown-item" href="perfil.php"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
      
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="../index.php"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
+                <li><a class="dropdown-item text-danger" href="../controllers/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
             </ul>
         </div>
     </div>
