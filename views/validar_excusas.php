@@ -1,23 +1,33 @@
 <?php
-/**
- * validar_excusas.php — Bandeja de excusas médicas (HU 13), vista instructor/admin
- *
- * TODO (backend):
- *   - Reemplazar $excusas por SELECT ... FROM excusas_medicas JOIN aprendices ...
- *     filtrando por ficha del instructor si $rolActivo === 'instructor'
- *   - Los botones Aprobar/Rechazar deben llamar a actualizar_excusa.php?id=X&estado=aprobada|rechazada
- *     (HU 18: una excusa aprobada hace que esa fecha no cuente como inasistencia en los reportes)
- */
+session_start();
+require_once("../models/mysql.php");
+$db=new mysql();
+$db->conectar();
+
+$sql="SELECT 
+usuarios.nombre_completo,
+usuarios.apellido,
+fichas.nombre_programa,
+excusas_medicas.motivo,
+asistencias.fecha,
+excusas_medicas.estado_excusa
+from usuarios 
+join aprendices on aprendices.id_usuario=usuarios.id_usuario
+join fichas on aprendices.id_ficha=fichas.id_ficha
+join asistencias on asistencias.id_aprendiz=aprendices.id_aprendiz
+join excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
+where fichas.id_instructor=:id_usuario 
+";
+$resultado= $db->prepare($sql);
+$resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$resultado->execute();
+
 $rolActivo     = $_GET['rol'] ?? 'instructor';
-$nombreUsuario = 'Marcela Ortiz';
+$nombreUsuario ;
 $paginaActiva  = 'validar_excusas';
 $tituloPagina  = 'Validar excusas médicas';
 
-$excusas = [
-    ['aprendiz'=>'Camila Suárez','ficha'=>'2678903 · Multimedia','fecha'=>'11/08/2026','motivo'=>'Control médico especializado','estado'=>'pendiente'],
-    ['aprendiz'=>'Andrés Gil','ficha'=>'2589451 · ADSO','fecha'=>'10/08/2026','motivo'=>'Cita odontológica','estado'=>'pendiente'],
-    ['aprendiz'=>'Laura Martínez','ficha'=>'2589451 · ADSO','fecha'=>'05/08/2026','motivo'=>'Cita médica EPS','estado'=>'aprobada'],
-];
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -61,19 +71,19 @@ $excusas = [
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($excusas as $e): ?>
+                        <?php while ($fila=$resultado->fetch()) {?>
                             <tr>
                                 <td class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circ"><?= strtoupper(substr($e['aprendiz'],0,1)) ?></span>
-                                    <?= htmlspecialchars($e['aprendiz']) ?>
+                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'],0,1)) ?></span>
+                                    <?= htmlspecialchars($fila["nombre_completo"].' '.$fila["apellido"]) ?>
                                 </td>
-                                <td><?= htmlspecialchars($e['ficha']) ?></td>
-                                <td><?= htmlspecialchars($e['fecha']) ?></td>
-                                <td><?= htmlspecialchars($e['motivo']) ?></td>
+                                <td><?= htmlspecialchars($fila['nombre_programa']) ?></td>
+                                <td><?= htmlspecialchars($fila['fecha']) ?></td>
+                                <td><?= htmlspecialchars($fila['motivo']) ?></td>
                                 <td><a href="#" class="text-sena"><i class="bi bi-file-earmark-pdf me-1"></i>Ver PDF</a></td>
-                                <td><span class="badge-estado badge-<?= $e['estado'] ?>"><?= ucfirst($e['estado']) ?></span></td>
+                                <td><span class="badge-estado badge-<?= $fila['estado_excusa'] ?>"><?= ucfirst($fila['estado_excusa']) ?></span></td>
                                 <td class="text-end">
-                                    <?php if ($e['estado'] === 'pendiente'): ?>
+                                    <?php if ($fila['estado_excusa'] === 'pendiente'): ?>
                                         <button class="btn btn-sm btn-sena">Aprobar</button>
                                         <button class="btn btn-sm btn-outline-danger">Rechazar</button>
                                     <?php else: ?>
@@ -81,7 +91,7 @@ $excusas = [
                                     <?php endif; ?>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php }; ?>
                         </tbody>
                     </table>
                 </div>
