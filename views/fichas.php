@@ -7,8 +7,8 @@
  * TODO (backend): reemplazar $fichas por SELECT desde tablas `fichas` + `horarios`;
  * el modal debe enviar a guardar_ficha.php (crea/edita horario, incluyendo instructor).
  */
-$rolActivo     = 'admin';
-$nombreUsuario = 'Juan Camilo Vanegas';
+$rolActivo     = $_GET['rol'] ?? 'Administrador';
+$nombreUsuario='' ;
 $paginaActiva  = 'fichas';
 $tituloPagina  = 'Fichas y horarios';
 
@@ -35,7 +35,7 @@ $fichas = [
                     <h1 class="h4 fw-bold mb-0">Fichas y horarios</h1>
                     <p class="text-suave mb-0">Configura entrada, salida e instructor encargado de cada ficha.</p>
                 </div>
-                <?php if ($rolActivo === 'admin'): ?>
+                <?php if ($rolActivo === 'Administrador'): ?>
                 <button class="btn btn-sena" data-bs-toggle="modal" data-bs-target="#modalFicha">
                     <i class="bi bi-plus-lg me-1"></i> Nueva ficha
                 </button>
@@ -52,7 +52,7 @@ $fichas = [
                                 <div class="h5 fw-bold mb-0"><?= htmlspecialchars($f['ficha']) ?></div>
                                 <div class="text-sena fw-semibold" style="font-size:.85rem;"><?= htmlspecialchars($f['programa']) ?></div>
                             </div>
-                            <?php if ($rolActivo === 'admin'): ?>
+                            <?php if ($rolActivo === 'Administrador'): ?>
                             <button class="btn btn-sm btn-outline-secondary border-0" data-bs-toggle="modal" data-bs-target="#modalFicha">
                                 <i class="bi bi-pencil-square"></i>
                             </button>

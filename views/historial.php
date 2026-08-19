@@ -54,7 +54,7 @@ $contador_pendiente->execute();
 
 
 $rolActivo     = 'aprendiz';
-$nombreUsuario = ''; 
+$nombreUsuario ; 
 $paginaActiva  = 'historial';
 $tituloPagina  = 'Mi historial de asistencia';
 

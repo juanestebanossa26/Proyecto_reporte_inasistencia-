@@ -82,11 +82,8 @@ $tituloPagina = 'Iniciar sesión';
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="recordar">
-                        <label class="form-check-label text-suave" for="recordar" style="font-size:.85rem;">Recordarme</label>
                  
-
+                </div>
                 <!-- Alerta de error de ejemplo (el backend la muestra condicionalmente) -->
                 <div class="alert alert-danger d-none" id="alertaError" role="alert">
                     Usuario o contraseña incorrectos.

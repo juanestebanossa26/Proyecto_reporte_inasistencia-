@@ -9,7 +9,7 @@
  *   - Los botones "Exportar PDF" / "Exportar Excel" deben apuntar a
  *     exportar_reporte.php?formato=pdf|excel con los mismos filtros aplicados.
  */
-$rolActivo     = $_GET['rol'] ?? 'admin';
+$rolActivo     = $_SESSION['rol'] ?? 'admin';
 $nombreUsuario = 'Juan Camilo Vanegas';
 $paginaActiva  = 'reportes';
 $tituloPagina  = 'Reportes de asistencia';

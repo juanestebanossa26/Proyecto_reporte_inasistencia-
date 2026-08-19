@@ -26,7 +26,7 @@ $resultado= $db->prepare($sql);
 $resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
 $resultado->execute();
 
-$rolActivo     = $_GET['rol'] ?? 'instructor';
+$rolActivo     = $_SESSION['rol']?? 'instructor';
 $nombreUsuario ;
 $paginaActiva  = 'validar_excusas';
 $tituloPagina  = 'Validar excusas médicas';

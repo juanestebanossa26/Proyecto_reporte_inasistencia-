@@ -10,7 +10,7 @@ $sql="SELECT nombre_completo,num_documento,correo_electronico from usuarios wher
 $resultado=$db->efectuarconsulta($sql);
 
 $rolActivo    = 'admin';        // O según corresponda ($_SESSION['rol'])
-$paginaActiva = 'instructores'; //ESTA LÍNEA ES LA QUE ACTIVA EL VERDE
+$paginaActiva = 'instructores'; // 👈 ESTA LÍNEA ES LA QUE ACTIVA EL VERDE
 $tituloPagina = 'Instructores';
 ?>
 <!DOCTYPE html>

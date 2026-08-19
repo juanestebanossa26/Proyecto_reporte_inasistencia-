@@ -5,7 +5,7 @@ if (!isset($_SESSION["Documento"])) {
     exit();
 }
 require_once("../models/mysql.php");
-$rolActivo     = $_GET['rol'] ?? 'admin';
+$rolActivo     = $_SESSION['rol'];
 $nombreUsuario ;
 $paginaActiva  = 'perfil';
 $tituloPagina  = 'Mi perfil';
