@@ -26,6 +26,20 @@ $resultado= $db->prepare($sql);
 $resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
 $resultado->execute();
 
+$sql="SELECT 
+COUNT(excusas_medicas.id_excusa)
+from usuarios 
+join aprendices on aprendices.id_usuario=usuarios.id_usuario
+join fichas on aprendices.id_ficha=fichas.id_ficha
+join asistencias on asistencias.id_aprendiz=aprendices.id_aprendiz
+join excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
+where fichas.id_instructor=:id_usuario and 
+excusas_medicas.estado_excusa='pendiente'
+";
+$contadorpendientes= $db->prepare($sql);
+$contadorpendientes->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$contadorpendientes->execute();
+
 $rolActivo     = $_SESSION['rol']?? 'instructor';
 $nombreUsuario ;
 $paginaActiva  = 'validar_excusas';
@@ -53,9 +67,9 @@ $tituloPagina  = 'Validar excusas médicas';
             </div>
 
             <ul class="nav nav-pills mb-3">
-                <li class="nav-item"><a class="nav-link active" href="#" style="background:var(--sena-verde);">Pendientes <span class="badge bg-white text-sena ms-1">2</span></a></li>
-                <li class="nav-item"><a class="nav-link text-suave" href="#">Aprobadas</a></li>
-                <li class="nav-item"><a class="nav-link text-suave" href="#">Rechazadas</a></li>
+                <?php $total_pendientes = $contadorpendientes->fetchColumn(); ?>
+                <li class="nav-item"><a class="nav-link active" href="#" style="background:var(--sena-verde);">Pendientes <span class="badge bg-white text-sena ms-1"><?php echo $total_pendientes  ?></span></a></li>
+               
             </ul>
 
             <div class="card p-3">
