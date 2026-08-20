@@ -1,13 +1,20 @@
 <?php
+require_once '../models/mysql.php';
 session_start();
-require_once("../models/mysql.php");
 
-$db = new Mysql();
-$db->conectar();
+$mysql = new MySQL();
+$mysql->conectar();
+
+if (
+isset($_POST['documento'], $_POST['password']) &&
+!empty($_POST['documento']) && !empty($_POST['password'])
+) {
 
 $documento = $_POST['documento'];
-$password  = $_POST['password'];
+$password = $_POST['password'];
 
+try {
+// Consulta preparada para evitar inyección
 $sql = "SELECT
  usuarios.id_usuario,
     usuarios.nombre_completo,
@@ -20,25 +27,28 @@ $sql = "SELECT
     JOIN roles ON roles.id_role = usuarios.id_role
     WHERE num_documento = :doc 
     AND estado = 'Activo'";
+$resultado = $mysql->prepare($sql);
+$resultado->bindParam(':doc', $documento, PDO::PARAM_STR);
+$resultado->execute();
 
-$resultado = $db->prepare($sql);
-//este el el parametro que usamos para hacer la consulta
-$resultado->execute([':doc' => $documento]);
+$usuario_data = $resultado->fetch(PDO::FETCH_ASSOC);
 
-//Obtenemos los datos del usuario de la base de datos
-$fila = $resultado->fetch(PDO::FETCH_ASSOC);
 
-//Validamos DIRECTAMENTE si la fila existe y la contraseña coincide
-if ($fila && password_verify($password, $fila["contrasena"])) {
 
-    $_SESSION["id"] = $fila['id_usuario'];
-    $_SESSION["nombre"] = $fila['nombre_completo'];
-    $_SESSION["apellidos"] = $fila['apellido'];
-    $_SESSION["Documento"] = $fila['num_documento'];
-    $_SESSION["Correo"] = $fila['correo_electronico'];
-    $_SESSION["rol"]    = $fila['nombre_role'];
-    
-   if($_SESSION["rol"]=="Administrador" ||$_SESSION["rol"]=="Instructor" )
+if ($usuario_data) {
+// Verificar contraseña usando password_verify
+if (password_verify($password, $usuario_data['contrasena'])) {
+// Guardar datos en sesión
+    $_SESSION["id"] = $usuario_data['id_usuario'];
+    $_SESSION["nombre"] = $usuario_data['nombre_completo'];
+    $_SESSION["apellidos"] = $usuario_data['apellidoñ'];
+    $_SESSION["Documento"] = $usuario_data['num_documento'];
+    $_SESSION["Correo"] = $usuario_data['correo_electronico'];
+    $_SESSION["rol"]    = $usuario_data['nombre_role'];
+   // $_SESSION['login_time'] = time();
+
+// Redirigir a dashboard
+ if($_SESSION["rol"]=="Administrador" ||$_SESSION["rol"]=="Instructor" )
     {
 header("Location: ../views/dashboard.php");
     exit();
@@ -51,24 +61,29 @@ header("Location: ../views/historial.php");
 
 
     }
-    
-
 } else {
-
-    
-    header("Location: ../index.php");
-    exit();
-
+// Contraseña incorrecta
+header("Location: ../index.html?error=2");
+exit();
 }
-?>
+} else {
+// Usuario no encontrado
+header("Location: ../index.html?error=1");
+exit();
+}
+} catch (PDOException $e) {
+error_log("Error en login: " . $e->getMessage());
+header("Location: ../index.html?error=500");
+exit();
+}
+} else {
+// Datos incompletos
 
 
 
+header("Location: ../index.html?error=11");
+exit();
+}
 
-
-
-
-$db->desconectar();
-
-
+$mysql->desconectar();
 ?>
