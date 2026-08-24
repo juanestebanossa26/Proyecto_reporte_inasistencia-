@@ -41,7 +41,7 @@ if (password_verify($password, $usuario_data['contrasena'])) {
 // Guardar datos en sesión
     $_SESSION["id"] = $usuario_data['id_usuario'];
     $_SESSION["nombre"] = $usuario_data['nombre_completo'];
-    $_SESSION["apellidos"] = $usuario_data['apellidoñ'];
+    $_SESSION["apellidos"] = $usuario_data['apellido'];
     $_SESSION["Documento"] = $usuario_data['num_documento'];
     $_SESSION["Correo"] = $usuario_data['correo_electronico'];
     $_SESSION["rol"]    = $usuario_data['nombre_role'];

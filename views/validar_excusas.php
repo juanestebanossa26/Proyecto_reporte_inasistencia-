@@ -14,7 +14,8 @@ usuarios.apellido,
 fichas.nombre_programa,
 excusas_medicas.motivo,
 asistencias.fecha,
-excusas_medicas.estado_excusa
+excusas_medicas.estado_excusa,
+excusas_medicas.archivo_adjunto
 from usuarios 
 join aprendices on aprendices.id_usuario=usuarios.id_usuario
 join fichas on aprendices.id_ficha=fichas.id_ficha
@@ -98,7 +99,7 @@ $tituloPagina  = 'Validar excusas médicas';
                                 <td><?= htmlspecialchars($fila['nombre_programa']) ?></td>
                                 <td><?= htmlspecialchars($fila['fecha']) ?></td>
                                 <td><?= htmlspecialchars($fila['motivo']) ?></td>
-                                <td><a href="#" class="text-sena"><i class="bi bi-file-earmark-pdf me-1"></i>Ver PDF</a></td>
+                                <td><a href="../<?php echo htmlspecialchars($fila['archivo_adjunto']); ?>" class="text-sena"><i class="bi bi-file-earmark-pdf me-1"></i>Ver PDF</a></td>
                                 <td><span class="badge-estado badge-<?= $fila['estado_excusa'] ?>"><?= ucfirst($fila['estado_excusa']) ?></span></td>
                                 <td class="text-end">
                                     <?php if ($fila['estado_excusa'] === 'pendiente'): ?>

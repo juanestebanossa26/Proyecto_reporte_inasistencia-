@@ -19,8 +19,22 @@ $resultado= $db->prepare($sql);
 $resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
 $resultado->execute();
 
+$sql = "SELECT 
+            asistencias.fecha,
+            asistencias.id_asistencia       
+        FROM asistencias 
+        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
+        LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
+        WHERE aprendices.id_usuario = :id_usuario 
+          AND asistencias.estado = 'inasistencia'
+          AND excusas_medicas.id_asistencia IS NULL";
+
+$fechas_faltas= $db->prepare($sql);
+$fechas_faltas->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$fechas_faltas->execute();
+
 $rolActivo     = 'aprendiz';
-$nombreUsuario = 'Laura Martínez';
+$nombreUsuario ;
 $paginaActiva  = 'excusas';
 $tituloPagina  = 'Excusas médicas';
 
@@ -49,18 +63,23 @@ $tituloPagina  = 'Excusas médicas';
                 <div class="col-lg-5">
                     <div class="card p-3">
                         <h2 class="h6 fw-bold mb-3">Anexar nueva excusa</h2>
-                        <!-- TODO (backend): action="guardar_excusa.php" method="POST" enctype="multipart/form-data" -->
-                        <form>
+               
+                        <form  action="../controllers/guardar_excusa.php" method="POST" enctype="multipart/form-data" >
+     <?php while($fila=$fechas_faltas->fetch()) { ?>                       
                             <div class="mb-3">
-                                <label class="form-label">Fecha de la inasistencia</label>
-                                <input type="date" class="form-control" name="fecha" required>
-                            </div>
+    <label class="form-label">Fecha de la inasistencia</label>
+    <select class="form-select" name="fecha_excusa" required>
+    <option value="" disabled selected>Selecciona la fecha de tu inasistencia</option>
+    <option value="<?php echo $fila["id_asistencia"] ?>" ><?php echo $fila["fecha"] ?></option>
+    </select>
+</div>
+<?php } ?>
                             <div class="mb-3">
                                 <label class="form-label">Motivo</label>
                                 <textarea class="form-control" name="motivo" rows="3" placeholder="Ej: Cita médica EPS" required></textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Soporte (PDF o imagen)</label>
+                                <label class="form-label">Soporte (PDF)</label>
                                 <div class="dropzone-excusa">
                                     <i class="bi bi-cloud-arrow-up text-sena" style="font-size:1.6rem;"></i>
                                     <p class="mb-1 mt-2 fw-semibold" style="font-size:.9rem;">Arrastra tu archivo aquí</p>
