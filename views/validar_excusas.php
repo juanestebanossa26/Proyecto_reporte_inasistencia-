@@ -12,6 +12,7 @@ $sql="SELECT
 usuarios.nombre_completo,
 usuarios.apellido,
 fichas.nombre_programa,
+fichas.numero_ficha,
 excusas_medicas.motivo,
 asistencias.fecha,
 excusas_medicas.estado_excusa,
@@ -96,7 +97,7 @@ $tituloPagina  = 'Validar excusas médicas';
                                     <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'],0,1)) ?></span>
                                     <?= htmlspecialchars($fila["nombre_completo"].' '.$fila["apellido"]) ?>
                                 </td>
-                                <td><?= htmlspecialchars($fila['nombre_programa']) ?></td>
+                                <td><?= htmlspecialchars($fila['nombre_programa'].'-'.$fila['numero_ficha']) ?></td>
                                 <td><?= htmlspecialchars($fila['fecha']) ?></td>
                                 <td><?= htmlspecialchars($fila['motivo']) ?></td>
                                 <td><a href="../<?php echo htmlspecialchars($fila['archivo_adjunto']); ?>" class="text-sena"><i class="bi bi-file-earmark-pdf me-1"></i>Ver PDF</a></td>

@@ -112,8 +112,12 @@ $aprendices = [
         </div>
         <div class="modal-body">
             <div class="mb-3">
-                <label class="form-label">Nombre completo</label>
+                <label class="form-label">Nombres </label>
                 <input type="text" class="form-control" name="nombre" placeholder="Ej: Laura Martínez" required>
+            </div>
+             <div class="mb-3">
+                <label class="form-label">Apellidos</label>
+                <input type="text" class="form-control" name="apellido" placeholder="Ej: Laura Martínez" required>
             </div>
             <div class="row g-3">
                 <div class="col-md-6">

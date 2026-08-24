@@ -63,17 +63,17 @@ header("Location: ../views/historial.php");
     }
 } else {
 // Contraseña incorrecta
-header("Location: ../index.html?error=2");
+header("Location: ../index.php?error=2");
 exit();
 }
 } else {
 // Usuario no encontrado
-header("Location: ../index.html?error=1");
+header("Location: ../index.php?error=1");
 exit();
 }
 } catch (PDOException $e) {
 error_log("Error en login: " . $e->getMessage());
-header("Location: ../index.html?error=500");
+header("Location: ../index.php?error=500");
 exit();
 }
 } else {
@@ -81,7 +81,7 @@ exit();
 
 
 
-header("Location: ../index.html?error=11");
+header("Location: ../index.php?error=11");
 exit();
 }
 
