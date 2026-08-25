@@ -59,7 +59,7 @@ $paginaActiva  = 'historial';
 $tituloPagina  = 'Mi historial de asistencia';
 
 $etiquetas = [
-    'a-tiempo' => 'A tiempo', 'retardo' => 'Retardo',
+    'asistencia' => 'Asistencia', 'retardo' => 'Retardo',
     'inasistencia' => 'Inasistencia', 'salida-anticipada' => 'Salida anticipada',
 ];
 ?>
@@ -136,13 +136,13 @@ $etiquetas = [
                                 $claseExcusa = "badge-estado badge-" . strtolower($estadoExcusa);
                             }
 
-                            // NUEVO CAMBIO AQUÍ: Validamos si la hora de entrada y salida están vacías
+                            // Validamos si la hora de entrada y salida están vacías
                             $horaEntrada = !empty($fila['hora_entrada_real']) ? htmlspecialchars($fila['hora_entrada_real']) : '<span class="text-muted fw-bold fs-5">-</span>';
                             $horaSalida  = !empty($fila['hora_salida_real']) ? htmlspecialchars($fila['hora_salida_real']) : '<span class="text-muted fw-bold fs-5">-</span>';
                         ?>
                             <tr>
                                 <td><?= htmlspecialchars($fila['fecha']) ?></td>
-                                <!-- Imprimimos las horas o el guion centrado -->
+                            
                                 <td class="text-center"><?= $horaEntrada ?></td>
                                 <td class="text-center"><?= $horaSalida ?></td>
                                 <td><span class="badge-estado badge-<?= $fila['estado'] ?>"><?= $etiquetas[$fila['estado']] ?? $fila['estado'] ?></span></td>

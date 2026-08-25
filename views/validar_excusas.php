@@ -15,6 +15,7 @@ fichas.nombre_programa,
 fichas.numero_ficha,
 excusas_medicas.motivo,
 asistencias.fecha,
+asistencias.id_asistencia,
 excusas_medicas.estado_excusa,
 excusas_medicas.archivo_adjunto
 from usuarios 
@@ -48,13 +49,17 @@ $paginaActiva  = 'validar_excusas';
 $tituloPagina  = 'Validar excusas médicas';
 
 
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <?php include '../includes/head.php'; ?>
 <!-- CSS de DataTables -->
+
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -104,8 +109,12 @@ $tituloPagina  = 'Validar excusas médicas';
                                 <td><span class="badge-estado badge-<?= $fila['estado_excusa'] ?>"><?= ucfirst($fila['estado_excusa']) ?></span></td>
                                 <td class="text-end">
                                     <?php if ($fila['estado_excusa'] === 'pendiente'): ?>
-                                        <button class="btn btn-sm btn-sena">Aprobar</button>
-                                        <button class="btn btn-sm btn-outline-danger">Rechazar</button>
+                                         <form action="../controllers/procesar_excusa.php" method="POST" style="display:inline;">
+                            
+                                         <input type="hidden" name="id_excusa" value="<?= $fila['id_asistencia'] ?>">
+                                        <button class="btn btn-sm btn-sena" name="accion" value="aprobar">Aprobar</button>
+                                        <button class="btn btn-sm btn-outline-danger" name="accion" value="rechazar" >Rechazar</button>
+                                      </form>
                                     <?php else: ?>
                                         <span class="text-suave" style="font-size:.8rem;">Sin acciones</span>
                                     <?php endif; ?>

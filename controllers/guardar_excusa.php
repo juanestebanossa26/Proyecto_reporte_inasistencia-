@@ -1,5 +1,5 @@
 <?php
-
+session_start();
 require_once("../models/mysql.php");
 $bd = new mysql();
 $bd->conectar();
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bindParam(':motivo', $motivo);
                 $stmt->bindParam(':id', $id_inasistencia);
                 
-                // Ejecutar la sentencia
+               
                 $stmt->execute();
 
             echo "
