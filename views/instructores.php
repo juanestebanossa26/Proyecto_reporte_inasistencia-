@@ -5,7 +5,7 @@ require_once("../models/mysql.php");
 $db =new mysql();
 $db->conectar();
 
-$sql="SELECT nombre_completo,num_documento,correo_electronico from usuarios where id_role=2";
+$sql="SELECT nombre_completo,apellido,num_documento,correo_electronico from usuarios where id_role=2";
 
 $resultado=$db->efectuarconsulta($sql);
 
@@ -57,7 +57,7 @@ $tituloPagina = 'Instructores';
                             <tr>
                                 <td class="d-flex align-items-center gap-2">
                                     <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'],0,1)) ?></span>
-                                    <?=$fila['nombre_completo'] ?>
+                                    <?=$fila['nombre_completo'].' '. $fila['apellido'] ?>
                                 </td>
                                 <td><?= $fila['num_documento']?></td>
                                 <td><?=$fila['correo_electronico'] ?></td>
@@ -91,8 +91,12 @@ $tituloPagina = 'Instructores';
         </div>
         <div class="modal-body">
             <div class="mb-3">
-                <label class="form-label">Nombre completo</label>
+                <label class="form-label">Nombres</label>
                 <input type="text" class="form-control" name="nombre" required>
+            </div>
+              <div class="mb-3">
+                <label class="form-label">Apellidos</label>
+                <input type="text" class="form-control" name="apellido" required>
             </div>
             <div class="row g-3">
                 <div class="col-md-6">
