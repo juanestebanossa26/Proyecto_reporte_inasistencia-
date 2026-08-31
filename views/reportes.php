@@ -1,25 +1,65 @@
 <?php
-/**
- * reportes.php — Generación de reportes de inasistencia (HU 11, 12)
- *
- * TODO (backend):
- *   - El formulario de filtros debe enviarse a generar_reporte.php (GET/POST),
- *     que consulta `ingresos` + obtener_inasistencias_reales() para excluir
- *     inasistencias ya justificadas con excusa aprobada (HU 18, 19).
- *   - Los botones "Exportar PDF" / "Exportar Excel" deben apuntar a
- *     exportar_reporte.php?formato=pdf|excel con los mismos filtros aplicados.
- */
+session_start();
+if (!isset($_SESSION["Documento"])) {
+    header("Location: ../index.php");
+    exit();
+}
+require_once('../models/mysql.php');
+$db=new mysql();
+$db->conectar();
+$sql="SELECT 
+    u_aprendiz.nombre_completo,
+    u_aprendiz.apellido,
+    fichas.numero_ficha,
+    fichas.nombre_programa,
+    u_instructor.nombre_completo AS nombre_instructor,
+    u_instructor.apellido AS apellido_instructor,
+    SUM(asistencias.estado = 'Retardo') AS retardos,
+    IF(
+        SUM(asistencias.tiempo_retraso) >= 60,
+        CONCAT(FLOOR(SUM(asistencias.tiempo_retraso) / 60), 'h ', MOD(SUM(asistencias.tiempo_retraso), 60), 'm'),
+        CONCAT(COALESCE(SUM(asistencias.tiempo_retraso), 0), 'm')
+    ) AS tiempo_retraso_formato,
+    SUM(asistencias.estado = 'Inasistencia' AND (excusas_medicas.estado_excusa IS NULL OR excusas_medicas.estado_excusa != 'Aprobada')) AS inasistencias
+FROM aprendices
+JOIN usuarios u_aprendiz 
+    ON aprendices.id_usuario = u_aprendiz.id_usuario
+JOIN fichas 
+    ON aprendices.id_ficha = fichas.id_ficha
+LEFT JOIN usuarios u_instructor 
+    ON fichas.id_instructor = u_instructor.id_usuario
+LEFT JOIN asistencias 
+    ON asistencias.id_aprendiz = aprendices.id_aprendiz
+LEFT JOIN excusas_medicas 
+    ON excusas_medicas.id_asistencia = asistencias.id_asistencia
+GROUP BY 
+    aprendices.id_aprendiz;
+
+";
+$resultado= $db->prepare($sql);
+$resultado->execute();
+
+$sql="SELECT 
+    COUNT( aprendices.id_aprendiz) AS aprendices_en_rango,
+    COUNT(NULLIF(asistencias.estado = 'Retardo', 0)) AS total_retardos,
+    COUNT(NULLIF(asistencias.estado = 'Inasistencia' AND (excusas_medicas.estado_excusa IS NULL OR excusas_medicas.estado_excusa != 'Aprobada'), 0)) AS total_inasistencias,
+    COALESCE(SUM(asistencias.tiempo_retraso), 0) AS minutos_retardo
+FROM aprendices
+LEFT JOIN asistencias 
+    ON asistencias.id_aprendiz = aprendices.id_aprendiz
+LEFT JOIN excusas_medicas 
+    ON excusas_medicas.id_asistencia = asistencias.id_asistencia;";
+$contadores= $db->prepare($sql);
+$contadores->execute();
+
+
+
 $rolActivo     = $_SESSION['rol'] ?? 'admin';
-$nombreUsuario = 'Juan Camilo Vanegas';
+$nombreUsuario ;
 $paginaActiva  = 'reportes';
 $tituloPagina  = 'Reportes de asistencia';
 
-$filas = [
-    ['aprendiz'=>'Camila Suárez','ficha'=>'2678903 · Multimedia','instructor'=>'Marcela Ortiz','retardos'=>1,'inasistencias'=>2,'minutos_retardo'=>15],
-    ['aprendiz'=>'Julián Rojas','ficha'=>'2589451 · ADSO','instructor'=>'Juan Camilo Vanegas','retardos'=>3,'inasistencias'=>0,'minutos_retardo'=>42],
-    ['aprendiz'=>'Diego Peña','ficha'=>'2589451 · ADSO','instructor'=>'Juan Camilo Vanegas','retardos'=>0,'inasistencias'=>1,'minutos_retardo'=>0],
-    ['aprendiz'=>'Andrés Gil','ficha'=>'2589451 · ADSO','instructor'=>'Juan Camilo Vanegas','retardos'=>2,'inasistencias'=>0,'minutos_retardo'=>18],
-];
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -76,34 +116,34 @@ $filas = [
                     </div>
                 </form>
             </div>
-
+            <?php while($fila=$contadores->fetch()) { ?>
             <div class="row g-3 mb-3">
                 <div class="col-6 col-md-3">
                     <div class="card kpi-card p-3 text-center">
                         <div class="text-suave" style="font-size:.76rem;">Aprendices en el rango</div>
-                        <div class="h4 fw-bold mb-0"><?= count($filas) ?></div>
+                        <div class="h4 fw-bold mb-0"><?= $fila['aprendices_en_rango'] ?></div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card kpi-card p-3 text-center">
                         <div class="text-suave" style="font-size:.76rem;">Total retardos</div>
-                        <div class="h4 fw-bold mb-0" style="color:#8a6300;"><?= array_sum(array_column($filas,'retardos')) ?></div>
+                        <div class="h4 fw-bold mb-0" style="color:#8a6300;"><?= $fila['total_retardos'] ?></div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card kpi-card p-3 text-center">
                         <div class="text-suave" style="font-size:.76rem;">Total inasistencias</div>
-                        <div class="h4 fw-bold mb-0" style="color:#B4212B;"><?= array_sum(array_column($filas,'inasistencias')) ?></div>
+                        <div class="h4 fw-bold mb-0" style="color:#B4212B;"><?= $fila['total_inasistencias'] ?></div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="card kpi-card p-3 text-center">
                         <div class="text-suave" style="font-size:.76rem;">Minutos de retardo</div>
-                        <div class="h4 fw-bold mb-0" style="color:#2F6FED;"><?= array_sum(array_column($filas,'minutos_retardo')) ?></div>
+                        <div class="h4 fw-bold mb-0" style="color:#2F6FED;"><?= $fila['minutos_retardo']  ?></div>
                     </div>
                 </div>
             </div>
-
+  <?php } ?>
             <div class="card p-3">
                 <h2 class="h6 fw-bold mb-3">Detalle por aprendiz</h2>
                 <div class="table-responsive">
@@ -115,24 +155,24 @@ $filas = [
                                 <th>Ficha</th>
                                 <th>Instructor</th>
                                 <th class="text-center">Retardos</th>
-                                <th class="text-center">Min. retardo</th>
+                                <th class="text-center">Tiempo Total de Retardo</th>
                                 <th class="text-center">Inasistencias</th>
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($filas as $f): ?>
+                        <?php while ($fila=$resultado->fetch()){ ?>
                             <tr>
                                 <td class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circ"><?= strtoupper(substr($f['aprendiz'],0,1)) ?></span>
-                                    <?= htmlspecialchars($f['aprendiz']) ?>
+                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'],0,1)) ?></span>
+                                    <?= htmlspecialchars($fila['nombre_completo']) ?>
                                 </td>
-                                <td><?= htmlspecialchars($f['ficha']) ?></td>
-                                <td><?= htmlspecialchars($f['instructor']) ?></td>
-                                <td class="text-center"><?= (int)$f['retardos'] ?></td>
-                                <td class="text-center"><?= (int)$f['minutos_retardo'] ?></td>
-                                <td class="text-center"><?= (int)$f['inasistencias'] ?></td>
+                                <td><?= htmlspecialchars($fila['nombre_programa'].'-'.$fila['numero_ficha']) ?></td>
+                                <td><?= htmlspecialchars($fila['nombre_instructor'].' '.$fila['apellido_instructor']) ?></td>
+                                <td class="text-center"><?= $fila['retardos'] ?></td>
+                                <td class="text-center"><?= $fila['tiempo_retraso_formato'] ?></td>
+                                <td class="text-center"><?= $fila['inasistencias'] ?></td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php } ?>
                         </tbody>
                     </table>
                 </div>
