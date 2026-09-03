@@ -166,7 +166,7 @@ $tituloPagina = 'Reportes de asistencia';
         <!-- Envía los filtros por POST a generar_pdf.php -->
         <button type="submit" 
                 class="btn btn-outline-secondary" 
-                formaction="generar_pdf.php" 
+                formaction="../controllers/generar_pdf.php" 
                 formtarget="_blank">
             <i class="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
         </button>
@@ -174,7 +174,7 @@ $tituloPagina = 'Reportes de asistencia';
         <!-- Envía los filtros por POST a generar_excel.php -->
         <button type="submit" 
                 class="btn btn-outline-secondary" 
-                formaction="generar_excel.php" 
+                formaction="../controllers/generar_excel.php" 
                 formtarget="_blank">
             <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
         </button>
