@@ -82,9 +82,9 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $row['nombre_completo'] . ' ' . $row['apellido'],
         $row['numero_ficha'] . ' · ' . $row['nombre_programa'],
         trim(($row['nombre_instructor'] ?? '') . ' ' . ($row['apellido_instructor'] ?? '')) ?: 'Sin instructor',
-        (int)($row['retardos'] ?? 0),
-        (int)($row['min_retardo'] ?? 0),
-        (int)($row['inasistencias'] ?? 0)
+        ($row['retardos'] ?? 0),
+        ($row['min_retardo'] ?? 0),
+        ($row['inasistencias'] ?? 0)
     ];
 }
 

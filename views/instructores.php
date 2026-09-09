@@ -21,8 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_editar']) && !empt
 }
 
 //  Consulta de todos los instructores para la tabla
-$sql = "SELECT id_usuario, nombre_completo, apellido, num_documento, correo_electronico FROM usuarios WHERE id_role = 2";
+$sql = "SELECT id_usuario, nombre_completo, apellido,estado, num_documento, correo_electronico FROM usuarios WHERE id_role = 2";
 $resultado = $db->efectuarconsulta($sql);
+
+
+
 
 $rolActivo    = 'admin';        
 $paginaActiva = 'instructores'; 
@@ -60,6 +63,7 @@ $tituloPagina = 'Instructores';
                                 <th>Instructor</th>
                                 <th>Documento</th>
                                 <th>Correo</th>
+                                <th>Estado</th>
                                 <th class="text-end" data-orderable="false">Acciones</th>
                             </tr>
                         </thead>
@@ -72,6 +76,20 @@ $tituloPagina = 'Instructores';
                                 </td>
                                 <td><?= htmlspecialchars($fila['num_documento'], ENT_QUOTES, 'UTF-8') ?></td>
                                 <td><?= htmlspecialchars($fila['correo_electronico'], ENT_QUOTES, 'UTF-8') ?></td>
+                                
+                                <td>
+    <?php
+    $badgeClass = match(strtolower(trim($fila['estado']))) {
+        'activo'    => 'bg-success-subtle text-success border border-success-subtle',
+        'inactivo'  => 'bg-danger-subtle text-danger border border-danger-subtle',
+        'pendiente' => 'bg-warning-subtle text-warning border border-warning-subtle',
+        default     => 'bg-secondary-subtle text-secondary border'
+    };
+    ?>
+    <span class="badge rounded-pill <?= $badgeClass ?>">
+        <?= htmlspecialchars($fila['estado'], ENT_QUOTES, 'UTF-8') ?>
+    </span>
+</td>
                                 <td class="text-end">
                                     <div class="d-inline-flex align-items-center gap-1">
                                         <!-- Formulario POST exclusivo para solicitar edición de este usuario -->
@@ -204,7 +222,7 @@ $(document).ready(function() {
         pageLength: 10,
         responsive: true,
         columnDefs: [
-            { orderable: false, targets: 3 }
+            { orderable: false, targets: 4 }
         ]
     });
 });
