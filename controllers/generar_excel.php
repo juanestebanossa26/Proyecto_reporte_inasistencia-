@@ -7,7 +7,7 @@ if (!isset($_SESSION["Documento"])) {
 
 
 require_once(__DIR__ . '/../libs/SimpleXLSXGen.php');
-require_once('../models/mysql.php');
+require_once __DIR__ . "/../config/mysql.php";
 
 $db = new mysql();
 $db->conectar();

@@ -4,7 +4,7 @@ if (!isset($_SESSION["Documento"])) {
     header("Location: ../index.php");
     exit();
 }
-require_once("../models/mysql.php");
+require_once __DIR__ . "/../config/mysql.php";
 $rolActivo     = $_SESSION['rol'];
 $nombreUsuario ;
 $paginaActiva  = 'perfil';

@@ -1,5 +1,5 @@
 <?php
-require_once '../models/mysql.php';
+require_once __DIR__ . "/../config/mysql.php";
 session_start();
 
 $mysql = new MySQL();

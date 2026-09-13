@@ -7,7 +7,7 @@ if (!isset($_SESSION["Documento"])) {
 
 // Inclusión con la ruta a la carpeta fpdf detectada
 require_once(__DIR__ . '/../libs/fpdf/fpdf.php');
-require_once('../models/mysql.php');
+require_once __DIR__ . "/../config/mysql.php";
 
 $db = new mysql();
 $db->conectar();

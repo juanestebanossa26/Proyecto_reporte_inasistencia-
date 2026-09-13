@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once("../models/mysql.php");
+require_once __DIR__ . "/../config/mysql.php";
 $bd = new mysql();
 $bd->conectar();
 
