@@ -1,51 +1,50 @@
 <?php
+// Conexión única a la base de datos usando PDO.
+// Todos los Modelos obtienen la conexión a través de Conexion::obtener(),
+// nunca creando su propio new PDO(...).
+//
+// Esta clase reemplaza a la antigua config/mysql.php (que mezclaba la
+// conexión con métodos de consulta) y corrige las referencias rotas que
+// había en el proyecto original a "../models/mysql.php", un archivo que
+// en realidad nunca existía dentro de la carpeta models/.
 
 require_once __DIR__ . '/config.php';
 
-class mysql {
-    private $conexion;
+class Conexion
+{
+    private static ?PDO $instancia = null;
 
-    public function __construct() {
-        $this->conectar();
+    // Evita que la clase se instancie desde fuera.
+    private function __construct()
+    {
     }
 
-    public function conectar() {
-        if ($this->conexion !== null) {
-            return;
+    public static function obtener(): PDO
+    {
+        if (self::$instancia === null) {
+            $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
+
+            try {
+                self::$instancia = new PDO($dsn, DB_USER, DB_PASS, [
+                    // Los errores de PDO se convierten en excepciones capturables.
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+
+                    // Los resultados llegan como arreglos asociativos por defecto.
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+
+                    // Las consultas preparadas se envían de forma nativa al motor,
+                    // en vez de ser emuladas por PHP.
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]);
+
+                // Mismo ajuste que tenía el proyecto original: nombres de
+                // fecha (día/mes) en español al usar funciones de fecha de MySQL.
+                self::$instancia->exec("SET lc_time_names = 'es_ES'");
+            } catch (PDOException $e) {
+                die('Error de conexión: ' . $e->getMessage());
+            }
         }
 
-        try {
-            $origen = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
-            
-            $opciones = [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
-            ];
-
-            // Si usas constantes en config.php:
-            $this->conexion = new PDO($origen, DB_USER, DB_PASS, $opciones);
-            
-            $this->conexion->exec("SET lc_time_names = 'es_ES'");
-
-        } catch (PDOException $e) {
-            die("Error de conexión: " . $e->getMessage());
-        }
-    }
-
-    public function prepare($sql) {
-        return $this->conexion->prepare($sql);
-    }
-
-    public function efectuarconsulta($consulta) {
-        try {
-            return $this->conexion->query($consulta);
-        } catch (PDOException $e) {
-            die("Error en la consulta: " . $e->getMessage());
-        }
-    }
-
-    public function desconectar() {
-        $this->conexion = null;
+        return self::$instancia;
     }
 }

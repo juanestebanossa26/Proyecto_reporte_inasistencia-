@@ -79,10 +79,10 @@ foreach (explode(' ', $nombreUsuario) as $parte) {
                 <i class="bi bi-chevron-down text-suave" style="font-size:.7rem;"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="perfil.php"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
+                <li><a class="dropdown-item" href="<?= BASE_URL ?>/index.php?accion=perfil"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
      
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="../controllers/logout.php"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
+                <li><a class="dropdown-item text-danger" href="<?= BASE_URL ?>/index.php?accion=logout"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
             </ul>
         </div>
     </div>

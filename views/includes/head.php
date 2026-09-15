@@ -20,4 +20,4 @@ if (!isset($tituloPagina)) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Estilos propios -->
-<link rel="stylesheet" href="/proyecto_asistencias/assets/css/style.css">
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">

@@ -37,37 +37,37 @@ function navLink($href, $icon, $label, $slug, $paginaActiva) {
             <!-- Validamos los roles convirtiendo el texto a minúsculas para evitar errores de tipeo en la BD -->
             <?php if (strtolower($rolActivo) === 'admin' || strtolower($rolActivo) === 'administrador'): ?>
                  <div class="sidebar-section-label">General</div>
-            <?php navLink('dashboard.php', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
+            <?php navLink(BASE_URL . '/index.php?accion=dashboard', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
                 <div class="sidebar-section-label">Gestión</div>
-                <?php navLink('aprendices.php', 'bi-people-fill', 'Aprendices', 'aprendices', $paginaActiva); ?>
-                <?php navLink('instructores.php', 'bi-person-badge-fill', 'Instructores', 'instructores', $paginaActiva); ?>
-                <?php navLink('fichas.php', 'bi-journal-bookmark-fill', 'Fichas y horarios', 'fichas', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=aprendices', 'bi-people-fill', 'Aprendices', 'aprendices', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=instructores', 'bi-person-badge-fill', 'Instructores', 'instructores', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=fichas', 'bi-journal-bookmark-fill', 'Fichas y horarios', 'fichas', $paginaActiva); ?>
 
                 <div class="sidebar-section-label">Control</div>
-                <?php navLink('marcaje.php', 'bi-wifi', 'Marcaje RFID', 'marcaje', $paginaActiva); ?>
-                <?php navLink('validar_excusas.php', 'bi-file-earmark-medical-fill', 'Excusas médicas', 'validar_excusas', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=marcaje', 'bi-wifi', 'Marcaje RFID', 'marcaje', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=validarExcusas', 'bi-file-earmark-medical-fill', 'Excusas médicas', 'validar_excusas', $paginaActiva); ?>
 
                 <div class="sidebar-section-label">Reportes</div>
-                <?php navLink('reportes.php', 'bi-bar-chart-line-fill', 'Reportes', 'reportes', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=reportes', 'bi-bar-chart-line-fill', 'Reportes', 'reportes', $paginaActiva); ?>
 
             <?php elseif (strtolower($rolActivo) === 'instructor'): ?>
                  <div class="sidebar-section-label">General</div>
-            <?php navLink('dashboard.php', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
+            <?php navLink(BASE_URL . '/index.php?accion=dashboard', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
                 <div class="sidebar-section-label">Mi ficha</div>
-                <?php navLink('fichas.php', 'bi-journal-bookmark-fill', 'Horarios de ficha', 'fichas', $paginaActiva); ?>
-                <?php navLink('validar_excusas.php', 'bi-file-earmark-medical-fill', 'Validar excusas', 'validar_excusas', $paginaActiva); ?>
-                <?php navLink('reportes.php', 'bi-bar-chart-line-fill', 'Reportes de mi ficha', 'reportes', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=fichas', 'bi-journal-bookmark-fill', 'Horarios de ficha', 'fichas', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=validarExcusas', 'bi-file-earmark-medical-fill', 'Validar excusas', 'validar_excusas', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=reportes', 'bi-bar-chart-line-fill', 'Reportes de mi ficha', 'reportes', $paginaActiva); ?>
 
             <?php elseif (strtolower($rolActivo) === 'aprendiz'): ?>
                 <div class="sidebar-section-label">Mi asistencia</div>
             
-                <?php navLink('historial.php', 'bi-clock-history', 'Mi historial', 'historial', $paginaActiva); ?>
-                <?php navLink('excusas.php', 'bi-file-earmark-medical-fill', 'Anexar excusa médica', 'excusas', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=historial', 'bi-clock-history', 'Mi historial', 'historial', $paginaActiva); ?>
+                <?php navLink(BASE_URL . '/index.php?accion=excusas', 'bi-file-earmark-medical-fill', 'Anexar excusa médica', 'excusas', $paginaActiva); ?>
             <?php endif; ?>
 
             <div class="sidebar-section-label">Cuenta</div>
-            <?php navLink('perfil.php', 'bi-person-circle', 'Mi perfil', 'perfil', $paginaActiva); ?>
-            <?php navLink('../controllers/logout.php', 'bi-box-arrow-right', 'Cerrar sesión', 'salir', $paginaActiva); ?>
+            <?php navLink(BASE_URL . '/index.php?accion=perfil', 'bi-person-circle', 'Mi perfil', 'perfil', $paginaActiva); ?>
+            <?php navLink(BASE_URL . '/index.php?accion=logout', 'bi-box-arrow-right', 'Cerrar sesión', 'salir', $paginaActiva); ?>
         </ul>
     </nav>
 

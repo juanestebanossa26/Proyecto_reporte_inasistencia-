@@ -1,106 +1,105 @@
 <?php
-/**
- * index.php — Punto de entrada del sistema (Login)
- *
- * Único formulario de acceso reutilizado por los 3 roles (admin / instructor / aprendiz),
- * tal como lo define el contrato de datos del proyecto.
- *
- * TODO (backend):
- *   - action="procesar_login.php" -> validar usuario/contraseña contra tabla `usuarios`
- *   - redirigir según rol a dashboard.php
- *   - manejar mensajes de error vía $_SESSION o querystring (?error=1)
- */
-$tituloPagina = 'Iniciar sesión';
-?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<?php include 'includes/head.php'; ?>
-</head>
-<body>
+// Punto de entrada único de la aplicación.
+// Configura la sesión de forma segura, carga las dependencias y enruta
+// la petición hacia el Controlador correspondiente, según ?accion=...
 
-<div class="login-shell">
+declare(strict_types=1);
 
-    <!-- Panel izquierdo: identidad del sistema -->
-    <div class="login-aside">
-        <div class="brand-mark">
-            <div class="dot"><i class="bi bi-shield-check"></i></div>
-            <div>
-                <div class="fw-bold" style="font-size:1.05rem;">SENA</div>
-                <small style="opacity:.75;">Control de Ingreso de Aprendices</small>
-            </div>
-        </div>
+define('BASE_PATH', __DIR__);
 
-        <div>
-            <h1 class="font-display fw-bold text-white mb-3" style="font-size:2.3rem; max-width:460px;">
-                Cada entrada, cada salida, un registro exacto.
-            </h1>
-            <p style="color:rgba(255,255,255,.75); max-width:420px;">
-                Marca tu ingreso con tu carné RFID, consulta tu historial de asistencia
-                y gestiona excusas médicas desde un solo lugar.
-            </p>
+// URL base real del proyecto, calculada a partir del propio script.
+// Si el proyecto vive en http://localhost/proyecto_asistencias/, esto
+// vale "/proyecto_asistencias". Si vive en la raíz del servidor, vale "".
+// Se usa para que los enlaces, formularios y assets funcionen sin importar
+// en qué subcarpeta esté instalado el proyecto.
+define('BASE_URL', rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/'));
 
-            <div class="card-rfid mt-4">
-                <div class="chip"></div>
-                <div class="d-flex justify-content-between align-items-end">
-                    <div>
-                        <div style="opacity:.65; font-size:.72rem; letter-spacing:.08em;">CARNÉ APRENDIZ</div>
-                        <div class="fw-semibold" style="font-size:1.05rem;">•••• •••• 4471</div>
-                    </div>
-                    <span class="pulse-ring"></span>
-                </div>
-            </div>
-        </div>
+// Cuando el proyecto se ejecuta con el servidor interno de PHP
+// (php -S localhost:8000), TODAS las peticiones pasan por este archivo,
+// incluidas las de CSS, JS o imágenes. Sin este bloque, el navegador nunca
+// recibiría esos archivos: siempre recibiría el HTML de la acción por
+// defecto. Con Apache/XAMPP este bloque nunca se ejecuta y no cambia nada.
+if (PHP_SAPI === 'cli-server') {
+    $rutaSolicitada = BASE_PATH . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-        <div style="position:relative; z-index:1; color:rgba(255,255,255,.55); font-size:.78rem;">
-            © <?= date('Y') ?> SENA · Análisis y Desarrollo de Software
-        </div>
-    </div>
+    // Solo se delega al servidor embebido si el archivo existe Y no es un
+    // .php — un .php siempre debe pasar por aquí (el enrutador), nunca
+    // ejecutarse aparte. Sin este segundo chequeo, pedir /index.php
+    // directamente lo ejecutaría dos veces en la misma petición.
+    if (is_file($rutaSolicitada) && pathinfo($rutaSolicitada, PATHINFO_EXTENSION) !== 'php') {
+        return false;
+    }
+}
 
-    <!-- Panel derecho: formulario -->
-    <div class="login-form-side">
-        <div class="login-box">
+require_once BASE_PATH . '/config/config.php';
 
-            <div class="mb-4">
-                <h2 class="fw-bold mb-1">Iniciar sesión</h2>
-                <p class="text-suave mb-0">Ingresa tus credenciales para continuar</p>
-            </div>
+// La cookie de sesión se configura ANTES de session_start(), o estas
+// opciones no tendrían efecto.
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path'     => '/',
+    'domain'   => '',
+    // secure solo se activa si la conexión ya es HTTPS, para no bloquear
+    // el uso en un entorno de práctica local sin certificado.
+    'secure'   => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+    'httponly' => true,
+    'samesite' => 'Strict',
+]);
+session_start();
 
-           
+require_once BASE_PATH . '/config/Conexion.php';
+require_once BASE_PATH . '/helpers/Seguridad.php';
 
-            <!-- TODO (backend): action="procesar_login.php" method="POST" -->
-            <form action="./controllers/login.php" method="POST" novalidate>
+// Modelos (acceso a datos, sin HTML ni encabezados HTTP).
+require_once BASE_PATH . '/models/UsuarioModelo.php';
 
-                <div class="form-floating mb-3">
-                    <input type="text" class="form-control" id="usuario" name="documento" placeholder="documento" required>
-                    <label for="usuario">número de documento</label>
-                </div>
+//controladores
+// Controladores
+require_once BASE_PATH . '/controllers/ControladorBase.php'; // <-- Debe ir primero
+require_once BASE_PATH . '/controllers/AuthControlador.php';
+require_once BASE_PATH . '/controllers/PaginaControlador.php';
+// Cualquier excepción que ningún Controlador haya capturado llega hasta
+// aquí. El detalle técnico se registra en el servidor y el usuario final
+// solo ve un mensaje genérico, salvo en modo de depuración.
+set_exception_handler(function (Throwable $e): void {
+    error_log('Excepción no controlada: ' . $e->getMessage());
 
-                <div class="form-floating mb-2 position-relative">
-                    <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
-                    <label for="password">Contraseña</label>
-                </div>
+    http_response_code(500);
 
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                 
-                </div>
-                <!-- Alerta de error de ejemplo (el backend la muestra condicionalmente) -->
-                <div class="alert alert-danger d-none" id="alertaError" role="alert">
-                    Usuario o contraseña incorrectos.
-                </div>
+    if (MODO_DEBUG) {
+        echo 'Error no controlado: ' . htmlspecialchars($e->getMessage());
+        return;
+    }
 
-                <button type="submit" class="btn btn-sena w-100 py-2 mb-3" >
-                    Ingresar <i class="bi bi-arrow-right ms-1"></i>
-                </button>
+    echo 'Ocurrió un error inesperado. Intenta de nuevo más tarde.';
+});
 
-                <p class="text-center text-suave mb-0" style="font-size:.85rem;">
-                    ¿Problemas para ingresar? Contacta a tu instructor o al administrador del sistema.
-                </p>
-            </form>
-        </div>
-    </div>
-</div>
+$accion = $_GET['accion'] ?? 'login';
 
-<?php include 'includes/scripts.php'; ?>
-</body>
-</html>
+$auth        = new AuthControlador();
+$pagina      = new PaginaControlador();
+
+
+match ($accion) {
+    // --- Autenticación ---
+    'login'      => $auth->mostrarLogin(),
+    'autenticar' => $auth->login(),
+    'logout'     => $auth->logout(),
+
+    // --- Páginas de solo lectura (protegidas por sesión) ---
+    'dashboard'       => $pagina->mostrar('dashboard'),
+    'aprendices'      => $pagina->mostrar('aprendices'),
+    'fichas'          => $pagina->mostrar('fichas'),
+    'historial'       => $pagina->mostrar('historial'),
+    'instructores'    => $pagina->mostrar('instructores'),
+    'marcaje'         => $pagina->mostrar('marcaje'),
+    'perfil'          => $pagina->mostrar('perfil'),
+    'reportes'        => $pagina->mostrar('reportes'),
+    'excusas'         => $pagina->mostrar('excusas'),
+    'validarExcusas'  => $pagina->mostrar('validar_excusas'),
+
+
+    // Cualquier acción no reconocida cae en el login, en vez de mostrar
+    // un error técnico o una página en blanco.
+    default => $auth->mostrarLogin(),
+};
