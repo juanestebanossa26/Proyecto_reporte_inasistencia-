@@ -1,30 +1,4 @@
 <?php
-session_start();
-if (!isset($_SESSION["Documento"])) {
-    header("Location: ../index.php");
-    exit();
-}
-require_once __DIR__ . "/../config/mysql.php";
-
-$db = new mysql();
-$db->conectar();
-
-//  consulta para traer los datos del instructor elegido para editar
-$instructorEditar = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_editar']) && !empty($_POST['id_editar'])) {
-    $idEdit = filter_var($_POST['id_editar'], FILTER_SANITIZE_NUMBER_INT);
-
-    $stmt = $db->prepare("SELECT id_usuario, nombre_completo, apellido, num_documento, correo_electronico FROM usuarios WHERE id_usuario = :id AND id_role = 2");
-    $stmt->bindParam(':id', $idEdit, PDO::PARAM_INT);
-    $stmt->execute();
-    $instructorEditar = $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-//  Consulta de todos los instructores para la tabla
-$sql = "SELECT id_usuario, nombre_completo, apellido,estado, num_documento, correo_electronico FROM usuarios WHERE id_role = 2";
-$resultado = $db->efectuarconsulta($sql);
-
-
 
 
 $rolActivo    = 'admin';        

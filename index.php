@@ -51,11 +51,13 @@ require_once BASE_PATH . '/config/Conexion.php';
 require_once BASE_PATH . '/helpers/Seguridad.php';
 
 // Modelos (acceso a datos, sin HTML ni encabezados HTTP).
-require_once BASE_PATH . '/models/UsuarioModelo.php';
-
+require_once BASE_PATH . '/modelos/UsuarioModelo.php';
+require_once BASE_PATH . '/modelos/AsistenciaModelo.php';
+require_once BASE_PATH . '/modelos/ExcusaModelo.php';
+require_once BASE_PATH . '/modelos/ReporteModelo.php';
 //controladores
 // Controladores
-require_once BASE_PATH . '/controllers/ControladorBase.php'; // <-- Debe ir primero
+require_once BASE_PATH . '/controllers/ControladorBase.php'; 
 require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
 // Cualquier excepción que ningún Controlador haya capturado llega hasta
@@ -85,6 +87,9 @@ match ($accion) {
     'login'      => $auth->mostrarLogin(),
     'autenticar' => $auth->login(),
     'logout'     => $auth->logout(),
+
+
+    
 
     // --- Páginas de solo lectura (protegidas por sesión) ---
     'dashboard'       => $pagina->mostrar('dashboard'),

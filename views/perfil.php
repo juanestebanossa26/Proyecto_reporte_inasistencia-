@@ -1,10 +1,7 @@
 <?php
-session_start();
-if (!isset($_SESSION["Documento"])) {
-    header("Location: ../index.php");
-    exit();
-}
-require_once __DIR__ . "/../config/mysql.php";
+// La sesión ya fue verificada por PaginaControlador::mostrar() antes de
+// llegar aquí (ver index.php). No hace falta repetir el chequeo.
+require_once __DIR__ . '/../config/Conexion.php';
 $rolActivo     = $_SESSION['rol'];
 $nombreUsuario ;
 $paginaActiva  = 'perfil';
@@ -13,13 +10,13 @@ $tituloPagina  = 'Mi perfil';
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<?php include '../includes/head.php'; ?>
+<?php include 'includes/head.php'; ?>
 </head>
 <body>
 <div class="app-shell">
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     <div class="app-main">
-        <?php include '../includes/topbar.php'; ?>
+        <?php include 'includes/topbar.php'; ?>
         <main class="app-content">
             <div class="page-header">
                 <div class="eyebrow">Cuenta</div>
@@ -66,6 +63,6 @@ $tituloPagina  = 'Mi perfil';
     </div>
 </div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include 'includes/scripts.php'; ?>
 </body>
 </html>

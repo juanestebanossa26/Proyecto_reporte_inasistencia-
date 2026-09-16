@@ -1,55 +1,14 @@
 <?php
-session_start();
-if (!isset($_SESSION["Documento"])) {
-    header("Location: ../index.php");
-    exit();
-}
-require_once __DIR__ . "/../config/mysql.php";
-$db= new mysql();
-$db->conectar();
+// La sesión ya fue verificada por PaginaControlador::mostrar() antes de
+// llegar aquí (ver index.php). No hace falta repetir el chequeo.
+require_once __DIR__ . '/../config/Conexion.php';
+require_once __DIR__ . '/../models/AsistenciaModelo.php';
 
-// Se agregó LEFT JOIN en excusas_medicas para que traiga asistencias sin excusa
-$sql = "SELECT asistencias.*,
-       excusas_medicas.estado_excusa      
-        FROM asistencias 
-        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
-        LEFT JOIN excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
-        WHERE aprendices.id_usuario = :id_usuario";
-
-$resultado= $db->prepare($sql);
-$resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$resultado->execute();
-
-// consulta para hacer un contador de inasistencias
-$sql = "SELECT COUNT(asistencias.id_asistencia) 
-        FROM asistencias 
-        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
-        WHERE aprendices.id_usuario = :id_usuario and estado='inasistencia'";
-
-$conta_inasistencia= $db->prepare($sql);
-$conta_inasistencia->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$conta_inasistencia->execute();
-
-// consulta para hacer un contador retardos 
-$sql = "SELECT COUNT(asistencias.id_asistencia) 
-        FROM asistencias 
-        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
-        WHERE aprendices.id_usuario = :id_usuario and estado='retardo'";
-
-$conta_retardo= $db->prepare($sql);
-$conta_retardo->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$conta_retardo->execute();
-//este contador lo hice para contar las excusas pendientes por aprobar
-$sql = "SELECT 
-       COUNT(excusas_medicas.id_excusa)      
-        FROM asistencias 
-        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
-        JOIN excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
-        WHERE aprendices.id_usuario = :id_usuario and estado_excusa='Pendiente'";
-
-$contador_pendiente= $db->prepare($sql);
-$contador_pendiente->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$contador_pendiente->execute();
+$asistenciaModelo = new AsistenciaModelo();
+$historial         = $asistenciaModelo->listarPorAprendiz((int) $_SESSION['id']);
+$total_retardo     = $asistenciaModelo->contarPorEstado((int) $_SESSION['id'], 'retardo');
+$total_inasistencia = $asistenciaModelo->contarPorEstado((int) $_SESSION['id'], 'inasistencia');
+$total_pendientes  = $asistenciaModelo->contarExcusasPendientes((int) $_SESSION['id']);
 
 
 
@@ -66,14 +25,14 @@ $etiquetas = [
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<?php include '../includes/head.php'; ?>
+<?php include 'includes/head.php'; ?>
  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"> 
 </head>
 <body>
 <div class="app-shell">
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     <div class="app-main">
-        <?php include '../includes/topbar.php'; ?>
+        <?php include 'includes/topbar.php'; ?>
         <main class="app-content">
             <div class="page-header d-flex justify-content-between align-items-end flex-wrap gap-2">
                 <div>
@@ -86,7 +45,6 @@ $etiquetas = [
 
             <div class="row g-3 mb-3 justify-content-center">
                 <div class="col-6 col-md-3">
-                    <?php $total_retardo = $conta_retardo->fetchColumn(); ?>
                     <div class="card kpi-card p-3 text-center">
                         <div class="text-suave" style="font-size:.76rem;">Retardos</div>
                         <div class="h4 fw-bold mb-0" style="color:#8a6300;"><?php echo $total_retardo; ?></div>
@@ -94,7 +52,6 @@ $etiquetas = [
                 </div>
                 
                 <div class="col-6 col-md-3">
-                    <?php $total_inasistencia = $conta_inasistencia->fetchColumn(); ?>
                     <div class="card kpi-card p-3 text-center">
                         <div class="text-suave" style="font-size:.76rem;">Inasistencias</div>
                         <div class="h4 fw-bold mb-0" style="color:#B4212B;"><?php echo $total_inasistencia; ?></div>
@@ -102,7 +59,6 @@ $etiquetas = [
                 </div>
                 
                 <div class="col-6 col-md-3">
-                    <?php $total_pendientes = $contador_pendiente->fetchColumn(); ?>
                     <div class="card kpi-card p-3 text-center">
                         <div class="text-suave" style="font-size:.76rem;">Excusas Pendientes</div>
                         <div class="h4 fw-bold mb-0" style="color:#2F6FED;"><?php echo $total_pendientes; ?></div>
@@ -123,7 +79,7 @@ $etiquetas = [
                             </tr>
                         </thead>
                         <tbody>
-                        <?php while ($fila = $resultado->fetch()) {  
+                        <?php foreach ($historial as $fila) {  
                             
                             // Lógica para verificar si la excusa está vacía
                             $estadoExcusa = $fila['estado_excusa'];
@@ -157,7 +113,7 @@ $etiquetas = [
     </div>
 </div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include 'includes/scripts.php'; ?>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script> 
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script> 
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script> 
