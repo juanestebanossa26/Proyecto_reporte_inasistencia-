@@ -63,9 +63,9 @@ $tituloPagina  = 'Validar excusas médicas';
 </head>
 <body>
 <div class="app-shell">
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     <div class="app-main">
-        <?php include '../includes/topbar.php'; ?>
+        <?php include 'includes/topbar.php'; ?>
         <main class="app-content">
             <div class="page-header">
                 <div class="eyebrow">Control</div>
@@ -129,7 +129,7 @@ $tituloPagina  = 'Validar excusas médicas';
     </div>
 </div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include 'includes/scripts.php'; ?>
 <!-- JS de DataTables (Asegúrate de que no tengan comentarios HTML a los lados) -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>

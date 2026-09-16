@@ -24,16 +24,16 @@ $aprendices = [
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<?php include '../includes/head.php'; ?>
+<?php include 'includes/head.php'; ?>
 <!-- CSS de DataTables -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 </head>
 <body>
 <div class="app-shell">
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
 
     <div class="app-main">
-        <?php include '../includes/topbar.php'; ?>
+        <?php include 'includes/topbar.php'; ?>
 
         <main class="app-content">
             <div class="page-header d-flex justify-content-between align-items-end flex-wrap gap-2">
@@ -156,7 +156,7 @@ $aprendices = [
   </div>
 </div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include 'includes/scripts.php'; ?>
 
 <!-- Scripts de DataTables -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>

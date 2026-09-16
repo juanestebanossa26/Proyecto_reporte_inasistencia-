@@ -16,14 +16,14 @@ $tituloPagina = 'Panel principal';
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<?php include '../includes/head.php'; ?>
+<?php include 'includes/head.php'; ?>
 </head>
 <body>
 <div class="app-shell">
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
 
     <div class="app-main">
-        <?php include '../includes/topbar.php'; ?>
+        <?php include 'includes/topbar.php'; ?>
 
         <main class="app-content">
 
@@ -190,6 +190,6 @@ $tituloPagina = 'Panel principal';
     </div>
 </div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include 'includes/scripts.php'; ?>
 </body>
 </html>
