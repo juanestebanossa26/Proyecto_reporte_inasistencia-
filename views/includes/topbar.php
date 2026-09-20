@@ -12,7 +12,6 @@ $rolActivo     = $_SESSION['rol'] ?? 'invitado';
 // 3. Diccionario para mostrar el nombre del rol "bonito" en pantalla.
 // Lo pasamos a minúsculas para evitar errores si en la BD dice "Administrador" o "admin"
 $etiquetasRol = [
-    'admin'         => 'Administrador',
     'administrador' => 'Administrador',
     'instructor'    => 'Instructor',
     'aprendiz'      => 'Aprendiz',
@@ -79,10 +78,10 @@ foreach (explode(' ', $nombreUsuario) as $parte) {
                 <i class="bi bi-chevron-down text-suave" style="font-size:.7rem;"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="<?= BASE_URL ?>/index.php?accion=perfil"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
+                <li><a class="dropdown-item" href="<?= htmlspecialchars(BASE_URL) ?>/index.php?accion=perfil"><i class="bi bi-person me-2"></i>Mi perfil</a></li>
      
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="<?= BASE_URL ?>/index.php?accion=logout"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
+                <li><a class="dropdown-item text-danger" href="<?= htmlspecialchars(BASE_URL) ?>/index.php?accion=logout"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
             </ul>
         </div>
     </div>

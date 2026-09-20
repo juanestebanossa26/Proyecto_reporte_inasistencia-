@@ -15,8 +15,8 @@ if (!isset($paginaActiva)) { $paginaActiva = ''; }
 function navLink($href, $icon, $label, $slug, $paginaActiva) {
     $active = $paginaActiva === $slug ? 'active' : '';
     echo '<li class="nav-item">';
-    echo '<a class="nav-link ' . $active . '" href="' . $href . '" data-bs-toggle="tooltip" data-bs-placement="right" title="' . htmlspecialchars($label) . '">';
-    echo '<i class="bi ' . $icon . '"></i><span>' . htmlspecialchars($label) . '</span>';
+    echo '<a class="nav-link ' . htmlspecialchars($active) . '" href="' . htmlspecialchars($href) . '" data-bs-toggle="tooltip" data-bs-placement="right" title="' . htmlspecialchars($label) . '">';
+    echo '<i class="bi ' . htmlspecialchars($icon) . '"></i><span>' . htmlspecialchars($label) . '</span>';
     echo '</a></li>';
 }
 ?>
@@ -35,7 +35,7 @@ function navLink($href, $icon, $label, $slug, $paginaActiva) {
            
 
             <!-- Validamos los roles convirtiendo el texto a minúsculas para evitar errores de tipeo en la BD -->
-            <?php if (strtolower($rolActivo) === 'admin' || strtolower($rolActivo) === 'administrador'): ?>
+            <?php if (strtolower($rolActivo) === 'administrador'): ?>
                  <div class="sidebar-section-label">General</div>
             <?php navLink(BASE_URL . '/index.php?accion=dashboard', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
                 <div class="sidebar-section-label">Gestión</div>

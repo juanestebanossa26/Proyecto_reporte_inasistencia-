@@ -7,7 +7,7 @@ class ExcusaModelo
     public function listarPorAprendiz(int $idUsuario): array
     {
         $sql = "SELECT asistencias.fecha,
-                       excusas_medicas.estado_excusa,
+                       
                        excusas_medicas.motivo
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
@@ -45,7 +45,7 @@ class ExcusaModelo
                     excusas_medicas.motivo,
                     asistencias.fecha,
                     asistencias.id_asistencia,
-                    excusas_medicas.estado_excusa,
+                   
                     excusas_medicas.archivo_adjunto
                 FROM usuarios
                 JOIN aprendices ON aprendices.id_usuario = usuarios.id_usuario
@@ -70,7 +70,7 @@ class ExcusaModelo
                 JOIN asistencias ON asistencias.id_aprendiz = aprendices.id_aprendiz
                 JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
                 WHERE fichas.id_instructor = :id_usuario
-                  AND excusas_medicas.estado_excusa = 'pendiente'";
+                  ";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idInstructor, PDO::PARAM_INT);

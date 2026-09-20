@@ -9,6 +9,8 @@
 // ReporteControlador). Este Controlador solo exige sesión activa y
 // entrega el control a la vista pedida.
 
+
+
 class PaginaControlador extends ControladorBase
 {
     public function mostrar(string $vista, array $rolesPermitidos = []): void

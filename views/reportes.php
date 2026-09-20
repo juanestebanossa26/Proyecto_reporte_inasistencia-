@@ -1,111 +1,8 @@
 <?php
-session_start();
-if (!isset($_SESSION["Documento"])) {
-    header("Location: ../index.php");
-    exit();
-}
-require_once __DIR__ . "/../config/mysql.php";
-$db = new mysql();
-$db->conectar();
 
-// 1. Obtener lista de fichas para el selector
-$sqlFichas = "SELECT id_ficha, numero_ficha, nombre_programa FROM fichas ORDER BY numero_ficha ASC";
-$resFichas = $db->prepare($sqlFichas);
-$resFichas->execute();
-$fichasDisponibles = $resFichas->fetchAll();
 
-// 2. Captura y cálculo de filtros por POST
-$rango    = $_POST['rango'] ?? 'personalizado';
-$desde    = $_POST['desde'] ?? '';
-$hasta    = $_POST['hasta'] ?? '';
-$ficha_id = $_POST['ficha_id'] ?? '';
-
-if ($rango === 'dia') {
-    $desde = !empty($desde) ? $desde : date('Y-m-d');
-    $hasta = $desde;
-} elseif ($rango === 'semana') {
-    $desde = date('Y-m-d', strtotime('monday this week'));
-    $hasta = date('Y-m-d', strtotime('sunday this week'));
-}
-
-// 3. Condiciones WHERE dinámicas
-$whereSql = " WHERE 1=1 ";
-$params = [];
-
-if (!empty($desde)) {
-    $whereSql .= " AND (asistencias.fecha >= :desde OR asistencias.fecha IS NULL) ";
-    $params[':desde'] = $desde;
-}
-
-if (!empty($hasta)) {
-    $whereSql .= " AND (asistencias.fecha <= :hasta OR asistencias.fecha IS NULL) ";
-    $params[':hasta'] = $hasta;
-}
-
-if (!empty($ficha_id)) {
-    $whereSql .= " AND fichas.id_ficha = :ficha_id ";
-    $params[':ficha_id'] = $ficha_id;
-}
-
-// Consulta de la tabla de aprendices
-$sqlTabla = "SELECT 
-    u_aprendiz.nombre_completo,
-    u_aprendiz.apellido,
-    fichas.numero_ficha,
-    fichas.nombre_programa,
-    u_instructor.nombre_completo AS nombre_instructor,
-    u_instructor.apellido AS apellido_instructor,
-    SUM(asistencias.estado = 'Retardo') AS retardos,
-    IF(
-        SUM(asistencias.tiempo_retraso) >= 60,
-        CONCAT(FLOOR(SUM(asistencias.tiempo_retraso) / 60), 'h ', MOD(SUM(asistencias.tiempo_retraso), 60), 'm'),
-        CONCAT(COALESCE(SUM(asistencias.tiempo_retraso), 0), 'm')
-    ) AS tiempo_retraso_formato,
-    SUM(asistencias.estado = 'Inasistencia' AND (excusas_medicas.estado_excusa IS NULL OR excusas_medicas.estado_excusa != 'Aprobada')) AS inasistencias
-FROM aprendices
-JOIN usuarios u_aprendiz 
-    ON aprendices.id_usuario = u_aprendiz.id_usuario
-JOIN fichas 
-    ON aprendices.id_ficha = fichas.id_ficha
-LEFT JOIN usuarios u_instructor 
-    ON fichas.id_instructor = u_instructor.id_usuario
-LEFT JOIN asistencias 
-    ON asistencias.id_aprendiz = aprendices.id_aprendiz
-LEFT JOIN excusas_medicas 
-    ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-$whereSql
-GROUP BY 
-    aprendices.id_aprendiz,
-    u_aprendiz.nombre_completo,
-    u_aprendiz.apellido,
-    fichas.numero_ficha,
-    fichas.nombre_programa,
-    u_instructor.nombre_completo,
-    u_instructor.apellido";
-
-$resultado = $db->prepare($sqlTabla);
-$resultado->execute($params);
-
-// Consulta de los contadores
-$sqlContadores = "SELECT 
-    COUNT(DISTINCT aprendices.id_aprendiz) AS aprendices_en_rango,
-    COUNT(NULLIF(asistencias.estado = 'Retardo', 0)) AS total_retardos,
-    COUNT(NULLIF(asistencias.estado = 'Inasistencia' AND (excusas_medicas.estado_excusa IS NULL OR excusas_medicas.estado_excusa != 'Aprobada'), 0)) AS total_inasistencias,
-    COALESCE(SUM(asistencias.tiempo_retraso), 0) AS minutos_retardo
-FROM aprendices
-JOIN fichas 
-    ON aprendices.id_ficha = fichas.id_ficha
-LEFT JOIN asistencias 
-    ON asistencias.id_aprendiz = aprendices.id_aprendiz
-LEFT JOIN excusas_medicas 
-    ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-$whereSql";
-
-$contadores = $db->prepare($sqlContadores);
-$contadores->execute($params);
-$filaContadores = $contadores->fetch();
-
-$rolActivo    = $_SESSION['rol'] ?? 'admin';
+$rolActivo    = $_SESSION['rol'] ?? 'Administrador';
+$nombreUsuario =$_SESSION['nombre'] ?? '';
 $paginaActiva = 'reportes';
 $tituloPagina = 'Reportes de asistencia';
 ?>
@@ -225,19 +122,7 @@ $tituloPagina = 'Reportes de asistencia';
                             </tr>
                         </thead>
                         <tbody>
-                        <?php while ($fila = $resultado->fetch()): ?>
-                            <tr>
-                                <td class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
-                                    <?= htmlspecialchars($fila['nombre_completo'] . ' ' . $fila['apellido']) ?>
-                                </td>
-                                <td><?= htmlspecialchars($fila['nombre_programa'] . ' · ' . $fila['numero_ficha']) ?></td>
-                                <td><?= htmlspecialchars(trim(($fila['nombre_instructor'] ?? '') . ' ' . ($fila['apellido_instructor'] ?? ''))) ?: 'Sin instructor' ?></td>
-                                <td class="text-center"><?= $fila['retardos'] ?? 0 ?></td>
-                                <td class="text-center"><?= $fila['tiempo_retraso_formato'] ?></td>
-                                <td class="text-center"><?= $fila['inasistencias'] ?? 0 ?></td>
-                            </tr>
-                        <?php endwhile; ?>
+                      
                         </tbody>
                     </table>
                 </div>

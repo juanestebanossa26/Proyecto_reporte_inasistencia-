@@ -60,6 +60,7 @@ require_once BASE_PATH . '/models/ReporteModelo.php';
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 
 require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
+require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
 // Cualquier excepción que ningún Controlador haya capturado llega hasta
 // aquí. El detalle técnico se registra en el servidor y el usuario final
 // solo ve un mensaje genérico, salvo en modo de depuración.
@@ -80,7 +81,7 @@ $accion = $_GET['accion'] ?? 'login';
 
 $auth        = new AuthControlador();
 $pagina      = new PaginaControlador();
-
+$historial   = new HistorialControlador();
 
 match ($accion) {
     // --- Autenticación ---
@@ -88,23 +89,25 @@ match ($accion) {
     'autenticar' => $auth->login(),
     'logout'     => $auth->logout(),
 
-
-    
-
-    // --- Páginas de solo lectura (protegidas por sesión) ---
-    'dashboard'       => $pagina->mostrar('dashboard'),
-    'aprendices'      => $pagina->mostrar('aprendices'),
-    'fichas'          => $pagina->mostrar('fichas'),
-    'historial'       => $pagina->mostrar('historial'),
-    'instructores'    => $pagina->mostrar('instructores'),
-    'marcaje'         => $pagina->mostrar('marcaje'),
-    'perfil'          => $pagina->mostrar('perfil'),
-    'reportes'        => $pagina->mostrar('reportes'),
-    'excusas'         => $pagina->mostrar('excusas'),
-    'validarExcusas'  => $pagina->mostrar('validar_excusas'),
+    // --- Páginas de solo lectura CON datos: el Controlador arma las
+    //     variables y se las pasa listas a la vista (ya no consultan la
+    //     base de datos por su cuenta) ---
+  'historial'      => $historial->mostrar(),
 
 
-    // Cualquier acción no reconocida cae en el login, en vez de mostrar
-    // un error técnico o una página en blanco.
+
+
+    // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
+    'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
+    'aprendices'      => $pagina->mostrar('aprendices', ['Instructor', 'Administrador']),
+    'fichas'          => $pagina->mostrar('fichas', ['Instructor', 'Administrador']),
+    'historial'       => $pagina->mostrar('historial', ['Aprendiz']),
+    'instructores'    => $pagina->mostrar('instructores', ['Administrador']),
+    'marcaje'         => $pagina->mostrar('marcaje', ['Instructor', 'Administrador']),
+    'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),
+    'reportes'        => $pagina->mostrar('reportes', ['Instructor', 'Administrador']),
+    'excusas'         => $pagina->mostrar('excusas', ['Aprendiz']),
+    'validarExcusas'  => $pagina->mostrar('validar_excusas', ['Instructor', 'Administrador']),
+
     default => $auth->mostrarLogin(),
 };

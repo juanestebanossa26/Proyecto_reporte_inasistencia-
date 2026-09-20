@@ -9,8 +9,8 @@
  *     (a_tiempo / retardo / salida_anticipada).
  *   - El listado "Últimos marcajes" debe poblarse con los registros más recientes del día.
  */
-$rolActivo     = $_GET['rol'] ?? 'aprendiz';
-$nombreUsuario = 'Laura Martínez';
+$rolActivo     = $rolActivo = $_SESSION['rol'] ?? 'Administrador';
+$nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'marcaje';
 $tituloPagina  = 'Marcaje RFID';
 ?>

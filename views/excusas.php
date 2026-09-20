@@ -1,40 +1,7 @@
 <?php
-session_start();
-if (!isset($_SESSION["Documento"])) {
-    header("Location: ../index.php");
-    exit();
-}
-require_once __DIR__ . "/../config/mysql.php";
-$db = new mysql();
-$db->conectar();
-$sql = "SELECT asistencias.fecha,
-        excusas_medicas.estado_excusa,
-        excusas_medicas.motivo
-        FROM asistencias 
-        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
-        JOIN excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
-        WHERE aprendices.id_usuario = :id_usuario";
 
-$resultado= $db->prepare($sql);
-$resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$resultado->execute();
-
-$sql = "SELECT 
-            asistencias.fecha,
-            asistencias.id_asistencia       
-        FROM asistencias 
-        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
-        LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-        WHERE aprendices.id_usuario = :id_usuario 
-          AND asistencias.estado = 'inasistencia'
-          AND excusas_medicas.id_asistencia IS NULL";
-
-$fechas_faltas= $db->prepare($sql);
-$fechas_faltas->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$fechas_faltas->execute();
-
-$rolActivo     = 'aprendiz';
-$nombreUsuario ;
+$rolActivo     = $_SESSION['rol']    ?? 'Aprendiz';
+$nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'excusas';
 $tituloPagina  = 'Excusas médicas';
 
@@ -42,16 +9,16 @@ $tituloPagina  = 'Excusas médicas';
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <?php include '../includes/head.php'; ?>
+    <?php include 'includes/head.php'; ?>
     
     <!-- CSS de DataTables inyectado directamente para que funcione de inmediato -->
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="app-shell">
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
     <div class="app-main">
-        <?php include '../includes/topbar.php'; ?>
+        <?php include 'includes/topbar.php'; ?>
         <main class="app-content">
             <div class="page-header">
                 <div class="eyebrow">Mi asistencia</div>
@@ -65,15 +32,15 @@ $tituloPagina  = 'Excusas médicas';
                         <h2 class="h6 fw-bold mb-3">Anexar nueva excusa</h2>
                
                         <form  action="../controllers/guardar_excusa.php" method="POST" enctype="multipart/form-data" >
-     <?php while($fila=$fechas_faltas->fetch()) { ?>                       
+                           
                             <div class="mb-3">
     <label class="form-label">Fecha de la inasistencia</label>
     <select class="form-select" name="fecha_excusa" required>
     <option value="" disabled selected>Selecciona la fecha de tu inasistencia</option>
-    <option value="<?php echo $fila["id_asistencia"] ?>" ><?php echo $fila["fecha"] ?></option>
+    <option value="" ></option>
     </select>
 </div>
-<?php } ?>
+
                             <div class="mb-3">
                                 <label class="form-label">Motivo</label>
                                 <textarea class="form-control" name="motivo" rows="3" placeholder="Ej: Cita médica EPS" required></textarea>
@@ -101,39 +68,8 @@ $tituloPagina  = 'Excusas médicas';
                                     <tr><th>Fecha</th><th>Motivo</th><th>Estado</th></tr>
                                 </thead>
                                 <tbody>
-                                <?php 
-                                while ($fila=$resultado->fetch()) {
-                                    // 1. Limpiamos el texto pasándolo a minúsculas para evitar errores al comparar
-                                    $estado = strtolower($fila['estado_excusa']);
-                                    $claseColor = '';
-
-                                    // 2. Asignamos la clase de color de Bootstrap según el estado
-                                    switch ($estado) {
-                                        case 'aprobada':
-                                            $claseColor = 'bg-success text-white'; // Verde
-                                            break;
-                                        case 'rechazada':
-                                            $claseColor = 'bg-danger text-white';  // Rojo
-                                            break;
-                                        case 'pendiente':
-                                            $claseColor = 'bg-warning text-dark';  // Amarillo
-                                            break;
-                                        default:
-                                            $claseColor = 'bg-secondary text-white'; // Gris por defecto si hay otro estado
-                                            break;
-                                    }
-                                ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($fila['fecha']) ?></td>
-                                        <td><?= htmlspecialchars($fila['motivo']) ?></td>
-                                        <!-- 3. Imprimimos el span con la clase dinámica -->
-                                        <td>
-                                            <span class="badge <?= $claseColor ?>">
-                                                <?= ucfirst($estado) ?>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <?php } ?>
+                               
+                                   
                                 </tbody>
                             </table>
                         </div>
@@ -144,7 +80,7 @@ $tituloPagina  = 'Excusas médicas';
     </div>
 </div>
 
-<?php include '../includes/scripts.php'; ?>
+<?php include 'includes/scripts.php'; ?>
 
 <!-- Dependencias JS de DataTables y jQuery inyectadas directamente -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>

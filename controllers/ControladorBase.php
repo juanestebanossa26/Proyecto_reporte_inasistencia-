@@ -38,6 +38,14 @@ abstract class ControladorBase
         if ($rolesPermitidos && !in_array($_SESSION['rol'] ?? '', $rolesPermitidos, true)) {
             $this->redirigirAccion('login');
         }
+
+        // Le decimos al navegador que NUNCA guarde una copia de esta página.
+    // Sin esto, después de "Cerrar sesión" el botón "atrás" puede mostrar
+    // la última versión guardada en caché, sin volver a preguntarle nada
+    // al servidor.
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     }
 
     // Valida el token CSRF de una petición POST. Si no es válido, se

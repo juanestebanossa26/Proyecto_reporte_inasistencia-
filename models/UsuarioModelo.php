@@ -32,7 +32,7 @@ class UsuarioModelo
     // id_role = 2 corresponde a Instructor en este proyecto.
     public function listarInstructores(): array
     {
-        $sql = "SELECT id_usuario, nombre_completo, apellido, estado, num_documento, correo_electronico
+        $sql = "SELECT id_usuario, nombre_completo, apellido, estado , area, num_documento, correo_electronico
                 FROM usuarios
                 WHERE id_role = 2";
 
@@ -41,7 +41,7 @@ class UsuarioModelo
 
     public function buscarInstructorPorId(int $id): array|false
     {
-        $sql = "SELECT id_usuario, nombre_completo, apellido, num_documento, correo_electronico
+        $sql = "SELECT id_usuario, nombre_completo, apellido, num_documento,area, correo_electronico
                 FROM usuarios
                 WHERE id_usuario = :id AND id_role = 2";
 
@@ -86,32 +86,33 @@ class UsuarioModelo
 
     // Crea un instructor nuevo (id_role = 2, fijo, igual que en el
     // proyecto original).
-    public function crearInstructor(string $nombre, string $apellido, string $documento, string $correo, string $passwordHash): void
+    public function crearInstructor(string $nombre, string $apellido, string $documento,string $area, string $correo, string $passwordHash): void
     {
         $sql = "INSERT INTO usuarios (nombre_completo, apellido, num_documento, correo_electronico, estado, contrasena, id_role)
-                VALUES (:nombre, :apellido, :doc, :correo, 'Activo', :pass, 2)";
+                VALUES (:nombre, :apellido, :doc, :area , :correo, 'Activo', :pass, 2)";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':nombre', $nombre);
         $stmt->bindParam(':apellido', $apellido);
         $stmt->bindParam(':doc', $documento);
+        $stmt->bindParam(':area', $area);
         $stmt->bindParam(':correo', $correo);
         $stmt->bindParam(':pass', $passwordHash);
         $stmt->execute();
     }
 
     // Si $passwordHash es null, la contraseña actual se conserva.
-    public function actualizarInstructor(int $id, string $nombre, string $apellido, string $documento, string $correo, ?string $passwordHash): void
+    public function actualizarInstructor(int $id, string $nombre, string $apellido, string $documento,string $area, string $correo, ?string $passwordHash): void
     {
         if ($passwordHash !== null) {
             $sql = "UPDATE usuarios
                     SET nombre_completo = :nombre, apellido = :apellido, num_documento = :doc,
-                        correo_electronico = :correo, contrasena = :pass
+                          area = :area, correo_electronico = :correo, contrasena = :pass
                     WHERE id_usuario = :id";
         } else {
             $sql = "UPDATE usuarios
                     SET nombre_completo = :nombre, apellido = :apellido, num_documento = :doc,
-                        correo_electronico = :correo
+                          area = :area, correo_electronico = :correo
                     WHERE id_usuario = :id";
         }
 
@@ -119,6 +120,7 @@ class UsuarioModelo
         $stmt->bindParam(':nombre', $nombre);
         $stmt->bindParam(':apellido', $apellido);
         $stmt->bindParam(':doc', $documento);
+         $stmt->bindParam(':area', $area);
         $stmt->bindParam(':correo', $correo);
         if ($passwordHash !== null) {
             $stmt->bindParam(':pass', $passwordHash);

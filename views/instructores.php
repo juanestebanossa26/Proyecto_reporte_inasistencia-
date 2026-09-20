@@ -1,8 +1,8 @@
 <?php
 
 
-$rolActivo    = 'admin';        
-$paginaActiva = 'instructores'; 
+$rolActivo    = $rolActivo = $_SESSION['rol'] ?? 'Administrador';    
+$paginaActiva =  $_SESSION['nombre'] ?? '';
 $tituloPagina = 'Instructores';
 ?>
 <!DOCTYPE html>
@@ -42,45 +42,8 @@ $tituloPagina = 'Instructores';
                             </tr>
                         </thead>
                         <tbody>
-                        <?php while ($fila = $resultado->fetch(PDO::FETCH_ASSOC)) { ?>
-                            <tr>
-                                <td class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
-                                    <?= htmlspecialchars($fila['nombre_completo'] . ' ' . $fila['apellido'], ENT_QUOTES, 'UTF-8') ?>
-                                </td>
-                                <td><?= htmlspecialchars($fila['num_documento'], ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars($fila['correo_electronico'], ENT_QUOTES, 'UTF-8') ?></td>
-                                
-                                <td>
-    <?php
-    $badgeClass = match(strtolower(trim($fila['estado']))) {
-        'activo'    => 'bg-success-subtle text-success border border-success-subtle',
-        'inactivo'  => 'bg-danger-subtle text-danger border border-danger-subtle',
-        'pendiente' => 'bg-warning-subtle text-warning border border-warning-subtle',
-        default     => 'bg-secondary-subtle text-secondary border'
-    };
-    ?>
-    <span class="badge rounded-pill <?= $badgeClass ?>">
-        <?= htmlspecialchars($fila['estado'], ENT_QUOTES, 'UTF-8') ?>
-    </span>
-</td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex align-items-center gap-1">
-                                        <!-- Formulario POST exclusivo para solicitar edición de este usuario -->
-                                        <form method="POST" action="instructores.php" class="d-inline m-0 p-0">
-                                            <input type="hidden" name="id_editar" value="<?= $fila['id_usuario'] ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-secondary border-0" title="Editar">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-                                        </form>
-
-                                        <button class="btn btn-sm btn-outline-danger border-0" title="Desactivar">
-                                            <i class="bi bi-slash-circle"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php } ?>
+           
+   
                         </tbody>
                     </table>
                 </div>

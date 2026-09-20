@@ -8,8 +8,8 @@
  *   - Las tarjetas KPI y la tabla de "ingresos recientes" deben poblarse desde la BD
  *     (tabla `ingresos`, filtrando por fecha de hoy).
  */
-$rolActivo    = $_GET['rol'] ?? 'admin';           // TODO: reemplazar por $_SESSION['rol']
-$nombreUsuario = 'Juan Camilo Vanegas';             // TODO: $_SESSION['nombre']
+$rolActivo = $_SESSION['rol'] ?? 'Aprendiz';        // TODO: reemplazar por $_SESSION['rol']
+$nombreUsuario = $_SESSION['nombre'] ?? '';             // TODO: $_SESSION['nombre']
 $paginaActiva = 'dashboard';
 $tituloPagina = 'Panel principal';
 ?>

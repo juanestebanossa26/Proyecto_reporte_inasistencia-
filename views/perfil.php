@@ -1,9 +1,9 @@
 <?php
 // La sesión ya fue verificada por PaginaControlador::mostrar() antes de
 // llegar aquí (ver index.php). No hace falta repetir el chequeo.
-require_once __DIR__ . '/../config/Conexion.php';
-$rolActivo     = $_SESSION['rol'];
-$nombreUsuario ;
+
+$rolActivo = $_SESSION['rol'] ?? 'Aprendiz';
+$nombreUsuario =$_SESSION['nombre'] ?? '';
 $paginaActiva  = 'perfil';
 $tituloPagina  = 'Mi perfil';
 ?>

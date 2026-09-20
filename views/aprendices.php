@@ -9,8 +9,8 @@
  *   - El botón "Desactivar" debe llamar a desactivar_aprendiz.php?id=X (HU 14: no borra,
  *     solo cambia estado a inactivo)
  */
-$rolActivo     = 'admin';
-$nombreUsuario ;
+$rolActivo     = $rolActivo = $_SESSION['rol'] ?? 'Administrador';
+$nombreUsuario =$_SESSION['nombre'] ?? '';
 $paginaActiva  = 'aprendices';
 $tituloPagina  = 'Aprendices';
 

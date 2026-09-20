@@ -8,8 +8,8 @@ class AsistenciaModelo
     // (LEFT JOIN: también trae inasistencias sin excusa asociada).
     public function listarPorAprendiz(int $idUsuario): array
     {
-        $sql = "SELECT asistencias.*,
-                       excusas_medicas.estado_excusa
+        $sql = "SELECT asistencias.*
+                       
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
@@ -27,11 +27,11 @@ class AsistenciaModelo
         $sql = "SELECT COUNT(asistencias.id_asistencia)
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
-                WHERE aprendices.id_usuario = :id_usuario AND estado = :estado";
+                WHERE aprendices.id_usuario = :id_usuario  and asistencias.estado=:estado";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
-        $stmt->bindParam(':estado', $estado);
+        $stmt->bindParam(':estado', $estado, PDO::PARAM_INT);
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
@@ -43,7 +43,7 @@ class AsistenciaModelo
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-                WHERE aprendices.id_usuario = :id_usuario AND estado_excusa = 'Pendiente'";
+                WHERE aprendices.id_usuario = :id_usuario ";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
@@ -61,7 +61,7 @@ class AsistenciaModelo
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
                 WHERE aprendices.id_usuario = :id_usuario
-                  AND asistencias.estado = 'inasistencia'
+                 
                   AND excusas_medicas.id_asistencia IS NULL";
 
         $stmt = Conexion::obtener()->prepare($sql);

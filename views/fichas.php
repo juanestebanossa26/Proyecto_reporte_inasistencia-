@@ -3,7 +3,7 @@
  * fichas.php — Fichas y horarios en vista Calendario (HU 9, 10)
  */
 $rolActivo     = $_GET['rol'] ?? 'Administrador';
-$nombreUsuario = '';
+$nombreUsuario =$_SESSION['nombre'] ?? '';
 $paginaActiva  = 'fichas';
 $tituloPagina  = 'Calendario de fichas y horarios';
 

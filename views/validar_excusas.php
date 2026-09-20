@@ -1,50 +1,8 @@
 <?php
-session_start();
-if (!isset($_SESSION["Documento"])) {
-    header("Location: ../index.php");
-    exit();
-}
-require_once __DIR__ . "/../config/mysql.php";
-$db=new mysql();
-$db->conectar();
 
-$sql="SELECT 
-usuarios.nombre_completo,
-usuarios.apellido,
-fichas.nombre_programa,
-fichas.numero_ficha,
-excusas_medicas.motivo,
-asistencias.fecha,
-asistencias.id_asistencia,
-excusas_medicas.estado_excusa,
-excusas_medicas.archivo_adjunto
-from usuarios 
-join aprendices on aprendices.id_usuario=usuarios.id_usuario
-join fichas on aprendices.id_ficha=fichas.id_ficha
-join asistencias on asistencias.id_aprendiz=aprendices.id_aprendiz
-join excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
-where fichas.id_instructor=:id_usuario 
-";
-$resultado= $db->prepare($sql);
-$resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$resultado->execute();
 
-$sql="SELECT 
-COUNT(excusas_medicas.id_excusa)
-from usuarios 
-join aprendices on aprendices.id_usuario=usuarios.id_usuario
-join fichas on aprendices.id_ficha=fichas.id_ficha
-join asistencias on asistencias.id_aprendiz=aprendices.id_aprendiz
-join excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
-where fichas.id_instructor=:id_usuario and 
-excusas_medicas.estado_excusa='pendiente'
-";
-$contadorpendientes= $db->prepare($sql);
-$contadorpendientes->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
-$contadorpendientes->execute();
-
-$rolActivo     = $_SESSION['rol']?? 'instructor';
-$nombreUsuario ;
+$rolActivo     = $_SESSION['rol']?? 'Instructor';
+$nombreUsuario =$_SESSION['nombre'] ?? '';
 $paginaActiva  = 'validar_excusas';
 $tituloPagina  = 'Validar excusas médicas';
 
@@ -54,7 +12,7 @@ $tituloPagina  = 'Validar excusas médicas';
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<?php include '../includes/head.php'; ?>
+<?php include 'includes/head.php'; ?>
 <!-- CSS de DataTables -->
 
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -74,8 +32,8 @@ $tituloPagina  = 'Validar excusas médicas';
             </div>
 
             <ul class="nav nav-pills mb-3">
-                <?php $total_pendientes = $contadorpendientes->fetchColumn(); ?>
-                <li class="nav-item"><a class="nav-link active" href="#" style="background:var(--sena-verde);">Pendientes <span class="badge bg-white text-sena ms-1"><?php echo $total_pendientes  ?></span></a></li>
+             
+                <li class="nav-item"><a class="nav-link active" href="#" style="background:var(--sena-verde);">Pendientes <span class="badge bg-white text-sena ms-1"></span></a></li>
                
             </ul>
 
@@ -96,31 +54,8 @@ $tituloPagina  = 'Validar excusas médicas';
                             </tr>
                         </thead>
                         <tbody>
-                        <?php while ($fila=$resultado->fetch()) {?>
-                            <tr>
-                                <td class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'],0,1)) ?></span>
-                                    <?= htmlspecialchars($fila["nombre_completo"].' '.$fila["apellido"]) ?>
-                                </td>
-                                <td><?= htmlspecialchars($fila['nombre_programa'].'-'.$fila['numero_ficha']) ?></td>
-                                <td><?= htmlspecialchars($fila['fecha']) ?></td>
-                                <td><?= htmlspecialchars($fila['motivo']) ?></td>
-                                <td><a href="../<?php echo htmlspecialchars($fila['archivo_adjunto']); ?>" class="text-sena"><i class="bi bi-file-earmark-pdf me-1"></i>Ver PDF</a></td>
-                                <td><span class="badge-estado badge-<?= $fila['estado_excusa'] ?>"><?= ucfirst($fila['estado_excusa']) ?></span></td>
-                                <td class="text-end">
-                                    <?php if ($fila['estado_excusa'] === 'pendiente'): ?>
-                                         <form action="../controllers/procesar_excusa.php" method="POST" style="display:inline;">
-                            
-                                         <input type="hidden" name="id_excusa" value="<?= $fila['id_asistencia'] ?>">
-                                        <button class="btn btn-sm btn-sena" name="accion" value="aprobar">Aprobar</button>
-                                        <button class="btn btn-sm btn-outline-danger" name="accion" value="rechazar" >Rechazar</button>
-                                      </form>
-                                    <?php else: ?>
-                                        <span class="text-suave" style="font-size:.8rem;">Sin acciones</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php }; ?>
+                      
+                    
                         </tbody>
                     </table>
                 </div>

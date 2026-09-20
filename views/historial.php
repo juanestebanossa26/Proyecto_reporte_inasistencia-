@@ -1,19 +1,12 @@
 <?php
 // La sesión ya fue verificada por PaginaControlador::mostrar() antes de
 // llegar aquí (ver index.php). No hace falta repetir el chequeo.
-require_once __DIR__ . '/../config/Conexion.php';
-require_once __DIR__ . '/../models/AsistenciaModelo.php';
-
-$asistenciaModelo = new AsistenciaModelo();
-$historial         = $asistenciaModelo->listarPorAprendiz((int) $_SESSION['id']);
-$total_retardo     = $asistenciaModelo->contarPorEstado((int) $_SESSION['id'], 'retardo');
-$total_inasistencia = $asistenciaModelo->contarPorEstado((int) $_SESSION['id'], 'inasistencia');
-$total_pendientes  = $asistenciaModelo->contarExcusasPendientes((int) $_SESSION['id']);
 
 
 
-$rolActivo     = 'aprendiz';
-$nombreUsuario ; 
+
+$rolActivo     = $_SESSION['rol']    ?? 'Aprendiz';
+$nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'historial';
 $tituloPagina  = 'Mi historial de asistencia';
 
@@ -75,22 +68,13 @@ $etiquetas = [
                                 <th class="text-center">Entrada</th>
                                 <th class="text-center">Salida</th>
                                 <th>Estado</th>
-                                <th>Estado Excusa</th>
+                     
                             </tr>
                         </thead>
                         <tbody>
                         <?php foreach ($historial as $fila) {  
                             
-                            // Lógica para verificar si la excusa está vacía
-                            $estadoExcusa = $fila['estado_excusa'];
-                            
-                            if (empty($estadoExcusa)) {
-                                $textoExcusa = "No hay excusa subida";
-                                $claseExcusa = "badge bg-secondary text-white"; 
-                            } else {
-                                $textoExcusa = ucfirst($estadoExcusa); 
-                                $claseExcusa = "badge-estado badge-" . strtolower($estadoExcusa);
-                            }
+                          
 
                             // Validamos si la hora de entrada y salida están vacías
                             $horaEntrada = !empty($fila['hora_entrada_real']) ? htmlspecialchars($fila['hora_entrada_real']) : '<span class="text-muted fw-bold fs-5">-</span>';
@@ -102,7 +86,7 @@ $etiquetas = [
                                 <td class="text-center"><?= $horaEntrada ?></td>
                                 <td class="text-center"><?= $horaSalida ?></td>
                                 <td><span class="badge-estado badge-<?= $fila['estado'] ?>"><?= $etiquetas[$fila['estado']] ?? $fila['estado'] ?></span></td>
-                                <td><span class="<?= $claseExcusa ?>"><?= $textoExcusa ?></span></td>
+                        
                             </tr>
                         <?php }; ?>
                         </tbody>
