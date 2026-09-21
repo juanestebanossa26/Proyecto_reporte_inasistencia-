@@ -55,11 +55,13 @@ require_once BASE_PATH . '/models/UsuarioModelo.php';
 require_once BASE_PATH . '/models/AsistenciaModelo.php';
 require_once BASE_PATH . '/models/ExcusaModelo.php';
 require_once BASE_PATH . '/models/ReporteModelo.php';
+require_once BASE_PATH . '/models/aprendicesModelo.php';
 //controladores
 // Controladores
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 
 require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
+require_once BASE_PATH . '/controllers/aprendizControlador.php';
 // Cualquier excepción que ningún Controlador haya capturado llega hasta
 // aquí. El detalle técnico se registra en el servidor y el usuario final
 // solo ve un mensaje genérico, salvo en modo de depuración.
@@ -80,6 +82,7 @@ $accion = $_GET['accion'] ?? 'login';
 
 $auth        = new AuthControlador();
 $pagina      = new PaginaControlador();
+$aprendiz    = new AprendizControlador();
 
 
 match ($accion) {
@@ -87,6 +90,7 @@ match ($accion) {
     'login'      => $auth->mostrarLogin(),
     'autenticar' => $auth->login(),
     'logout'     => $auth->logout(),
+    'guardarAprendiz' => $aprendiz-> guardar(),
 
 
     

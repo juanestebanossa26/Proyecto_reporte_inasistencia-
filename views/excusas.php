@@ -4,9 +4,45 @@ if (!isset($_SESSION["Documento"])) {
     header("Location: ../index.php");
     exit();
 }
+
+session_start();
+if (!isset($_SESSION["Documento"])) {
+    header("Location: ../index.php");
+    exit();
+}
 require_once __DIR__ . "/../config/mysql.php";
 $db = new mysql();
 $db->conectar();
+$sql = "SELECT asistencias.fecha,
+        excusas_medicas.estado_excusa,
+        excusas_medicas.motivo
+        FROM asistencias 
+        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
+        JOIN excusas_medicas on excusas_medicas.id_asistencia=asistencias.id_asistencia
+        WHERE aprendices.id_usuario = :id_usuario";
+
+$resultado= $db->prepare($sql);
+$resultado->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$resultado->execute();
+
+$sql = "SELECT 
+            asistencias.fecha,
+            asistencias.id_asistencia       
+        FROM asistencias 
+        JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz 
+        LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
+        WHERE aprendices.id_usuario = :id_usuario 
+          AND asistencias.estado = 'inasistencia'
+          AND excusas_medicas.id_asistencia IS NULL";
+
+$fechas_faltas= $db->prepare($sql);
+$fechas_faltas->bindParam(':id_usuario', $_SESSION['id'], PDO::PARAM_INT);
+$fechas_faltas->execute();
+
+$rolActivo     = 'aprendiz';
+$nombreUsuario ;
+$paginaActiva  = 'excusas';
+$tituloPagina  = 'Excusas médicas';
 $sql = "SELECT asistencias.fecha,
         excusas_medicas.estado_excusa,
         excusas_medicas.motivo
