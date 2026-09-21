@@ -35,8 +35,15 @@ abstract class ControladorBase
             $this->redirigirAccion('login');
         }
 
-        if ($rolesPermitidos && !in_array($_SESSION['rol'] ?? '', $rolesPermitidos, true)) {
-            $this->redirigirAccion('login');
+        if ($rolesPermitidos) {
+            $rolActual = strtolower(trim($_SESSION['rol'] ?? ''));
+            $permitidos = array_map('strtolower', $rolesPermitidos);
+            if (in_array('administrador', $permitidos, true) && !in_array('admin', $permitidos, true)) {
+                $permitidos[] = 'admin';
+            }
+            if (!in_array($rolActual, $permitidos, true)) {
+                $this->redirigirAccion('login');
+            }
         }
 
         // Le decimos al navegador que NUNCA guarde una copia de esta página.
@@ -47,7 +54,6 @@ abstract class ControladorBase
     header('Pragma: no-cache');
     header('Expires: 0');
     }
-
     // Valida el token CSRF de una petición POST. Si no es válido, se
     // interrumpe la acción antes de tocar cualquier Modelo.
     protected function exigirCsrfValido(string $accionSiFalla, array $parametros = []): void
