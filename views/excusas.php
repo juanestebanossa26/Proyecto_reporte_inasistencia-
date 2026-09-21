@@ -1,9 +1,14 @@
 <?php
 
+
 $rolActivo     = $_SESSION['rol']    ?? 'Aprendiz';
 $nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'excusas';
 $tituloPagina  = 'Excusas médicas';
+
+
+
+
 
 ?>
 <!DOCTYPE html>
