@@ -47,7 +47,7 @@ session_set_cookie_params([
 ]);
 session_start();
 
-require_once BASE_PATH . '/config/Conexion.php';
+require_once BASE_PATH . '/config/conexion.php';
 require_once BASE_PATH . '/helpers/Seguridad.php';
 
 // Modelos (acceso a datos, sin HTML ni encabezados HTTP).
@@ -55,7 +55,7 @@ require_once BASE_PATH . '/models/UsuarioModelo.php';
 require_once BASE_PATH . '/models/AsistenciaModelo.php';
 require_once BASE_PATH . '/models/ExcusaModelo.php';
 require_once BASE_PATH . '/models/ReporteModelo.php';
-require_once BASE_PATH . '/models/aprendicesModelo.php';
+require_once BASE_PATH . '/models/AprendicesModelo.php';
 //controladores
 // Controladores
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 

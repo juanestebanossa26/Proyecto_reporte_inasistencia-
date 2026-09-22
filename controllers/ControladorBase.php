@@ -38,9 +38,6 @@ abstract class ControladorBase
         if ($rolesPermitidos) {
             $rolActual = strtolower(trim($_SESSION['rol'] ?? ''));
             $permitidos = array_map('strtolower', $rolesPermitidos);
-            if (in_array('administrador', $permitidos, true) && !in_array('admin', $permitidos, true)) {
-                $permitidos[] = 'admin';
-            }
             if (!in_array($rolActual, $permitidos, true)) {
                 $this->redirigirAccion('login');
             }
@@ -63,4 +60,3 @@ abstract class ControladorBase
         }
     }
 }
-

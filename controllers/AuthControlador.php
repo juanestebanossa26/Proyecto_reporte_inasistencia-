@@ -45,9 +45,11 @@ class AuthControlador extends ControladorBase
         $_SESSION['Correo']    = $usuario['correo_electronico'];
         $_SESSION['rol']       = $usuario['nombre_role'];
 
-        if ($_SESSION['rol'] === 'Administrador' || $_SESSION['rol'] === 'Instructor') {
+        $rol = strtolower(trim($_SESSION['rol']));
+
+        if (in_array($rol, ['administrador', 'instructor'], true)) {
             $this->redirigirAccion('dashboard');
-        } elseif ($_SESSION['rol'] === 'Aprendiz') {
+        } elseif ($rol === 'aprendiz') {
             $this->redirigirAccion('historial');
         }
 
