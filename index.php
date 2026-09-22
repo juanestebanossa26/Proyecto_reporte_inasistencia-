@@ -61,6 +61,8 @@ require_once BASE_PATH . '/models/AprendicesModelo.php';
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 
 require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
+require_once BASE_PATH . '/controllers/InstructorControlador.php';
+
 
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
 
@@ -90,21 +92,24 @@ $pagina      = new PaginaControlador();
 $historial   = new HistorialControlador();
 
 $aprendiz    = new AprendizControlador();
-
-
+$instructor  = new InstructorControlador();
 
 match ($accion) {
     // --- Autenticación ---
     'login'      => $auth->mostrarLogin(),
     'autenticar' => $auth->login(),
     'logout'     => $auth->logout(),
-    'guardarAprendiz' => $aprendiz-> guardar(),
 
+    //acciones 
+    'guardarAprendiz' => $aprendiz-> guardar(),
+    'guardarInstructor' =>$instructor->guardar(),
+    'actualizarInstructor' => $instructor->actualizar(),
+    'cambiarEstadoInstructor' => $instructor->cambiarEstado(),
     // --- Páginas de solo lectura CON datos: el Controlador arma las
     //     variables y se las pasa listas a la vista (ya no consultan la
     //     base de datos por su cuenta) ---
   'historial'      => $historial->mostrar(),
-
+  'instructores'   => $instructor->listar(),
 
 
 
