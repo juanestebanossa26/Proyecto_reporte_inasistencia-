@@ -105,9 +105,13 @@ match ($accion) {
     'guardarInstructor' =>$instructor->guardar(),
     'actualizarInstructor' => $instructor->actualizar(),
     'cambiarEstadoInstructor' => $instructor->cambiarEstado(),
+    'cambiarEstadoAprendiz' => $aprendiz->cambiarEstado(),
+    'desactivarAprendiz'    => $aprendiz->cambiarEstado(),
     // --- Páginas de solo lectura CON datos: el Controlador arma las
     //     variables y se las pasa listas a la vista (ya no consultan la
     //     base de datos por su cuenta) ---
+    
+  'aprendices' => $aprendiz->mostrar(),
   'historial'      => $historial->mostrar(),
   'instructores'   => $instructor->listar(),
 
@@ -115,9 +119,7 @@ match ($accion) {
 
     // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
     'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
-    'aprendices'      => $pagina->mostrar('aprendices', ['Instructor', 'Administrador']),
     'fichas'          => $pagina->mostrar('fichas', ['Instructor', 'Administrador']),
-    'historial'       => $pagina->mostrar('historial', ['Aprendiz']),
     'instructores'    => $pagina->mostrar('instructores', ['Administrador']),
     'marcaje'         => $pagina->mostrar('marcaje', ['Instructor', 'Administrador']),
     'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),

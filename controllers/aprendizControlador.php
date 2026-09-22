@@ -9,8 +9,25 @@ class AprendizControlador extends ControladorBase
         $this->modelo = new AprendizModelo();
     }
 
+    // accion=aprendices
+    // Carga la lista de aprendices y fichas desde el modelo 
+    public function mostrar(): void
+    {
+        $this->exigirSesion(['Administrador', 'Instructor']);
+        try {
+            $aprendices = $this->modelo->listar();
+            $fichas     = $this->modelo->listarFichas();
+        } catch (PDOException $e) {
+            error_log('Error al listar aprendices: ' . $e->getMessage());
+            $aprendices = [];
+            $fichas     = [];
+            $_SESSION['mensaje_error'] = 'No se pudieron cargar los datos de aprendices.';
+        }
+        require BASE_PATH . '/views/aprendices.php';
+    }
+
+
     // accion=guardar_aprendiz (POST)
-    // Diferencia crear de actualizar según si llega un id_usuario en el POST.
     public function guardar(): void
     {
         // 1. Solo el Administrador puede gestionar aprendices
@@ -146,6 +163,69 @@ class AprendizControlador extends ControladorBase
                 'error',
                 'Error de base de datos',
                 'Ocurrió un error al guardar. Intenta de nuevo.',
+                $this->urlAccion('aprendices')
+            );
+        }
+    }
+
+
+    // accion=cambiarEstadoAprendiz
+    // Permite activar o desactivar un aprendiz cambiando su estado en la base de datos
+    public function cambiarEstado(): void
+    {
+        // Solo Administrador e Instructor pueden gestionar aprendices
+        $this->exigirSesion(['Administrador', 'Instructor']);
+
+        $idUsuario = (int) ($_POST['id_usuario'] ?? $_GET['id'] ?? 0);
+        $nuevoEstado = Seguridad::sanitizar($_POST['estado'] ?? $_GET['estado'] ?? '');
+
+        if ($idUsuario <= 0) {
+            Seguridad::alertaYRedirigir(
+                'error',
+                'ID no válido',
+                'No se proporcionó un aprendiz válido.',
+                $this->urlAccion('aprendices')
+            );
+        }
+
+        $aprendizExistente = $this->modelo->buscarPorIdUsuario($idUsuario);
+        if (!$aprendizExistente) {
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Aprendiz no encontrado',
+                'No se encontró el aprendiz especificado.',
+                $this->urlAccion('aprendices')
+            );
+        }
+
+        // Revisamos que el estado recibido sea válido
+        if (!in_array(strtolower($nuevoEstado), ['activo', 'inactivo'], true)) {
+            $estadoActual = strtolower($aprendizExistente['estado'] ?? 'activo');
+            $nuevoEstado = ($estadoActual === 'activo') ? 'Inactivo' : 'Activo';
+        } else {
+            $nuevoEstado = ucfirst(strtolower($nuevoEstado));
+        }
+
+        try {
+            // Cambiamos el estado del aprendiz en la base de datos
+            $this->modelo->cambiarEstado($idUsuario, $nuevoEstado);
+
+            $mensaje = ($nuevoEstado === 'Inactivo')
+                ? 'El aprendiz ha sido desactivado correctamente.'
+                : 'El aprendiz ha sido activado correctamente.';
+
+            Seguridad::alertaYRedirigir(
+                'success',
+                '¡Estado actualizado!',
+                $mensaje,
+                $this->urlAccion('aprendices')
+            );
+        } catch (PDOException $e) {
+            error_log('Error al cambiar estado de aprendiz: ' . $e->getMessage());
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Error de base de datos',
+                'Ocurrió un error al cambiar el estado del aprendiz. Intenta de nuevo.',
                 $this->urlAccion('aprendices')
             );
         }

@@ -45,4 +45,47 @@ $(document).ready(function() {
             bsModalAprendiz.show();
         }
     });
+
+
+    // Boton de activar y desativar aprendiz
+    $('#tablaAprendices').on('click', '.btn-estado', function() {
+        var btn = $(this);
+        var id = btn.data('id');
+        var nombre = btn.data('nombre') || 'este aprendiz';
+        var accionTipo = btn.data('accion-tipo'); // 'desactivar' o 'activar'
+
+        var esDesactivar = (accionTipo === 'desactivar');
+        var titulo = esDesactivar ? '¿Desactivar aprendiz?' : '¿Activar aprendiz?';
+        var texto = esDesactivar 
+            ? 'El aprendiz <b>' + $('<div>').text(nombre).html() + '</b> pasará a estado <b>Inactivo</b>.'
+            : 'El aprendiz <b>' + $('<div>').text(nombre).html() + '</b> pasará a estado <b>Activo</b>.';
+        var botonColor = esDesactivar ? '#dc3545' : '#39a900';
+        var botonTexto = esDesactivar ? 'Sí, desactivar' : 'Sí, activar';
+        var nuevoEstado = esDesactivar ? 'Inactivo' : 'Activo';
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: titulo,
+                html: texto,
+                icon: esDesactivar ? 'warning' : 'question',
+                showCancelButton: true,
+                confirmButtonColor: botonColor,
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: botonTexto,
+                cancelButtonText: 'Cancelar'
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    $('#estado_id_usuario').val(id);
+                    $('#estado_nuevo').val(nuevoEstado);
+                    $('#formCambiarEstado').submit();
+                }
+            });
+        } else {
+            if (confirm(esDesactivar ? '¿Estás seguro de desactivar a ' + nombre + '?' : '¿Estás seguro de activar a ' + nombre + '?')) {
+                $('#estado_id_usuario').val(id);
+                $('#estado_nuevo').val(nuevoEstado);
+                $('#formCambiarEstado').submit();
+            }
+        }
+    });
 });

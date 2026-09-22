@@ -15,9 +15,8 @@ $nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'aprendices';
 $tituloPagina  = 'Aprendices';
 
-$modeloAprendiz = new AprendizModelo();
-$aprendices     = $modeloAprendiz->listar();
-$fichas         = $modeloAprendiz->listarFichas();
+$aprendices = $aprendices ?? [];
+$fichas     = $fichas ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -101,9 +100,26 @@ $fichas         = $modeloAprendiz->listarFichas();
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
 
-                                            <button class="btn btn-sm btn-outline-danger border-0" title="Desactivar">
-                                                <i class="bi bi-slash-circle"></i>
-                                            </button>
+                                            <?php 
+                                              // Si el aprendiz esta activo se muestra desactivar
+                                               if ($estado === 'activo'): ?>
+                                                <button class="btn btn-sm btn-outline-danger border-0 btn-estado" 
+                                                    title="Desactivar aprendiz"
+                                                    data-id="<?= $idUsuario ?>"
+                                                    data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
+                                                    data-accion-tipo="desactivar">
+                                                    <i class="bi bi-slash-circle"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                
+                                                <button class="btn btn-sm btn-outline-success border-0 btn-estado" 
+                                                    title="Activar aprendiz"
+                                                    data-id="<?= $idUsuario ?>"
+                                                    data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
+                                                    data-accion-tipo="activar">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -178,12 +194,21 @@ $fichas         = $modeloAprendiz->listarFichas();
         </div>
     </div>
 
+    //un formulario esta oculto para cambiar el estado
+    <form id="formCambiarEstado" action="<?= BASE_URL ?>/index.php?accion=cambiarEstadoAprendiz" method="POST" style="display:none;">
+        <input type="hidden" name="id_usuario" id="estado_id_usuario" value="0">
+        <input type="hidden" name="estado" id="estado_nuevo" value="">
+    </form>
+
     <?php include 'includes/scripts.php'; ?>
 
     <!-- Scripts de DataTables -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Scripts del modulo de aprendices -->
     <script src="<?= BASE_URL ?>/assets/js/aprendices.js"></script>

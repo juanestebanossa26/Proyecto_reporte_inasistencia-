@@ -196,8 +196,8 @@ class AprendizModelo
             $stmtU->bindParam(':id', $idUsuario, PDO::PARAM_INT);
             $stmtU->execute();
 
-            //  Actualizar tabla aprendices (solo actualiza ficha y rfid
-            //    del aprendiz cuyo id_usuario coincide — nunca toca otro registro)
+            //  Actualizar tabla aprendices solo actualiza ficha y rfid
+            //    del aprendiz cuyo id_usuario coincide
             $sqlA = "UPDATE aprendices
                      SET id_ficha = :id_ficha,
                          tag_rfid = :rfid
@@ -214,6 +214,20 @@ class AprendizModelo
             $db->rollBack();
             throw $e;
         }
+    }
+
+    //cambia el estado del aprendiz en la tabla usuarios
+    public function cambiarEstado(int $idUsuario, string $nuevoEstado): bool
+    {
+        $sql = "UPDATE usuarios 
+                SET estado = :estado 
+                WHERE id_usuario = :id AND id_role = 3";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':estado', $nuevoEstado);
+        $stmt->bindParam(':id', $idUsuario, PDO::PARAM_INT);
+
+        return $stmt->execute();
     }
 
    
