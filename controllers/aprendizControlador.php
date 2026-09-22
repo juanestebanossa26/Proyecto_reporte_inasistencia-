@@ -87,10 +87,10 @@ class AprendizControlador extends ControladorBase
             );
         }
 
-        // 6. Hash de la contraseña (solo si se proporcionó una nueva)
+        //  Hash de la contraseña (solo si se proporcionó una nueva)
         $passwordHash = ($password !== '') ? password_hash($password, PASSWORD_BCRYPT) : null;
 
-        // 7. Ejecutar la operación correcta según si es nuevo o edición
+        //  Ejecutar la operación correcta según si es nuevo o edición
         try {
             if ($esNuevo) {
                 // CREAR: inserta en usuarios + aprendices (transacción)
