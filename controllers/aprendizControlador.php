@@ -9,14 +9,22 @@ class AprendizControlador extends ControladorBase
         $this->modelo = new AprendizModelo();
     }
 
-    // accion=aprendices
-    // Carga la lista de aprendices y fichas desde el modelo 
+    // accion=aprendices -> arma los datos y entrega el control a la vista.
+    // El formulario de "editar" apunta aqui
     public function mostrar(): void
     {
         $this->exigirSesion(['Administrador', 'Instructor']);
+        $aprendizModelo  = $this->modelo;
+        $aprendizEditar  = null;
         try {
-            $aprendices = $this->modelo->listar();
-            $fichas     = $this->modelo->listarFichas();
+            if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['id_editar'])) {
+                $idEdit = (int) filter_var($_POST['id_editar'], FILTER_SANITIZE_NUMBER_INT);
+                $aprendizEditar = $aprendizModelo->buscarPorIdUsuario($idEdit);
+            }
+
+            $aprendices = $aprendizModelo->listar();
+            $fichas     = $aprendizModelo->listarFichas();
+            
         } catch (PDOException $e) {
             error_log('Error al listar aprendices: ' . $e->getMessage());
             $aprendices = [];

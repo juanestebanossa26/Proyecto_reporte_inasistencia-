@@ -15,9 +15,11 @@ $nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'aprendices';
 $tituloPagina  = 'Aprendices';
 
-$aprendices = $aprendices ?? [];
-$fichas     = $fichas ?? [];
+// Evita la advertencia de Intelephense y asegura que siempre sean arreglos iterables
+$aprendices    = $aprendices ?? [];
+$fichas        = $fichas ?? [];
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 
