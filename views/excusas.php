@@ -36,16 +36,17 @@ $tituloPagina  = 'Excusas médicas';
                     <div class="card p-3">
                         <h2 class="h6 fw-bold mb-3">Anexar nueva excusa</h2>
                
-                        <form  action="../controllers/guardar_excusa.php" method="POST" enctype="multipart/form-data" >
-                           
+                        <form  action="<?= BASE_URL ?>/index.php?accion=guardarExcusa" method="POST" enctype="multipart/form-data" >
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Seguridad::tokenCsrf()) ?>">
+     <?php foreach ($fechas_faltas as $fila) { ?>                       
                             <div class="mb-3">
     <label class="form-label">Fecha de la inasistencia</label>
     <select class="form-select" name="fecha_excusa" required>
     <option value="" disabled selected>Selecciona la fecha de tu inasistencia</option>
-    <option value="" ></option>
+    <option value="<?php echo $fila["id_asistencia"] ?>" ><?php echo $fila["fecha"] ?></option>
     </select>
 </div>
-
+<?php } ?>
                             <div class="mb-3">
                                 <label class="form-label">Motivo</label>
                                 <textarea class="form-control" name="motivo" rows="3" placeholder="Ej: Cita médica EPS" required></textarea>
@@ -73,8 +74,39 @@ $tituloPagina  = 'Excusas médicas';
                                     <tr><th>Fecha</th><th>Motivo</th><th>Estado</th></tr>
                                 </thead>
                                 <tbody>
-                               
-                                   
+                                <?php 
+                                foreach ($misExcusas as $fila) {
+                                    // 1. Limpiamos el texto pasándolo a minúsculas para evitar errores al comparar
+                                    $estado = strtolower($fila['estado_excusa']);
+                                    $claseColor = '';
+
+                                    // 2. Asignamos la clase de color de Bootstrap según el estado
+                                    switch ($estado) {
+                                        case 'aprobada':
+                                            $claseColor = 'bg-success text-white'; // Verde
+                                            break;
+                                        case 'rechazada':
+                                            $claseColor = 'bg-danger text-white';  // Rojo
+                                            break;
+                                        case 'pendiente':
+                                            $claseColor = 'bg-warning text-dark';  // Amarillo
+                                            break;
+                                        default:
+                                            $claseColor = 'bg-secondary text-white'; // Gris por defecto si hay otro estado
+                                            break;
+                                    }
+                                ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($fila['fecha']) ?></td>
+                                        <td><?= htmlspecialchars($fila['motivo']) ?></td>
+                                        <!-- 3. Imprimimos el span con la clase dinámica -->
+                                        <td>
+                                            <span class="badge <?= $claseColor ?>">
+                                                <?= ucfirst($estado) ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php } ?>
                                 </tbody>
                             </table>
                         </div>

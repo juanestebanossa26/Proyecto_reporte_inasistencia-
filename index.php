@@ -62,7 +62,7 @@ require_once BASE_PATH . '/controllers/ControladorBase.php';
 require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
 require_once BASE_PATH . '/controllers/InstructorControlador.php';
-
+require_once BASE_PATH . '/controllers/ExcusaControlador.php';
 
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
 
@@ -90,7 +90,7 @@ $auth        = new AuthControlador();
 $pagina      = new PaginaControlador();
 
 $historial   = new HistorialControlador();
-
+$excusa      = new ExcusaControlador();
 $aprendiz    = new AprendizControlador();
 $instructor  = new InstructorControlador();
 
@@ -114,7 +114,10 @@ match ($accion) {
   'aprendices' => $aprendiz->mostrar(),
   'historial'      => $historial->mostrar(),
   'instructores'   => $instructor->listar(),
-
+     'excusas'        => $excusa->listar(),             // Vista del aprendiz
+    'validarExcusas' => $excusa->listarPendientes(),   // Vista del instructor
+    'procesarExcusa' => $excusa->procesar(),           // Acción de aprobar/rechazar
+    'guardarExcusa'  => $excusa->guardar(),
 
 
     // --- Páginas de solo lectura (protegidas por sesión Y rol) ---

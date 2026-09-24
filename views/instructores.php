@@ -1,21 +1,15 @@
 <?php
-
-
-$rolActivo    = $rolActivo = $_SESSION['rol'] ?? 'Administrador';    
-$paginaActiva =  $_SESSION['nombre'] ?? '';
-$tituloPagina = 'Instructores';
-?>
-<?php
-$rolActivo    = 'admin';        
+$rolActivo    = $_SESSION['rol'] ?? 'admin';    
 $paginaActiva = 'instructores'; 
 $tituloPagina = 'Instructores';
+$instructores = $instructores ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<?php include 'includes/head.php'; ?>
-<!-- DataTables Bootstrap 5 CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <?php include 'includes/head.php'; ?>
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 </head>
 <body>
 <div class="app-shell">
@@ -29,7 +23,7 @@ $tituloPagina = 'Instructores';
                     <h1 class="h4 fw-bold mb-0">Instructores</h1>
                     <p class="text-suave mb-0">Administra los instructores y su vínculo con las fichas.</p>
                 </div>
-                <button type="button" class="btn btn-sena btn-nuevo-instructor">
+                <button type="button" class="btn btn-sena btn-nuevo-instructor" data-bs-toggle="modal" data-bs-target="#modalInstructor">
                     <i class="bi bi-plus-lg me-1"></i> Nuevo instructor
                 </button>
             </div>
@@ -48,7 +42,9 @@ $tituloPagina = 'Instructores';
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($instructores as $fila) { ?>
+                        <?php foreach ($instructores as $fila) { 
+                            $estado = strtolower(trim($fila['estado']));
+                        ?>
                             <tr>
                                 <td class="d-flex align-items-center gap-2">
                                     <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
@@ -59,7 +55,7 @@ $tituloPagina = 'Instructores';
                                 <td><?= htmlspecialchars($fila['correo_electronico'], ENT_QUOTES, 'UTF-8') ?></td>
                                 <td>
                                     <?php
-                                    $badgeClass = match(strtolower(trim($fila['estado']))) {
+                                    $badgeClass = match($estado) {
                                         'activo'    => 'bg-success-subtle text-success border border-success-subtle',
                                         'inactivo'  => 'bg-danger-subtle text-danger border border-danger-subtle',
                                         'pendiente' => 'bg-warning-subtle text-warning border border-warning-subtle',
@@ -72,7 +68,7 @@ $tituloPagina = 'Instructores';
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex align-items-center gap-1">
-                                        <!-- Botón para edición directa vía JS -->
+                                        <!-- Botón Editar -->
                                         <button type="button" 
                                                 class="btn btn-sm btn-outline-secondary border-0 btn-editar-instructor" 
                                                 title="Editar"
@@ -85,21 +81,24 @@ $tituloPagina = 'Instructores';
                                             <i class="bi bi-pencil-square"></i>
                                         </button>
 
-                                     <form method="POST" action="<?= BASE_URL ?>/index.php?accion=cambiarEstadoInstructor" class="d-inline m-0 p-0" onsubmit="return confirm('¿Seguro que deseas cambiar el estado de este instructor?');">
-    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Seguridad::tokenCsrf()) ?>">
-    <input type="hidden" name="id_usuario" value="<?= $fila['id_usuario'] ?>">
-    <input type="hidden" name="estado_actual" value="<?= htmlspecialchars($fila['estado']) ?>">
-
-    <?php if (strtolower(trim($fila['estado'])) === 'activo'): ?>
-        <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Inactivar instructor">
-            <i class="bi bi-slash-circle"></i>
-        </button>
-    <?php else: ?>
-        <button type="submit" class="btn btn-sm btn-outline-success border-0" title="Activar instructor">
-            <i class="bi bi-check-circle"></i>
-        </button>
-    <?php endif; ?>
-</form>
+                                        <!-- Botones de Estado delegados al JS -->
+                                        <?php if ($estado === 'activo'): ?>
+                                            <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-estado-instructor" 
+                                                    title="Inactivar instructor"
+                                                    data-id="<?= $fila['id_usuario'] ?>"
+                                                    data-nombre="<?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-accion-tipo="desactivar">
+                                                <i class="bi bi-slash-circle"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-sm btn-outline-success border-0 btn-estado-instructor" 
+                                                    title="Activar instructor"
+                                                    data-id="<?= $fila['id_usuario'] ?>"
+                                                    data-nombre="<?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-accion-tipo="activar">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -118,7 +117,7 @@ $tituloPagina = 'Instructores';
     <div class="modal-content">
       <form id="formInstructor" method="POST" action="">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Seguridad::tokenCsrf()) ?>">
-        <input type="hidden" name="id_usuario" id="inst_id_usuario" value="">
+        <input type="hidden" name="id_usuario" id="inst_id_usuario" value="0">
 
         <div class="modal-header border-0 pb-0">
           <h5 class="modal-title fw-bold" id="modalInstructorTitulo">Nuevo instructor</h5>
@@ -140,20 +139,21 @@ $tituloPagina = 'Instructores';
                     <input type="text" class="form-control" name="documento" id="inst_documento" required>
                 </div>
                 <div class="col-md-6">
-    <label class="form-label">Área</label>
-    <select class="form-select" name="area" id="inst_area" required>
-        <option value="" selected disabled>Seleccionar área...</option>
-        <option value="TICS">TICS</option>
-        <option value="Comercio">Comercio</option>
-    </select>
-</div>
+                    <label class="form-label">Área</label>
+                    <select class="form-select" name="area" id="inst_area" required>
+                        <option value="" selected disabled>Seleccionar área...</option>
+                        <option value="TICS">TICS</option>
+                        <option value="Comercio">Comercio</option>
+                    </select>
+                </div>
+            </div>
             <div class="mb-3 mt-3">
                 <label class="form-label">Correo electrónico</label>
                 <input type="email" class="form-control" name="correo" id="inst_correo" required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Contraseña de acceso</label>
-                <input type="password" class="form-control" name="password" id="inst_password">
+                <input type="password" class="form-control" name="password" id="inst_password" placeholder="Se usará para iniciar sesión">
                 <small id="ayudaPassword" class="text-muted d-none">Dejar en blanco para mantener la actual.</small>
             </div>
         </div>
@@ -167,6 +167,13 @@ $tituloPagina = 'Instructores';
   </div>
 </div>
 
+<!-- Formulario oculto para cambiar el estado -->
+<form id="formCambiarEstadoInstructor" action="<?= BASE_URL ?>/index.php?accion=cambiarEstadoInstructor" method="POST" style="display:none;">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Seguridad::tokenCsrf()) ?>">
+    <input type="hidden" name="id_usuario" id="estado_inst_id_usuario" value="0">
+    <input type="hidden" name="estado_actual" id="estado_inst_actual" value="">
+</form>
+
 <?php include 'includes/scripts.php'; ?>
 
 <!-- DataTables Scripts -->
@@ -174,28 +181,16 @@ $tituloPagina = 'Instructores';
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-<!-- Definición de BASE_URL para los scripts externos -->
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Definición de BASE_URL -->
 <script>
     const BASE_URL = '<?= BASE_URL ?>';
 </script>
 
-<!-- Script para el control de los modales -->
+<!-- Script para instructores -->
 <script src="<?= BASE_URL ?>/assets/js/instructor.js"></script>
-
-<script>
-$(document).ready(function() {
-    $('#tablaInstructores').DataTable({
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-        },
-        pageLength: 10,
-        responsive: true,
-        columnDefs: [
-            { orderable: false, targets: 5 } // Columna acciones
-        ]
-    });
-});
-</script>
 
 </body>
 </html>
