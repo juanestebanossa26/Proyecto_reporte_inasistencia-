@@ -93,6 +93,7 @@ $historial   = new HistorialControlador();
 $excusa      = new ExcusaControlador();
 $aprendiz    = new AprendizControlador();
 $instructor  = new InstructorControlador();
+$horario     = new HorarioControlador();
 
 match ($accion) {
     // --- Autenticación ---
@@ -107,6 +108,7 @@ match ($accion) {
     'cambiarEstadoInstructor' => $instructor->cambiarEstado(),
     'cambiarEstadoAprendiz' => $aprendiz->cambiarEstado(),
     'desactivarAprendiz'    => $aprendiz->cambiarEstado(),
+    'guardarHorario'        => $horario->guardar(),
     // --- Páginas de solo lectura CON datos: el Controlador arma las
     //     variables y se las pasa listas a la vista (ya no consultan la
     //     base de datos por su cuenta) ---
@@ -119,10 +121,12 @@ match ($accion) {
     'procesarExcusa' => $excusa->procesar(),           // Acción de aprobar/rechazar
     'guardarExcusa'  => $excusa->guardar(),
 
+    'fichas'         => $horario->mostrar(),
+
+
 
     // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
     'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
-    'fichas'          => $pagina->mostrar('fichas', ['Instructor', 'Administrador']),
     'instructores'    => $pagina->mostrar('instructores', ['Administrador']),
     'marcaje'         => $pagina->mostrar('marcaje', ['Instructor', 'Administrador']),
     'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),

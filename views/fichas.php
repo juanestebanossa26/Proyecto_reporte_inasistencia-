@@ -7,60 +7,11 @@ $nombreUsuario =$_SESSION['nombre'] ?? '';
 $paginaActiva  = 'fichas';
 $tituloPagina  = 'Calendario de fichas y horarios';
 
-// Simulación de datos con fechas para el calendario
-// TODO (backend): Cargar con SELECT uniendo tablas fichas + horarios
-$fichas = [
-    [
-        'id'          => '1',
-        'ficha'       => '2589451',
-        'programa'    => 'ADSO',
-        'instructor'  => 'Juan Camilo Vanegas',
-        'fecha'       => date('Y-m-d'),
-        'entrada'     => '07:00',
-        'salida'      => '12:30',
-        'aprendices'  => 32
-    ],
-    [
-        'id'          => '2',
-        'ficha'       => '2678903',
-        'programa'    => 'Multimedia',
-        'instructor'  => 'Marcela Ortiz',
-        'fecha'       => date('Y-m-d', strtotime('+1 day')),
-        'entrada'     => '13:00',
-        'salida'      => '18:00',
-        'aprendices'  => 28
-    ],
-    [
-        'id'          => '3',
-        'ficha'       => '2701123',
-        'programa'    => 'Redes',
-        'instructor'  => 'Héctor Ramírez',
-        'fecha'       => date('Y-m-d', strtotime('+2 days')),
-        'entrada'     => '06:30',
-        'salida'      => '11:30',
-        'aprendices'  => 24
-    ],
-];
+// Los eventos e instructores son suministrados desde la base de datos por HorarioControlador
+$eventosCalendario = $eventosCalendario ?? [];
+$instructores      = $instructores ?? [];
 
-// Transformación a formato de eventos FullCalendar
-$eventosCalendario = [];
-foreach ($fichas as $f) {
-    $eventosCalendario[] = [
-        'id'          => $f['id'],
-        'title'       => $f['ficha'] . ' - ' . $f['programa'],
-        'start'       => $f['fecha'] . 'T' . $f['entrada'] . ':00',
-        'end'         => $f['fecha'] . 'T' . $f['salida'] . ':00',
-        'extendedProps' => [
-            'ficha'      => $f['ficha'],
-            'programa'   => $f['programa'],
-            'instructor' => $f['instructor'],
-            'entrada'    => $f['entrada'],
-            'salida'     => $f['salida'],
-            'aprendices' => $f['aprendices'],
-            'fecha'      => $f['fecha']
-        ]
-    ];
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -111,7 +62,7 @@ foreach ($fichas as $f) {
 <div class="modal fade" id="modalFicha" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <form id="formFicha" action="guardar_ficha.php" method="POST">
+        <form id="formFicha" action="<?= BASE_URL ?>/index.php?accion=guardarHorario" method="POST">
         <input type="hidden" name="horario_id" id="form_horario_id">
         <div class="modal-header border-0 pb-0">
           <h5 class="modal-title fw-bold" id="modalTitulo">Ficha y horario</h5>
@@ -143,9 +94,10 @@ foreach ($fichas as $f) {
             <div class="mb-0 mt-3">
                 <label class="form-label">Instructor encargado</label>
                 <select class="form-select" name="instructor" id="form_instructor">
-                    <option value="Juan Camilo Vanegas">Juan Camilo Vanegas</option>
-                    <option value="Marcela Ortiz">Marcela Ortiz</option>
-                    <option value="Héctor Ramírez">Héctor Ramírez</option>
+                    <option value="0">Seleccionar instructor...</option>
+                    <?php foreach ($instructores as $inst): ?>
+                        <option value="<?= $inst['id_usuario'] ?>"><?= htmlspecialchars($inst['nombre_completo'] . ' ' . $inst['apellido']) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
@@ -183,6 +135,7 @@ const modalBs = new bootstrap.Modal(modalEl);
 function abrirModalCrear(fecha = '') {
     document.getElementById('formFicha').reset();
     document.getElementById('form_horario_id').value = '';
+    document.getElementById('form_instructor').value = '0';
     document.getElementById('modalTitulo').innerText = 'Nueva ficha y horario';
     if (fecha) {
         document.getElementById('form_fecha').value = fecha;
@@ -230,7 +183,14 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('form_programa').value = props.programa;
             document.getElementById('form_fecha').value = props.fecha;
             document.getElementById('form_aprendices').value = props.aprendices;
-            document.getElementById('form_instructor').value = props.instructor;
+
+            if (props.id_instructor && props.id_instructor > 0) {
+                document.getElementById('form_instructor').value = props.id_instructor;
+            } else {
+                document.getElementById('form_instructor').value = '0';
+            }
+
+
             document.getElementById('form_hora_entrada').value = props.entrada;
             document.getElementById('form_hora_salida').value = props.salida;
 
