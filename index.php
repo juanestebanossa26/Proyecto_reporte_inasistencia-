@@ -56,6 +56,7 @@ require_once BASE_PATH . '/models/AsistenciaModelo.php';
 require_once BASE_PATH . '/models/ExcusaModelo.php';
 require_once BASE_PATH . '/models/ReporteModelo.php';
 require_once BASE_PATH . '/models/AprendicesModelo.php';
+require_once BASE_PATH . '/models/HorarioModelo.php';
 //controladores
 // Controladores
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 
@@ -63,9 +64,9 @@ require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
 require_once BASE_PATH . '/controllers/InstructorControlador.php';
 require_once BASE_PATH . '/controllers/ExcusaControlador.php';
-
+require_once BASE_PATH . '/controllers/ExcusaControlador.php';
+require_once BASE_PATH . '/controllers/HorarioControlador.php'; 
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
-
 require_once BASE_PATH . '/controllers/aprendizControlador.php';
 
 // Cualquier excepción que ningún Controlador haya capturado llega hasta
@@ -127,6 +128,7 @@ match ($accion) {
 
     // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
     'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
+    'fichas'          => $pagina->mostrar('fichas', ['Instructor', 'Administrador']),
     'instructores'    => $pagina->mostrar('instructores', ['Administrador']),
     'marcaje'         => $pagina->mostrar('marcaje', ['Instructor', 'Administrador']),
     'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),
