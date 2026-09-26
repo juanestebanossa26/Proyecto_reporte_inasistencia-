@@ -1,6 +1,7 @@
 <?php
 $rolActivo     = $_SESSION['rol'] ?? 'Administrador';
 $nombreUsuario =$_SESSION['nombre'] ?? '';
+$paginaActiva = 'instructores'; 
 $tituloPagina = 'Instructores';
 $instructores = $instructores ?? [];
 ?>

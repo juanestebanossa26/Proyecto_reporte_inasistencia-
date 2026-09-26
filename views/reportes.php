@@ -1,16 +1,22 @@
 <?php
-
-
-$rolActivo    = $_SESSION['rol'] ?? 'Administrador';
-$nombreUsuario =$_SESSION['nombre'] ?? '';
-$paginaActiva = 'reportes';
-$tituloPagina = 'Reportes de asistencia';
+// Variables por defecto para evitar errores si el controlador no las define
+$rolActivo         = $_SESSION['rol'] ?? 'Administrador';
+$nombreUsuario     = $_SESSION['nombre'] ?? '';
+$paginaActiva      = 'reportes';
+$tituloPagina      = 'Reportes de asistencia';
+$fichasDisponibles = $fichasDisponibles ?? [];
+$filasReporte      = $filasReporte ?? [];
+$filaContadores    = $filaContadores ?? [];
+$rango             = $rango ?? 'dia';
+$desde             = $desde ?? date('Y-m-d');
+$hasta             = $hasta ?? date('Y-m-d');
+$ficha_id          = $ficha_id ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<?php include 'includes/head.php'; ?>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <?php include 'includes/head.php'; ?>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 </head>
 <body>
 <div class="app-shell">
@@ -26,6 +32,7 @@ $tituloPagina = 'Reportes de asistencia';
 
             <div class="card p-3 mb-3">
                 <form method="POST" action="" class="row g-3 align-items-end">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Seguridad::tokenCsrf()) ?>">
                     <div class="col-md-3">
                         <label class="form-label">Tipo de rango</label>
                         <select class="form-select" name="rango">
@@ -54,29 +61,29 @@ $tituloPagina = 'Reportes de asistencia';
                         </select>
                     </div>
                     <div class="col-12 d-flex justify-content-between flex-wrap gap-2">
-    <!-- Botón normal: recarga la misma página aplicando filtros -->
-    <button type="submit" class="btn btn-sena">
-        <i class="bi bi-funnel me-1"></i> Generar reporte
-    </button>
-    
-    <div class="d-flex gap-2">
-        <!-- Envía los filtros por POST a generar_pdf.php -->
-        <button type="submit" 
-                class="btn btn-outline-secondary" 
-                formaction="../controllers/generar_pdf.php" 
-                formtarget="_blank">
-            <i class="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
-        </button>
+                        <!-- Botón normal: recarga la misma página aplicando filtros -->
+                        <button type="submit" class="btn btn-sena">
+                            <i class="bi bi-funnel me-1"></i> Generar reporte
+                        </button>
+                        
+                        <div class="d-flex gap-2">
+                            <!-- Envía los filtros por POST a generar_pdf.php -->
+                            <button type="submit" 
+                                    class="btn btn-outline-secondary" 
+                                    formaction="<?= BASE_URL ?>/index.php?accion=generarPdf" 
+                                    formtarget="_blank">
+                                <i class="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                            </button>
 
-        <!-- Envía los filtros por POST a generar_excel.php -->
-        <button type="submit" 
-                class="btn btn-outline-secondary" 
-                formaction="../controllers/generar_excel.php" 
-                formtarget="_blank">
-            <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
-        </button>
-    </div>
-</div>
+                            <!-- Envía los filtros por POST a generar_excel.php -->
+                            <button type="submit" 
+                                    class="btn btn-outline-secondary" 
+                                    formaction="<?= BASE_URL ?>/index.php?accion=generarExcel" 
+                                    formtarget="_blank">
+                                <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
 
@@ -122,7 +129,25 @@ $tituloPagina = 'Reportes de asistencia';
                             </tr>
                         </thead>
                         <tbody>
-                      
+                        <?php foreach ($filasReporte as $fila):
+                            $minutos = (int) ($fila['min_retardo'] ?? 0);
+                            $tiempoFormato = $minutos >= 60
+                                ? floor($minutos / 60) . 'h ' . ($minutos % 60) . 'm'
+                                : $minutos . 'm';
+                        ?>
+                            <tr>
+                                <td class="d-flex align-items-center gap-2">
+                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
+                                    <?= htmlspecialchars($fila['nombre_completo'] . ' ' . $fila['apellido']) ?>
+                                </td>
+                                <td><?= htmlspecialchars($fila['nombre_programa'] . ' · ' . $fila['numero_ficha']) ?></td>
+                                <!-- Corrección: nombre_instructor ya contiene el nombre y apellido combinados desde el SQL -->
+                                <td><?= htmlspecialchars(!empty($fila['nombre_instructor']) ? $fila['nombre_instructor'] : 'Sin instructor') ?></td>
+                                <td class="text-center"><?= $fila['retardos'] ?? 0 ?></td>
+                                <td class="text-center"><?= $tiempoFormato ?></td>
+                                <td class="text-center"><?= $fila['inasistencias'] ?? 0 ?></td>
+                            </tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>

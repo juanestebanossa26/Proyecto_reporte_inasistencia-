@@ -8,7 +8,7 @@ class HistorialControlador extends ControladorBase
 {
     public function mostrar(): void
     {
-        $this->exigirSesion();
+        $this->exigirSesion(['Aprendiz']);
 
         try {
             $asistenciaModelo   = new AsistenciaModelo();

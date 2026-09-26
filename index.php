@@ -68,7 +68,7 @@ require_once BASE_PATH . '/controllers/ExcusaControlador.php';
 require_once BASE_PATH . '/controllers/HorarioControlador.php'; 
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
 require_once BASE_PATH . '/controllers/aprendizControlador.php';
-
+require_once BASE_PATH . '/controllers/ReporteControlador.php';
 // Cualquier excepción que ningún Controlador haya capturado llega hasta
 // aquí. El detalle técnico se registra en el servidor y el usuario final
 // solo ve un mensaje genérico, salvo en modo de depuración.
@@ -95,6 +95,7 @@ $excusa      = new ExcusaControlador();
 $aprendiz    = new AprendizControlador();
 $instructor  = new InstructorControlador();
 $horario     = new HorarioControlador();
+$reporte     = new ReporteControlador();
 
 match ($accion) {
     // --- Autenticación ---
@@ -117,12 +118,14 @@ match ($accion) {
   'aprendices' => $aprendiz->mostrar(),
   'historial'      => $historial->mostrar(),
   'instructores'   => $instructor->listar(),
-     'excusas'        => $excusa->listar(),             // Vista del aprendiz
-    'validarExcusas' => $excusa->listarPendientes(),   // Vista del instructor
-    'procesarExcusa' => $excusa->procesar(),           // Acción de aprobar/rechazar
-    'guardarExcusa'  => $excusa->guardar(),
-
-    'fichas'         => $horario->mostrar(),
+  'excusas'        => $excusa->listar(),             // Vista del aprendiz
+  'validarExcusas' => $excusa->listarPendientes(),   // Vista del instructor
+  'procesarExcusa' => $excusa->procesar(),           // Acción de aprobar/rechazar
+  'guardarExcusa'  => $excusa->guardar(),
+  'reportes'       => $reporte->mostrar(),
+  'generarPdf'     => $reporte->generarPdf(),
+  'generarExcel'   => $reporte->generarExcel(),
+  'fichas'         => $horario->mostrar(),
 
 
 
@@ -134,7 +137,7 @@ match ($accion) {
     'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),
     'reportes'        => $pagina->mostrar('reportes', ['Instructor', 'Administrador']),
     'excusas'         => $pagina->mostrar('excusas', ['Aprendiz']),
-    'validarExcusas'  => $pagina->mostrar('validar_excusas', ['Instructor', 'Administrador']),
+    'validarexcusas'  => $pagina->mostrar('validar_excusas', ['Instructor', 'Administrador']),
 
     default => $auth->mostrarLogin(),
 };

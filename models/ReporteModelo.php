@@ -1,19 +1,42 @@
 <?php
 // Acceso a datos para los reportes de asistencia.
-// La misma consulta se usaba, duplicada, en la vista de reportes, en el
-// generador de PDF y en el generador de Excel; aquí vive en un solo lugar.
+// La relación ficha-instructor es muchos-a-muchos (tabla
+// fichas_has_usuarios: una ficha puede tener varios instructores), no una
+// columna fichas.id_instructor como se asumía antes.
 
 class ReporteModelo
 {
-    public function listarFichas(): array
+    // Área del usuario autenticado (instructor o administrador). Se usa
+    // para acotar qué fichas puede ver un Administrador.
+    public function obtenerAreaUsuario(int $idUsuario): ?string
     {
-        $sql = "SELECT id_ficha, numero_ficha, nombre_programa FROM fichas ORDER BY numero_ficha ASC";
+        $sql = "SELECT area FROM usuarios WHERE id_usuario = :id";
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id', $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
 
-        return Conexion::obtener()->query($sql)->fetchAll();
+        $area = $stmt->fetchColumn();
+        return $area !== false ? $area : null;
+    }
+
+    // Fichas visibles para el usuario actual, según su rol. Se usa tanto
+    // para el selector de fichas del formulario como base de los reportes.
+    public function listarFichas(int $idUsuarioActual, string $rolActual): array
+    {
+        [$whereSql, $params] = $this->construirWhereAcceso($idUsuarioActual, $rolActual);
+
+        $sql = "SELECT DISTINCT fichas.id_ficha, fichas.numero_ficha, fichas.nombre_programa
+                FROM fichas
+                $whereSql
+                ORDER BY fichas.numero_ficha ASC";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
     }
 
     // Normaliza los filtros de rango de fechas (día / semana / personalizado)
-    // igual que hacía cada archivo por su cuenta en el proyecto original.
     public static function normalizarFiltros(string $rango, string $desde, string $hasta, string $fichaId): array
     {
         if ($rango === 'dia') {
@@ -27,10 +50,50 @@ class ReporteModelo
         return ['desde' => $desde, 'hasta' => $hasta, 'ficha_id' => $fichaId];
     }
 
-    private function construirWhere(array $filtros): array
+    // Condición de acceso según el rol de quien pide el reporte. Vive en
+    // un solo lugar y la reutilizan listarFichas(), obtenerDetalle() y
+    // obtenerContadores(), para que el mismo criterio de alcance nunca
+    // quede desalineado entre las tres consultas.
+    private function construirWhereAcceso(int $idUsuarioActual, string $rolActual): array
     {
-        $whereSql = ' WHERE 1=1 ';
-        $params = [];
+        if ($rolActual === 'Instructor') {
+            return [
+                ' WHERE fichas.id_ficha IN (
+                     SELECT fhu.fichas_id_ficha
+                     FROM fichas_has_usuarios fhu
+                     WHERE fhu.id_instructor = :id_usuario_actual
+                 ) ',
+                [':id_usuario_actual' => $idUsuarioActual],
+            ];
+        }
+
+        if ($rolActual === 'Administrador') {
+            $area = $this->obtenerAreaUsuario($idUsuarioActual);
+
+            // Si el administrador no tiene área asignada, no ve ninguna
+            // ficha (evita que un dato faltante termine mostrando todo).
+            if (empty($area)) {
+                return [' WHERE 1=0 ', []];
+            }
+
+            return [
+                ' WHERE fichas.id_ficha IN (
+                     SELECT fhu.fichas_id_ficha
+                     FROM fichas_has_usuarios fhu
+                     JOIN usuarios u_ins ON u_ins.id_usuario = fhu.id_instructor
+                     WHERE u_ins.area = :area_actual
+                 ) ',
+                [':area_actual' => $area],
+            ];
+        }
+
+        // Cualquier otro rol: por seguridad, no ve fichas de nadie.
+        return [' WHERE 1=0 ', []];
+    }
+
+    private function construirWhere(array $filtros, int $idUsuarioActual, string $rolActual): array
+    {
+        [$whereSql, $params] = $this->construirWhereAcceso($idUsuarioActual, $rolActual);
 
         if (!empty($filtros['desde'])) {
             $whereSql .= ' AND (asistencias.fecha >= :desde OR asistencias.fecha IS NULL) ';
@@ -49,30 +112,32 @@ class ReporteModelo
     }
 
     // Detalle por aprendiz: retardos, minutos de retardo e inasistencias
-    // (excluyendo las que ya tienen excusa médica aprobada).
-    public function obtenerDetalle(array $filtros): array
+    // (excluyendo las que ya tienen excusa médica aprobada), acotado a las
+    // fichas que el usuario actual puede ver. Como una ficha puede tener
+    // varios instructores, sus nombres se combinan con GROUP_CONCAT.
+    public function obtenerDetalle(array $filtros, int $idUsuarioActual, string $rolActual): array
     {
-        [$whereSql, $params] = $this->construirWhere($filtros);
+        [$whereSql, $params] = $this->construirWhere($filtros, $idUsuarioActual, $rolActual);
 
         $sql = "SELECT
                     u_aprendiz.nombre_completo,
                     u_aprendiz.apellido,
                     fichas.numero_ficha,
                     fichas.nombre_programa,
-                    u_instructor.nombre_completo AS nombre_instructor,
-                    u_instructor.apellido AS apellido_instructor,
+                    GROUP_CONCAT(DISTINCT CONCAT(u_instructor.nombre_completo, ' ', u_instructor.apellido) SEPARATOR ', ') AS nombre_instructor,
                     SUM(asistencias.estado = 'Retardo') AS retardos,
                     COALESCE(SUM(asistencias.tiempo_retraso), 0) AS min_retardo,
-                    SUM(asistencias.estado = 'Inasistencia' AND (excusas_medicas.estado_excusa IS NULL OR excusas_medicas.estado_excusa != 'Aprobada')) AS inasistencias
+                    SUM(asistencias.estado = 'Inasistencia' ) AS inasistencias
                 FROM aprendices
                 JOIN usuarios u_aprendiz ON aprendices.id_usuario = u_aprendiz.id_usuario
                 JOIN fichas ON aprendices.id_ficha = fichas.id_ficha
-                LEFT JOIN usuarios u_instructor ON fichas.id_instructor = u_instructor.id_usuario
+                LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = fichas.id_ficha
+                LEFT JOIN usuarios u_instructor ON u_instructor.id_usuario = fhu.id_instructor
                 LEFT JOIN asistencias ON asistencias.id_aprendiz = aprendices.id_aprendiz
                 LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
                 $whereSql
                 GROUP BY aprendices.id_aprendiz, u_aprendiz.nombre_completo, u_aprendiz.apellido,
-                         fichas.numero_ficha, fichas.nombre_programa, u_instructor.nombre_completo, u_instructor.apellido";
+                         fichas.numero_ficha, fichas.nombre_programa";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->execute($params);
@@ -80,15 +145,16 @@ class ReporteModelo
         return $stmt->fetchAll();
     }
 
-    // Tarjetas KPI del encabezado de la vista de reportes.
-    public function obtenerContadores(array $filtros): array
+    // Tarjetas KPI del encabezado de la vista de reportes, con el mismo
+    // alcance por rol que obtenerDetalle().
+    public function obtenerContadores(array $filtros, int $idUsuarioActual, string $rolActual): array
     {
-        [$whereSql, $params] = $this->construirWhere($filtros);
+        [$whereSql, $params] = $this->construirWhere($filtros, $idUsuarioActual, $rolActual);
 
         $sql = "SELECT
                     COUNT(DISTINCT aprendices.id_aprendiz) AS aprendices_en_rango,
                     COUNT(NULLIF(asistencias.estado = 'Retardo', 0)) AS total_retardos,
-                    COUNT(NULLIF(asistencias.estado = 'Inasistencia' AND (excusas_medicas.estado_excusa IS NULL OR excusas_medicas.estado_excusa != 'Aprobada'), 0)) AS total_inasistencias,
+                    COUNT(NULLIF(asistencias.estado = 'Inasistencia' , 0)) AS total_inasistencias,
                     COALESCE(SUM(asistencias.tiempo_retraso), 0) AS minutos_retardo
                 FROM aprendices
                 JOIN fichas ON aprendices.id_ficha = fichas.id_ficha
