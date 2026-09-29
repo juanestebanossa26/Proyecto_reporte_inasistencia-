@@ -19,17 +19,10 @@ $instructores      = $instructores ?? [];
     <?php include 'includes/head.php'; ?>
     <!-- FullCalendar CDN -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
-    <style>
-        .fc-event { cursor: pointer; }
-        .fc .fc-button-primary {
-            background-color: var(--bs-success, #39a900);
-            border-color: var(--bs-success, #39a900);
-        }
-        .fc .fc-button-primary:hover, .fc .fc-button-primary:focus {
-            background-color: #2e8b00;
-            border-color: #2e8b00;
-        }
-    </style>
+    
+    <!-- Estilos específicos del Calendario de Fichas -->
+     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/calendario.css">
+
 </head>
 <body>
 <div class="app-shell">
@@ -156,6 +149,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'es',
+        contentHeight: 520,   // Altura compacta para evitar celdas excesivamente grandes
+        dayMaxEvents: 2,      // Limita a 2 fichas por celda para mantener el tamaño compacto (+ más)
+        navLinks: false,
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -167,7 +163,29 @@ document.addEventListener('DOMContentLoaded', function() {
             week: 'Semana',
             day: 'Día'
         },
+        slotMinTime: '06:00:00',
+        slotMaxTime: '21:00:00',
+        allDaySlot: false,
         events: eventos,
+        // Renderizado visual mejorado y compacto para las fichas
+        eventContent: function(arg) {
+            const props = arg.event.extendedProps || {};
+            const ficha = props.ficha || arg.event.title;
+            const container = document.createElement('div');
+            container.className = 'fc-custom-event d-flex align-items-center gap-1 w-100 overflow-hidden';
+            container.innerHTML = `
+                <span class="fc-ficha-badge">${ficha}</span>
+                <span class="fc-ficha-desc text-truncate">${props.programa || ''}</span>
+            `;
+            return { domNodes: [container] };
+        },
+        // Tooltip nativo al pasar el mouse sobre la ficha
+        eventDidMount: function(info) {
+            const props = info.event.extendedProps || {};
+            const horario = (props.entrada && props.salida) ? `${props.entrada} - ${props.salida}` : '';
+            const instructor = props.instructor || 'Sin asignar';
+            info.el.setAttribute('title', `Ficha: ${props.ficha}\nPrograma: ${props.programa}\nHorario: ${horario}\nInstructor: ${instructor}`);
+        },
         // Clic en un día vacío
         dateClick: function(info) {
             if (esAdmin) {

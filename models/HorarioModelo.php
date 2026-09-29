@@ -38,6 +38,18 @@ class HorarioModelo
         $stmt->execute();
         $ficha = $stmt->fetch();
 
+        if ($ficha) {
+            return (int) $ficha['id_ficha'];
+        }
+
+        $sqlInsert = "INSERT INTO fichas (numero_ficha, nombre_programa) VALUES (:num, :prog)";
+        $stmtInsert = $db->prepare($sqlInsert);
+        $stmtInsert->bindParam(':num', $numeroFicha);
+        $stmtInsert->bindParam(':prog', $nombrePrograma);
+        $stmtInsert->execute();
+
+        return (int) $db->lastInsertId();
+
     }
 
     // Asocia un instructor a una ficha en la tabla  fichas_has_usuarios
@@ -49,6 +61,14 @@ class HorarioModelo
         $stmtVerificar->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
         $stmtVerificar->bindParam(':id_inst', $idInstructor, PDO::PARAM_INT);
         $stmtVerificar->execute();
+
+        if (!$stmtVerificar->fetch()) {
+            $sqlInsert = "INSERT INTO fichas_has_usuarios (fichas_id_ficha, id_instructor) VALUES (:id_ficha, :id_inst)";
+            $stmtInsert = $db->prepare($sqlInsert);
+            $stmtInsert->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
+            $stmtInsert->bindParam(':id_inst', $idInstructor, PDO::PARAM_INT);
+            $stmtInsert->execute();
+        }
     }
 
     // Registra un nuevo horario asociado a una ficha
