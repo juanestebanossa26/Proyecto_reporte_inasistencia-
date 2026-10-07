@@ -109,4 +109,28 @@ class Seguridad
         </script>";
         self::imprimirCierreAnimacion();
     }
+
+    // Muestra una alerta de SweetAlert2 con contenido HTML y redirige al terminar.
+    public static function alertaHtmlYRedirigir(string $icono, string $titulo, string $html, string $ruta): void
+    {
+        self::imprimirEncabezadoAnimacion();
+        $iconoJs   = json_encode($icono);
+        $tituloJs  = json_encode($titulo);
+        $htmlJs    = json_encode($html);
+        $rutaJs    = json_encode($ruta);
+        echo "<script>
+            Swal.fire({
+                icon: {$iconoJs},
+                title: {$tituloJs},
+                html: {$htmlJs},
+                showClass: { popup: 'animate__animated animate__zoomInDown' },
+                hideClass: { popup: 'animate__animated animate__fadeOutUp' },
+                confirmButtonColor: '#39a900',
+                confirmButtonText: 'Continuar'
+            }).then(() => {
+                window.location.href = {$rutaJs};
+            });
+        </script>";
+        self::imprimirCierreAnimacion();
+    }
 }

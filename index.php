@@ -50,6 +50,11 @@ session_start();
 require_once BASE_PATH . '/config/conexion.php';
 require_once BASE_PATH . '/helpers/Seguridad.php';
 
+// Carga de dependencias de Composer (PhpSpreadsheet, etc.)
+if (file_exists(BASE_PATH . '/vendor/autoload.php')) {
+    require_once BASE_PATH . '/vendor/autoload.php';
+}
+
 // Modelos (acceso a datos, sin HTML ni encabezados HTTP).
 require_once BASE_PATH . '/models/UsuarioModelo.php';
 require_once BASE_PATH . '/models/AsistenciaModelo.php';
@@ -111,11 +116,14 @@ match ($accion) {
     'cambiarEstadoAprendiz' => $aprendiz->cambiarEstado(),
     'desactivarAprendiz'    => $aprendiz->cambiarEstado(),
     'guardarHorario'        => $horario->guardar(),
+    'guardarFicha'          => $horario->guardarFicha(),
+    'importarHorariosExcel' => $horario->importarExcel(),
+    'importarExcel'         => $horario->importarExcel(),
     // --- Páginas de solo lectura CON datos: el Controlador arma las
     //     variables y se las pasa listas a la vista (ya no consultan la
     //     base de datos por su cuenta) ---
     
-  'aprendices' => $aprendiz->mostrar(),
+  'aprendices'     => $aprendiz->mostrar(),
   'historial'      => $historial->mostrar(),
   'instructores'   => $instructor->listar(),
   'excusas'        => $excusa->listar(),             // Vista del aprendiz
@@ -125,13 +133,11 @@ match ($accion) {
   'reportes'       => $reporte->mostrar(),
   'generarPdf'     => $reporte->generarPdf(),
   'generarExcel'   => $reporte->generarExcel(),
-  'fichas'         => $horario->mostrar(),
-
-
+  'fichas'         => $horario->mostrarFichas(),
+  'horarios'       => $horario->mostrarHorarios(),
 
     // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
     'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
-    'fichas'          => $pagina->mostrar('fichas', ['Instructor', 'Administrador']),
     'instructores'    => $pagina->mostrar('instructores', ['Administrador']),
     'marcaje'         => $pagina->mostrar('marcaje', ['Instructor', 'Administrador']),
     'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),

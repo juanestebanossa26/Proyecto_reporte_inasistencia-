@@ -1,28 +1,22 @@
 <?php
 /**
- * fichas.php — Fichas y horarios en vista Calendario (HU 9, 10)
+ * fichas.php — Vista exclusiva para Gestión y Listado de Fichas
  */
 $rolActivo     = $_SESSION['rol'] ?? 'Administrador';
-$nombreUsuario =$_SESSION['nombre'] ?? '';
+$nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'fichas';
-$tituloPagina  = 'Calendario de fichas y horarios';
+$tituloPagina  = 'Fichas de Formación';
 
-// Los eventos e instructores son suministrados desde la base de datos por HorarioControlador
-$eventosCalendario = $eventosCalendario ?? [];
-$instructores      = $instructores ?? [];
-
-
+// Las fichas e instructores son suministrados por HorarioControlador::mostrarFichas()
+$fichas       = $fichas ?? [];
+$instructores = $instructores ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <?php include 'includes/head.php'; ?>
-    <!-- FullCalendar CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
-    
-    <!-- Estilos específicos del Calendario de Fichas -->
-     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/calendario.css">
-
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 </head>
 <body>
 <div class="app-shell">
@@ -33,83 +27,136 @@ $instructores      = $instructores ?? [];
             <div class="page-header d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4">
                 <div>
                     <div class="eyebrow">Gestión</div>
-                    <h1 class="h4 fw-bold mb-0">Horarios y Fichas</h1>
-                    <p class="text-suave mb-0">Haz clic en un día para programar o en una ficha para editar sus detalles.</p>
+                    <h1 class="h4 fw-bold mb-0">Fichas de Formación</h1>
+                    <p class="text-suave mb-0">Administra las fichas académicas, programas de formación e instructores asignados.</p>
                 </div>
                 <?php if ($rolActivo === 'Administrador'): ?>
-                <button class="btn btn-sena" onclick="abrirModalCrear()">
-                    <i class="bi bi-plus-lg me-1"></i> Nueva ficha
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sena" onclick="abrirModalCrearFicha()">
+                        <i class="bi bi-plus-lg me-1"></i> Nueva ficha
+                    </button>
+                </div>
                 <?php endif; ?>
             </div>
 
-            <!-- Contenedor del Calendario -->
+            <!-- Tabla de Fichas -->
             <div class="card p-3 shadow-sm border-0">
-                <div id="calendar"></div>
+                <div class="table-responsive">
+                    <table id="tablaFichas" class="table table-app align-middle mb-0" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Número de Ficha</th>
+                                <th>Programa de Formación</th>
+                                <th>Instructores</th>
+                                <th class="text-center">Aprendices</th>
+                                <th class="text-center">Horarios</th>
+                                <th class="text-end" data-orderable="false">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($fichas as $f): ?>
+                            <tr>
+                                <td>
+                                    <span class="badge bg-light text-dark border fs-6 px-2 py-1">
+                                        <i class="bi bi-folder2-open text-success me-1"></i>
+                                        <?= htmlspecialchars($f['numero_ficha']) ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark"><?= htmlspecialchars($f['nombre_programa']) ?></div>
+                                </td>
+                                <td>
+                                    <?php 
+                                    $instTexto = trim($f['instructores'] ?? '');
+                                    if ($instTexto !== ''): ?>
+                                        <span class="text-secondary small d-inline-block text-truncate" style="max-width: 280px;" title="<?= htmlspecialchars($instTexto) ?>">
+                                            <i class="bi bi-person-badge text-primary me-1"></i><?= htmlspecialchars($instTexto) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary-subtle text-secondary border">Sin asignar</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                        <i class="bi bi-people me-1"></i><?= (int)($f['total_aprendices'] ?? 0) ?>
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                        <i class="bi bi-calendar-event me-1"></i><?= (int)($f['total_horarios'] ?? 0) ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex align-items-center gap-1">
+                                        <!-- Enlace a ver horarios de esta ficha en el calendario -->
+                                        <a href="<?= BASE_URL ?>/index.php?accion=horarios" 
+                                           class="btn btn-sm btn-outline-primary border-0" 
+                                           title="Ver horarios en calendario">
+                                            <i class="bi bi-calendar3"></i>
+                                        </a>
+
+                                        <?php if ($rolActivo === 'Administrador'): ?>
+                                        <!-- Botón Editar Ficha -->
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-secondary border-0 btn-editar-ficha" 
+                                                title="Editar Ficha"
+                                                data-id="<?= $f['id_ficha'] ?>"
+                                                data-numero="<?= htmlspecialchars($f['numero_ficha'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-programa="<?= htmlspecialchars($f['nombre_programa'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-instructor="<?= (int)($f['id_instructor'] ?? 0) ?>">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
 </div>
 
-<!-- Modal Unificado: Crear / Editar Ficha y Horario -->
+<!-- Modal: Crear / Editar Ficha -->
 <div class="modal fade" id="modalFicha" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-        <form id="formFicha" action="<?= BASE_URL ?>/index.php?accion=guardarHorario" method="POST">
-        <input type="hidden" name="horario_id" id="form_horario_id">
+    <div class="modal-content border-0 shadow">
+      <form id="formFicha" action="<?= BASE_URL ?>/index.php?accion=guardarFicha" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= Seguridad::tokenCsrf() ?>">
+        <input type="hidden" name="id_ficha" id="form_id_ficha" value="0">
         <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold" id="modalTitulo">Ficha y horario</h5>
+          <h5 class="modal-title fw-bold" id="modalTituloFicha">
+            <i class="bi bi-journal-bookmark text-success me-2"></i>Nueva Ficha
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Número de ficha</label>
-                    <input type="text" class="form-control" name="numero_ficha" id="form_numero_ficha" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Programa</label>
-                    <input type="text" class="form-control" name="programa" id="form_programa" required>
-                </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Número de Ficha</label>
+                <input type="text" class="form-control" name="numero_ficha" id="form_numero_ficha" required placeholder="Ej. 3064749">
             </div>
 
-            <div class="row g-3 mt-1">
-                <div class="col-md-6">
-                    <label class="form-label">Fecha</label>
-                    <input type="date" class="form-control" name="fecha" id="form_fecha" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">N° Aprendices</label>
-                    <input type="number" class="form-control" name="aprendices" id="form_aprendices" min="1">
-                </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Programa de Formación</label>
+                <input type="text" class="form-control" name="nombre_programa" id="form_nombre_programa" required placeholder="Ej. TECNOLOGÍA EN ANÁLISIS Y DESARROLLO DE SOFTWARE">
             </div>
 
-            <div class="mb-0 mt-3">
-                <label class="form-label">Instructor encargado</label>
-                <select class="form-select" name="instructor" id="form_instructor">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Instructor encargado (Opcional)</label>
+                <select class="form-select" name="id_instructor" id="form_id_instructor">
                     <option value="0">Seleccionar instructor...</option>
                     <?php foreach ($instructores as $inst): ?>
                         <option value="<?= $inst['id_usuario'] ?>"><?= htmlspecialchars($inst['nombre_completo'] . ' ' . $inst['apellido']) ?></option>
                     <?php endforeach; ?>
                 </select>
-            </div>
-
-            <div class="row g-3 mt-0">
-                <div class="col-md-6">
-                    <label class="form-label">Hora de entrada</label>
-                    <input type="time" class="form-control" name="hora_entrada" id="form_hora_entrada" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Hora de salida</label>
-                    <input type="time" class="form-control" name="hora_salida" id="form_hora_salida" required>
-                </div>
+                <div class="form-text">Puedes asociar un instructor de referencia a esta ficha.</div>
             </div>
         </div>
         <div class="modal-footer border-0">
           <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-          <?php if ($rolActivo === 'Administrador'): ?>
-          <button type="submit" class="btn btn-sena" id="btnGuardar">Guardar ficha</button>
-          <?php endif; ?>
+          <button type="submit" class="btn btn-sena" id="btnGuardarFicha">Guardar Ficha</button>
         </div>
       </form>
     </div>
@@ -118,106 +165,47 @@ $instructores      = $instructores ?? [];
 
 <?php include 'includes/scripts.php'; ?>
 
-<!-- Script de FullCalendar -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<!-- DataTables Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
 <script>
-const esAdmin = <?= json_encode($rolActivo === 'Administrador') ?>;
 const modalEl = document.getElementById('modalFicha');
 const modalBs = new bootstrap.Modal(modalEl);
 
-function abrirModalCrear(fecha = '') {
+function abrirModalCrearFicha() {
     document.getElementById('formFicha').reset();
-    document.getElementById('form_horario_id').value = '';
-    document.getElementById('form_instructor').value = '0';
-    document.getElementById('modalTitulo').innerText = 'Nueva ficha y horario';
-    if (fecha) {
-        document.getElementById('form_fecha').value = fecha;
-    }
-    habilitarCampos(true);
+    document.getElementById('form_id_ficha').value = '0';
+    document.getElementById('modalTituloFicha').innerHTML = '<i class="bi bi-journal-bookmark text-success me-2"></i>Nueva Ficha';
     modalBs.show();
 }
 
-function habilitarCampos(editable) {
-    const inputs = document.querySelectorAll('#formFicha input, #formFicha select');
-    inputs.forEach(el => el.disabled = !editable);
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    const calendarEl = document.getElementById('calendar');
-    const eventos = <?= json_encode($eventosCalendario) ?>;
-
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        locale: 'es',
-        contentHeight: 520,   // Altura compacta para evitar celdas excesivamente grandes
-        dayMaxEvents: 2,      // Limita a 2 fichas por celda para mantener el tamaño compacto (+ más)
-        navLinks: false,
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    // Inicializar DataTable
+    $('#tablaFichas').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
         },
-        buttonText: {
-            today: 'Hoy',
-            month: 'Mes',
-            week: 'Semana',
-            day: 'Día'
-        },
-        slotMinTime: '06:00:00',
-        slotMaxTime: '21:00:00',
-        allDaySlot: false,
-        events: eventos,
-        // Renderizado visual mejorado y compacto para las fichas
-        eventContent: function(arg) {
-            const props = arg.event.extendedProps || {};
-            const ficha = props.ficha || arg.event.title;
-            const container = document.createElement('div');
-            container.className = 'fc-custom-event d-flex align-items-center gap-1 w-100 overflow-hidden';
-            container.innerHTML = `
-                <span class="fc-ficha-badge">${ficha}</span>
-                <span class="fc-ficha-desc text-truncate">${props.programa || ''}</span>
-            `;
-            return { domNodes: [container] };
-        },
-        // Tooltip nativo al pasar el mouse sobre la ficha
-        eventDidMount: function(info) {
-            const props = info.event.extendedProps || {};
-            const horario = (props.entrada && props.salida) ? `${props.entrada} - ${props.salida}` : '';
-            const instructor = props.instructor || 'Sin asignar';
-            info.el.setAttribute('title', `Ficha: ${props.ficha}\nPrograma: ${props.programa}\nHorario: ${horario}\nInstructor: ${instructor}`);
-        },
-        // Clic en un día vacío
-        dateClick: function(info) {
-            if (esAdmin) {
-                abrirModalCrear(info.dateStr);
-            }
-        },
-        // Clic en un evento existente
-        eventClick: function(info) {
-            const props = info.event.extendedProps;
-            document.getElementById('modalTitulo').innerText = esAdmin ? 'Editar ficha y horario' : 'Detalles de horario';
-            document.getElementById('form_horario_id').value = info.event.id;
-            document.getElementById('form_numero_ficha').value = props.ficha;
-            document.getElementById('form_programa').value = props.programa;
-            document.getElementById('form_fecha').value = props.fecha;
-            document.getElementById('form_aprendices').value = props.aprendices;
-
-            if (props.id_instructor && props.id_instructor > 0) {
-                document.getElementById('form_instructor').value = props.id_instructor;
-            } else {
-                document.getElementById('form_instructor').value = '0';
-            }
-
-
-            document.getElementById('form_hora_entrada').value = props.entrada;
-            document.getElementById('form_hora_salida').value = props.salida;
-
-            habilitarCampos(esAdmin);
-            modalBs.show();
-        }
+        order: [[0, 'asc']],
+        pageLength: 10
     });
 
-    calendar.render();
+    // Delegación para editar ficha
+    $(document).on('click', '.btn-editar-ficha', function() {
+        const id = $(this).data('id');
+        const numero = $(this).data('numero');
+        const programa = $(this).data('programa');
+        const instructor = $(this).data('instructor');
+
+        document.getElementById('form_id_ficha').value = id;
+        document.getElementById('form_numero_ficha').value = numero;
+        document.getElementById('form_nombre_programa').value = programa;
+        document.getElementById('form_id_instructor').value = instructor || '0';
+
+        document.getElementById('modalTituloFicha').innerHTML = '<i class="bi bi-pencil-square text-success me-2"></i>Editar Ficha';
+        modalBs.show();
+    });
 });
 </script>
 </body>
