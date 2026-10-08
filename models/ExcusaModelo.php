@@ -3,94 +3,193 @@
 
 class ExcusaModelo
 {
-    // Excusas enviadas por un aprendiz (para su propia vista).
+    // Excusas enviadas por un aprendiz (para su propia vista). Como una
+    // misma excusa puede tener varias revisiones (una por instructor de
+    // la ficha), aquí se calcula un solo "estado_excusa" resumen:
+    // - Si algún instructor la rechazó      -> Rechazada
+    // - si no, si algún instructor la devolvió -> Devuelta
+    // - si no, si todos la aprobaron         -> Aprobada
+    // - si no                                -> Pendiente
     public function listarPorAprendiz(int $idUsuario): array
     {
-        $sql = "SELECT asistencias.fecha,
-                       excusas_medicas.motivo
+        $sql = "SELECT
+                    excusas_medicas.id_excusa,
+                    excusas_medicas.archivo_adjunto,
+                    asistencias.fecha,
+                    excusas_medicas.motivo,
+                    COUNT(revision_excusas.id_revision) AS total_revisiones,
+                    SUM(revision_excusas.estado = 'Rechazada') AS rechazadas,
+                    SUM(revision_excusas.estado = 'Devuelta') AS devueltas,
+                    SUM(revision_excusas.estado = 'Aprobada') AS aprobadas
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-                WHERE aprendices.id_usuario = :id_usuario";
+                LEFT JOIN revision_excusas ON revision_excusas.id_excusa = excusas_medicas.id_excusa
+                WHERE aprendices.id_usuario = :id_usuario
+                GROUP BY excusas_medicas.id_excusa, excusas_medicas.archivo_adjunto,
+                         asistencias.fecha, excusas_medicas.motivo
+                ORDER BY excusas_medicas.fecha_creacion DESC";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
         $stmt->execute();
 
-        return $stmt->fetchAll();
+        $filas = $stmt->fetchAll();
+
+        foreach ($filas as &$fila) {
+            if ((int) $fila['rechazadas'] > 0) {
+                $fila['estado_excusa'] = 'Rechazada';
+            } elseif ((int) $fila['devueltas'] > 0) {
+                $fila['estado_excusa'] = 'Devuelta';
+            } elseif ((int) $fila['total_revisiones'] > 0 && (int) $fila['aprobadas'] === (int) $fila['total_revisiones']) {
+                $fila['estado_excusa'] = 'Aprobada';
+            } else {
+                $fila['estado_excusa'] = 'Pendiente';
+            }
+        }
+        unset($fila);
+
+        return $filas;
     }
 
-    // Guarda la excusa y la reparte a todos los instructores de la ficha del aprendiz
+    // Trae una excusa puntual, verificando que sea del aprendiz que la pide
+    // (para que nadie pueda reenviar/editar una excusa ajena adivinando el id).
+    public function buscarPorIdYAprendiz(int $idExcusa, int $idUsuario): array|false
+    {
+        $sql = "SELECT excusas_medicas.id_excusa, excusas_medicas.motivo, excusas_medicas.archivo_adjunto
+                FROM excusas_medicas
+                JOIN asistencias ON asistencias.id_asistencia = excusas_medicas.id_asistencia
+                JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
+                WHERE excusas_medicas.id_excusa = :id_excusa
+                  AND aprendices.id_usuario = :id_usuario";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
+        $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch();
+    }
+
+    // Guarda una excusa para UNA fecha (se mantiene por compatibilidad;
+    // internamente usa el mismo camino que guardarVarios()).
     public function guardar(int $idAsistencia, string $rutaRelativaArchivo, string $motivo): void
     {
+        $this->guardarVarios([$idAsistencia], $rutaRelativaArchivo, $motivo);
+    }
+
+    // Guarda LA MISMA excusa (mismo archivo, mismo motivo) para varias
+    // fechas de inasistencia a la vez: una fila en excusas_medicas por
+    // cada fecha marcada, todas dentro de una sola transacción.
+    public function guardarVarios(array $idsAsistencia, string $rutaRelativaArchivo, string $motivo): void
+    {
         $conexion = Conexion::obtener();
-        
+
         try {
-            // Iniciamos transacción para que, si algo falla, no se guarde a medias
             $conexion->beginTransaction();
 
-            // 1. Obtener el id_aprendiz y su id_ficha a partir de la asistencia
-            $stmtInfo = $conexion->prepare("
-                SELECT ap.id_aprendiz, ap.id_ficha 
-                FROM asistencias a
-                JOIN aprendices ap ON a.id_aprendiz = ap.id_aprendiz
-                WHERE a.id_asistencia = :id_asistencia
-            ");
-            $stmtInfo->bindParam(':id_asistencia', $idAsistencia, PDO::PARAM_INT);
-            $stmtInfo->execute();
-            $infoAprendiz = $stmtInfo->fetch(PDO::FETCH_ASSOC);
-
-            if (!$infoAprendiz) {
-                throw new Exception("No se encontró el aprendiz para esta asistencia.");
+            foreach ($idsAsistencia as $idAsistencia) {
+                $this->insertarExcusaYNotificar($conexion, (int) $idAsistencia, $rutaRelativaArchivo, $motivo);
             }
 
-            $idAprendiz = $infoAprendiz['id_aprendiz'];
-            $idFicha    = $infoAprendiz['id_ficha'];
-
-            // 2. Insertar en excusas_medicas
-            $stmtExcusa = $conexion->prepare("
-                INSERT INTO excusas_medicas (id_asistencia, aprendices_id_aprendiz, archivo_adjunto, motivo, fecha_creacion)
-                VALUES (:id_asistencia, :id_aprendiz, :ruta, :motivo, NOW())
-            ");
-            $stmtExcusa->bindParam(':id_asistencia', $idAsistencia, PDO::PARAM_INT);
-            $stmtExcusa->bindParam(':id_aprendiz', $idAprendiz, PDO::PARAM_INT);
-            $stmtExcusa->bindParam(':ruta', $rutaRelativaArchivo);
-            $stmtExcusa->bindParam(':motivo', $motivo);
-            $stmtExcusa->execute();
-
-            // Capturamos el ID de la excusa recién creada
-            $idNuevaExcusa = $conexion->lastInsertId();
-
-            // 3. Buscar TODOS los instructores asignados a la ficha de este aprendiz
-            $stmtInstructores = $conexion->prepare("
-                SELECT id_instructor 
-                FROM fichas_has_usuarios 
-                WHERE fichas_id_ficha = :id_ficha
-            ");
-            $stmtInstructores->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
-            $stmtInstructores->execute();
-            $instructores = $stmtInstructores->fetchAll(PDO::FETCH_ASSOC);
-
-            // 4. Insertar en revision_excusas por cada instructor encontrado
-            if (!empty($instructores)) {
-                $stmtRevision = $conexion->prepare("
-                    INSERT INTO revision_excusas (id_excusa, id_instructor, estado)
-                    VALUES (:id_excusa, :id_instructor, 'Pendiente')
-                ");
-                
-                foreach ($instructores as $inst) {
-                    $stmtRevision->bindValue(':id_excusa', $idNuevaExcusa, PDO::PARAM_INT);
-                    $stmtRevision->bindValue(':id_instructor', $inst['id_instructor'], PDO::PARAM_INT);
-                    $stmtRevision->execute();
-                }
-            }
-
-            // Confirmamos la transacción
             $conexion->commit();
-
         } catch (Exception $e) {
             $conexion->rollBack();
-            error_log('Error al guardar excusa y notificar instructores: ' . $e->getMessage());
+            error_log('Error al guardar excusa(s) y notificar instructores: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    // Inserta UNA fila de excusas_medicas para una fecha puntual, y crea
+    // su revisión pendiente por cada instructor de la ficha. No maneja su
+    // propia transacción: quien la llama decide cuándo confirmar/revertir.
+    private function insertarExcusaYNotificar(PDO $conexion, int $idAsistencia, string $rutaRelativaArchivo, string $motivo): void
+    {
+        $stmtInfo = $conexion->prepare("
+            SELECT ap.id_aprendiz, ap.id_ficha
+            FROM asistencias a
+            JOIN aprendices ap ON a.id_aprendiz = ap.id_aprendiz
+            WHERE a.id_asistencia = :id_asistencia
+        ");
+        $stmtInfo->bindParam(':id_asistencia', $idAsistencia, PDO::PARAM_INT);
+        $stmtInfo->execute();
+        $infoAprendiz = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+
+        if (!$infoAprendiz) {
+            throw new Exception("No se encontró el aprendiz para esta asistencia.");
+        }
+
+        $idAprendiz = $infoAprendiz['id_aprendiz'];
+        $idFicha    = $infoAprendiz['id_ficha'];
+
+        $stmtExcusa = $conexion->prepare("
+            INSERT INTO excusas_medicas (id_asistencia, aprendices_id_aprendiz, archivo_adjunto, motivo, fecha_creacion)
+            VALUES (:id_asistencia, :id_aprendiz, :ruta, :motivo, NOW())
+        ");
+        $stmtExcusa->bindParam(':id_asistencia', $idAsistencia, PDO::PARAM_INT);
+        $stmtExcusa->bindParam(':id_aprendiz', $idAprendiz, PDO::PARAM_INT);
+        $stmtExcusa->bindParam(':ruta', $rutaRelativaArchivo);
+        $stmtExcusa->bindParam(':motivo', $motivo);
+        $stmtExcusa->execute();
+
+        $idNuevaExcusa = $conexion->lastInsertId();
+
+        $stmtInstructores = $conexion->prepare("
+            SELECT id_instructor
+            FROM fichas_has_usuarios
+            WHERE fichas_id_ficha = :id_ficha
+        ");
+        $stmtInstructores->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
+        $stmtInstructores->execute();
+        $instructores = $stmtInstructores->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!empty($instructores)) {
+            $stmtRevision = $conexion->prepare("
+                INSERT INTO revision_excusas (id_excusa, id_instructor, estado)
+                VALUES (:id_excusa, :id_instructor, 'Pendiente')
+            ");
+
+            foreach ($instructores as $inst) {
+                $stmtRevision->bindValue(':id_excusa', $idNuevaExcusa, PDO::PARAM_INT);
+                $stmtRevision->bindValue(':id_instructor', $inst['id_instructor'], PDO::PARAM_INT);
+                $stmtRevision->execute();
+            }
+        }
+    }
+
+    // Reenvía una excusa YA EXISTENTE (misma fila, mismo id_excusa): se
+    // reemplaza el archivo y el motivo, y se reabren a "Pendiente" solo
+    // las revisiones que no estaban ya aprobadas -- al instructor que ya
+    // la había aprobado no le vuelve a aparecer para revisar de nuevo.
+    public function reenviar(int $idExcusa, string $rutaRelativaArchivo, string $motivo): void
+    {
+        $conexion = Conexion::obtener();
+
+        try {
+            $conexion->beginTransaction();
+
+            $stmt = $conexion->prepare("
+                UPDATE excusas_medicas
+                SET archivo_adjunto = :ruta, motivo = :motivo
+                WHERE id_excusa = :id_excusa
+            ");
+            $stmt->bindParam(':ruta', $rutaRelativaArchivo);
+            $stmt->bindParam(':motivo', $motivo);
+            $stmt->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt = $conexion->prepare("
+                UPDATE revision_excusas
+                SET estado = 'Pendiente', observaciones = NULL, fecha_respuesta = NULL
+                WHERE id_excusa = :id_excusa AND estado != 'Aprobada'
+            ");
+            $stmt->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $conexion->commit();
+        } catch (Exception $e) {
+            $conexion->rollBack();
+            error_log('Error al reenviar excusa: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -144,24 +243,21 @@ class ExcusaModelo
     public function procesarRevision(int $idRevision, string $estado, string $observacion): void
     {
         $conexion = Conexion::obtener();
-        
-        // 1. Actualizar el estado y guardar la observación de este instructor específico
-        $sql = "UPDATE revision_excusas 
-                SET estado = :estado, 
-                    observaciones = :obs, 
-                    fecha_respuesta = NOW() 
+
+        $sql = "UPDATE revision_excusas
+                SET estado = :estado,
+                    observaciones = :obs,
+                    fecha_respuesta = NOW()
                 WHERE id_revision = :id_rev";
-        
+
         $stmt = $conexion->prepare($sql);
         $stmt->bindParam(':estado', $estado);
         $stmt->bindParam(':obs', $observacion);
         $stmt->bindParam(':id_rev', $idRevision, PDO::PARAM_INT);
         $stmt->execute();
 
-        // 2. Si se Aprueba, cambiar la inasistencia a asistencia en la base de datos principal
         if (strtolower($estado) === 'aprobada') {
-            // Buscamos el id_asistencia original a través del id_revision
-            $sqlAsistencia = "SELECT em.id_asistencia 
+            $sqlAsistencia = "SELECT em.id_asistencia
                               FROM revision_excusas re
                               JOIN excusas_medicas em ON re.id_excusa = em.id_excusa
                               WHERE re.id_revision = :id_rev";

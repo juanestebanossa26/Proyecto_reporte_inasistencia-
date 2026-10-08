@@ -57,6 +57,7 @@ require_once BASE_PATH . '/models/ExcusaModelo.php';
 require_once BASE_PATH . '/models/ReporteModelo.php';
 require_once BASE_PATH . '/models/AprendicesModelo.php';
 require_once BASE_PATH . '/models/HorarioModelo.php';
+require_once BASE_PATH . '/models/MarcajeModelo.php';
 //controladores
 // Controladores
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 
@@ -66,6 +67,7 @@ require_once BASE_PATH . '/controllers/InstructorControlador.php';
 require_once BASE_PATH . '/controllers/ExcusaControlador.php';
 require_once BASE_PATH . '/controllers/ExcusaControlador.php';
 require_once BASE_PATH . '/controllers/HorarioControlador.php'; 
+require_once BASE_PATH . '/controllers/MarcajeControlador.php';
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
 require_once BASE_PATH . '/controllers/aprendizControlador.php';
 require_once BASE_PATH . '/controllers/ReporteControlador.php';
@@ -95,6 +97,7 @@ $excusa      = new ExcusaControlador();
 $aprendiz    = new AprendizControlador();
 $instructor  = new InstructorControlador();
 $horario     = new HorarioControlador();
+$marcaje     = new MarcajeControlador();
 $reporte     = new ReporteControlador();
 
 match ($accion) {
@@ -106,11 +109,13 @@ match ($accion) {
     //acciones 
     'guardarAprendiz' => $aprendiz-> guardar(),
     'guardarInstructor' =>$instructor->guardar(),
+    'guardarExcusa'=>$excusa->guardar(),
     'actualizarInstructor' => $instructor->actualizar(),
     'cambiarEstadoInstructor' => $instructor->cambiarEstado(),
     'cambiarEstadoAprendiz' => $aprendiz->cambiarEstado(),
     'desactivarAprendiz'    => $aprendiz->cambiarEstado(),
-    'guardarHorario'        => $horario->guardar(),
+    'procesarExcusa' => $excusa->procesar(), 
+
     // --- Páginas de solo lectura CON datos: el Controlador arma las
     //     variables y se las pasa listas a la vista (ya no consultan la
     //     base de datos por su cuenta) ---
@@ -118,26 +123,24 @@ match ($accion) {
   'aprendices' => $aprendiz->mostrar(),
   'historial'      => $historial->mostrar(),
   'instructores'   => $instructor->listar(),
-  'excusas'        => $excusa->listar(),             // Vista del aprendiz
-  'validarExcusas' => $excusa->listarPendientes(),   // Vista del instructor
-  'procesarExcusa' => $excusa->procesar(),           // Acción de aprobar/rechazar
-  'guardarExcusa'  => $excusa->guardar(),
+  'excusas'        => $excusa->listar(),
+  'validarExcusas'=>$excusa->listarPendientes(),
+   
+  'reenviarExcusa' => $excusa->reenviar(),
   'reportes'       => $reporte->mostrar(),
   'generarPdf'     => $reporte->generarPdf(),
   'generarExcel'   => $reporte->generarExcel(),
-  'fichas'         => $horario->mostrar(),
-
 
 
     // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
-    'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
+    'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor','Administrador']),
     'fichas'          => $pagina->mostrar('fichas', ['Instructor', 'Administrador']),
     'instructores'    => $pagina->mostrar('instructores', ['Administrador']),
-    'marcaje'         => $pagina->mostrar('marcaje', ['Instructor', 'Administrador']),
+    'marcaje'         => $marcaje->mostrar(),
+    'marcarAsistencia' => $marcaje->marcar(),
     'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),
-    'reportes'        => $pagina->mostrar('reportes', ['Instructor', 'Administrador']),
     'excusas'         => $pagina->mostrar('excusas', ['Aprendiz']),
-    'validarexcusas'  => $pagina->mostrar('validar_excusas', ['Instructor', 'Administrador']),
+    'validarExcusas'  => $pagina->mostrar('validar_excusas', ['Instructor', 'Administrador']),
 
     default => $auth->mostrarLogin(),
 };

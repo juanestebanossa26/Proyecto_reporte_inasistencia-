@@ -29,7 +29,6 @@ class ExcusaControlador extends ControladorBase
     public function listarPendientes(): void
     {
         $this->exigirSesion(['Instructor', 'Administrador']);
-    
 
         try {
             $excusaModelo      = new ExcusaModelo();
@@ -42,10 +41,12 @@ class ExcusaControlador extends ControladorBase
             $_SESSION['mensaje_error'] = 'No se pudieron cargar las excusas. Intenta de nuevo.';
         }
 
-      
         require BASE_PATH . '/views/validar_excusas.php';
     }
 
+    // accion=guardarExcusa -> radica una excusa nueva. Puede cubrir varias
+    // fechas de inasistencia a la vez (checkboxes en la vista), todas con
+    // el mismo archivo y el mismo motivo.
     public function guardar(): void
     {
         $this->exigirSesion(['Aprendiz']);
@@ -56,17 +57,24 @@ class ExcusaControlador extends ControladorBase
 
         $this->exigirCsrfValido('excusas');
 
-        $motivo          = $_POST['motivo'] ?? '';
-        $idAsistencia    = $_POST['fecha_excusa'] ?? '';
-        $archivoSubido   = $_FILES['archivo'] ?? null;
+        $motivo        = trim($_POST['motivo'] ?? '');
+        $idsAsistencia = $_POST['fecha_excusa'] ?? [];
+        $archivoSubido = $_FILES['archivo'] ?? null;
 
-        if ($motivo === '' || $idAsistencia === '' || !$archivoSubido || $archivoSubido['error'] === UPLOAD_ERR_NO_FILE) {
+        // El campo puede llegar como un solo valor (compatibilidad) o como
+        // arreglo (checkboxes name="fecha_excusa[]"); aquí se normaliza.
+        if (!is_array($idsAsistencia)) {
+            $idsAsistencia = $idsAsistencia !== '' ? [$idsAsistencia] : [];
+        }
+        $idsAsistencia = array_values(array_filter($idsAsistencia, fn($v) => $v !== '' && $v !== null));
+
+        if ($motivo === '' || empty($idsAsistencia) || !$archivoSubido || $archivoSubido['error'] === UPLOAD_ERR_NO_FILE) {
             Seguridad::imprimirEncabezadoAnimacion();
             echo "<script>
                 Swal.fire({
                     icon: 'warning',
                     title: 'Campos incompletos',
-                    text: 'Por favor completa todos los campos requeridos.',
+                    text: 'Selecciona al menos una fecha, escribe el motivo y adjunta el soporte.',
                     confirmButtonColor: '#ffc107'
                 }).then(() => { window.history.back(); });
             </script>";
@@ -100,14 +108,20 @@ class ExcusaControlador extends ControladorBase
         }
 
         try {
-            (new ExcusaModelo())->guardar((int) $idAsistencia, $rutaRelativaBD, $motivo);
+            (new ExcusaModelo())->guardarVarios($idsAsistencia, $rutaRelativaBD, $motivo);
 
-            $urlExcusas = json_encode($this->urlAccion('excusas'));
+            $totalDias  = count($idsAsistencia);
+            $textoExito = $totalDias > 1
+                ? "El soporte fue guardado para las $totalDias fechas seleccionadas y notificado a tus instructores."
+                : 'El soporte ha sido guardado correctamente y notificado a tus instructores.';
+
+            $urlExcusas   = json_encode($this->urlAccion('excusas'));
+            $textoExitoJs = json_encode($textoExito);
             echo "<script>
                 Swal.fire({
                     icon: 'success',
                     title: '¡Excusa radicada con éxito!',
-                    text: 'El soporte ha sido guardado correctamente y notificado a tus instructores.',
+                    text: {$textoExitoJs},
                     showClass: { popup: 'animate__animated animate__zoomInDown' },
                     hideClass: { popup: 'animate__animated animate__fadeOutUp' },
                     confirmButtonColor: '#39a900',
@@ -117,9 +131,97 @@ class ExcusaControlador extends ControladorBase
                 });
             </script>";
         } catch (Exception $e) {
-            // Se usa Exception en lugar de PDOException para atrapar también las excepciones manuales del modelo
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Error al insertar: ' . $e->getMessage()]);
+        }
+    }
+
+    // accion=reenviarExcusa -> el aprendiz edita el archivo/motivo de UNA
+    // excusa que le devolvieron o rechazaron, y la reenvía. Es un UPDATE
+    // sobre la misma fila (mismo id_excusa), nunca crea un envío nuevo.
+    public function reenviar(): void
+    {
+        $this->exigirSesion(['Aprendiz']);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return;
+        }
+
+        $this->exigirCsrfValido('excusas');
+
+        $idExcusa      = (int) ($_POST['id_excusa'] ?? 0);
+        $motivo        = trim($_POST['motivo'] ?? '');
+        $archivoSubido = $_FILES['archivo'] ?? null;
+
+        $modelo = new ExcusaModelo();
+        // Verificación de propiedad: la excusa debe existir y ser de quien
+        // la está reenviando, para que nadie pueda editar una ajena
+        // adivinando el id_excusa en el formulario.
+        $excusa = $idExcusa > 0 ? $modelo->buscarPorIdYAprendiz($idExcusa, (int) $_SESSION['id']) : false;
+
+        if (!$excusa) {
+            $this->redirigirAccion('excusas', ['error' => '13']);
+        }
+
+        if ($motivo === '' || !$archivoSubido || $archivoSubido['error'] === UPLOAD_ERR_NO_FILE) {
+            Seguridad::imprimirEncabezadoAnimacion();
+            echo "<script>
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Campos incompletos',
+                    text: 'Escribe el motivo y adjunta el nuevo soporte en PDF.',
+                    confirmButtonColor: '#ffc107'
+                }).then(() => { window.history.back(); });
+            </script>";
+            Seguridad::imprimirCierreAnimacion();
+            return;
+        }
+
+        Seguridad::imprimirEncabezadoAnimacion();
+
+        if ($archivoSubido['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Error al subir el archivo.']);
+            return;
+        }
+
+        if (!Seguridad::esPdfValido($archivoSubido['tmp_name'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Solo se permiten archivos PDF.']);
+            return;
+        }
+
+        $directorioDestino  = BASE_PATH . '/assets/excusas/';
+        $nombreUnico        = Seguridad::generarNombreArchivoUnico($archivoSubido['name']);
+        $rutaFisicaCompleta = $directorioDestino . $nombreUnico;
+        $rutaRelativaBD     = 'assets/excusas/' . $nombreUnico;
+
+        if (!move_uploaded_file($archivoSubido['tmp_name'], $rutaFisicaCompleta)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error al mover el archivo al servidor.']);
+            return;
+        }
+
+        try {
+            $modelo->reenviar($idExcusa, $rutaRelativaBD, $motivo);
+
+            $urlExcusas = json_encode($this->urlAccion('excusas'));
+            echo "<script>
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Excusa reenviada!',
+                    text: 'Tu instructor la revisará de nuevo.',
+                    showClass: { popup: 'animate__animated animate__zoomInDown' },
+                    hideClass: { popup: 'animate__animated animate__fadeOutUp' },
+                    confirmButtonColor: '#39a900',
+                    confirmButtonText: 'Continuar'
+                }).then(() => {
+                    window.location.href = {$urlExcusas};
+                });
+            </script>";
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error al reenviar: ' . $e->getMessage()]);
         }
     }
 
@@ -133,13 +235,11 @@ class ExcusaControlador extends ControladorBase
 
         $this->exigirCsrfValido('validarExcusas');
 
-        // Obtenemos los 3 datos enviados por el JS y el formulario oculto
         $accion      = $_POST['accion'] ?? '';
-        $idRevision  = (int) $_POST['id_excusa']; // Contiene el id_revision gracias a la vista
+        $idRevision  = (int) $_POST['id_excusa'];
         $observacion = trim($_POST['observacion'] ?? '');
         $modelo      = new ExcusaModelo();
 
-        // Mapeamos la acción del botón al estado de la base de datos
         $estadoBD = '';
         if ($accion === 'aprobar') {
             $estadoBD = 'Aprobada';
@@ -152,10 +252,7 @@ class ExcusaControlador extends ControladorBase
         }
 
         try {
-            // Ejecutamos el método unificado en el modelo
             $modelo->procesarRevision($idRevision, $estadoBD, $observacion);
-            
-            // Redirigimos de vuelta a la vista con un parámetro de éxito opcional
             $this->redirigirAccion('validarExcusas', ['success' => '1']);
         } catch (Exception $e) {
             error_log('Error al procesar excusa: ' . $e->getMessage());
