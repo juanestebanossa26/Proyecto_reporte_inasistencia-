@@ -51,9 +51,9 @@ $instructores = $instructores ?? [];
                                     <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
                                     <?= htmlspecialchars($fila['nombre_completo'] . ' ' . $fila['apellido'], ENT_QUOTES, 'UTF-8') ?>
                                 </td>
-                                <td><?= htmlspecialchars($fila['num_documento'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars($fila['num_documento'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                 <td><?= htmlspecialchars($fila['area'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars($fila['correo_electronico'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars($fila['correo_electronico'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                 <td>
                                     <?php
                                     $badgeClass = match($estado) {
@@ -76,9 +76,9 @@ $instructores = $instructores ?? [];
                                                 data-id="<?= $fila['id_usuario'] ?>"
                                                 data-nombre="<?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>"
                                                 data-apellido="<?= htmlspecialchars($fila['apellido'], ENT_QUOTES, 'UTF-8') ?>"
-                                                data-documento="<?= htmlspecialchars($fila['num_documento'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-documento="<?= htmlspecialchars($fila['num_documento'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                 data-area="<?= htmlspecialchars($fila['area'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-correo="<?= htmlspecialchars($fila['correo_electronico'], ENT_QUOTES, 'UTF-8') ?>">
+                                                data-correo="<?= htmlspecialchars($fila['correo_electronico'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                             <i class="bi bi-pencil-square"></i>
                                         </button>
 
