@@ -35,7 +35,7 @@ $instructores = $instructores ?? [];
                         <thead>
                             <tr>
                                 <th>Instructor</th>
-                                <th>Documento</th>
+                                <th>Usuario</th>
                                 <th>Área</th>
                                 <th>Correo</th>
                                 <th>Estado</th>
@@ -49,9 +49,9 @@ $instructores = $instructores ?? [];
                             <tr>
                                 <td class="d-flex align-items-center gap-2">
                                     <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
-                                    <?= htmlspecialchars($fila['nombre_completo'] . ' ' . $fila['apellido'], ENT_QUOTES, 'UTF-8') ?>
+                                    <?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>
                                 </td>
-                                <td><?= htmlspecialchars($fila['num_documento'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td><?= htmlspecialchars($fila['usuario'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                 <td><?= htmlspecialchars($fila['area'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                 <td><?= htmlspecialchars($fila['correo_electronico'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                 <td>
@@ -75,8 +75,8 @@ $instructores = $instructores ?? [];
                                                 title="Editar"
                                                 data-id="<?= $fila['id_usuario'] ?>"
                                                 data-nombre="<?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>"
-                                                data-apellido="<?= htmlspecialchars($fila['apellido'], ENT_QUOTES, 'UTF-8') ?>"
-                                                data-documento="<?= htmlspecialchars($fila['num_documento'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-usuario="<?= htmlspecialchars($fila['usuario'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                data-documento="<?= htmlspecialchars($fila['usuario'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                 data-area="<?= htmlspecialchars($fila['area'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                 data-correo="<?= htmlspecialchars($fila['correo_electronico'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                             <i class="bi bi-pencil-square"></i>
@@ -127,17 +127,13 @@ $instructores = $instructores ?? [];
 
         <div class="modal-body">
             <div class="mb-3">
-                <label class="form-label">Nombres</label>
-                <input type="text" class="form-control" name="nombre" id="inst_nombre" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Apellidos</label>
-                <input type="text" class="form-control" name="apellido" id="inst_apellido" required>
+                <label class="form-label">Nombre completo</label>
+                <input type="text" class="form-control" name="nombre" id="inst_nombre" placeholder="Ej: Carlos Alberto Gómez" required>
             </div>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Número de documento</label>
-                    <input type="text" class="form-control" name="documento" id="inst_documento" required>
+                    <label class="form-label">Usuario</label>
+                    <input type="text" class="form-control" name="usuario" id="inst_usuario" placeholder="Ej: cgomez o 54321" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Área</label>

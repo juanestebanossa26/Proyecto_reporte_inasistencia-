@@ -56,7 +56,7 @@ $total_pendientes  = $total_pendientes ?? 0;
                         </thead>
                         <tbody>
                         <?php foreach ($excusasInstructor as $fila) { 
-                            $nombreCompleto = htmlspecialchars($fila['nombre_completo'] . ' ' . $fila['apellido'], ENT_QUOTES);
+                            $nombreCompleto = htmlspecialchars($fila['nombre_completo'], ENT_QUOTES);
                             $estado = strtolower(trim($fila['estado_excusa']));
                         ?>
                             <tr>
@@ -65,7 +65,14 @@ $total_pendientes  = $total_pendientes ?? 0;
                                     <?= $nombreCompleto ?>
                                 </td>
                                 <td><?= htmlspecialchars($fila['nombre_programa'] . ' - ' . $fila['numero_ficha']) ?></td>
-                                <td><?= htmlspecialchars($fila['fecha']) ?></td>
+                                <td>
+                                    <div class="fw-semibold"><?= htmlspecialchars($fila['fecha']) ?></div>
+                                    <?php if (!empty($fila['hora_entrada_programada']) && !empty($fila['hora_salida_programada'])): ?>
+                                        <span class="badge bg-light text-secondary border" style="font-size: .72rem;">
+                                            <i class="bi bi-clock me-1"></i><?= substr($fila['hora_entrada_programada'], 0, 5) ?> - <?= substr($fila['hora_salida_programada'], 0, 5) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($fila['motivo']) ?></td>
                                 <td>
                                     <?php if (!empty($fila['archivo_adjunto'])): ?>

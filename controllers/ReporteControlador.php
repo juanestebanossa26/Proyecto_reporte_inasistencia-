@@ -110,7 +110,7 @@ class ReporteControlador extends ControladorBase
             $pdf->SetFillColor(245, 245, 245);
 
             // CORRECCIÓN: Aplicar utf8_decode a todos los textos que vienen de la base de datos
-            $aprendiz   = utf8_decode($fila['nombre_completo'] . ' ' . $fila['apellido']);
+            $aprendiz   = utf8_decode($fila['nombre_completo'] ?? '');
             $ficha      = utf8_decode($fila['numero_ficha'] . ' - ' . $fila['nombre_programa']);
             $instructor = utf8_decode($fila['nombre_instructor'] ?: 'Sin instructor');
             
@@ -153,7 +153,7 @@ class ReporteControlador extends ControladorBase
 
         foreach ($filas as $fila) {
             $datos[] = [
-                $fila['nombre_completo'] . ' ' . $fila['apellido'],
+                $fila['nombre_completo'] ?? '',
                 $fila['numero_ficha'] . ' · ' . $fila['nombre_programa'],
                 $fila['nombre_instructor'] ?: 'Sin instructor',
                 $fila['retardos'] ?? 0,

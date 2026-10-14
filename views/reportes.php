@@ -138,7 +138,7 @@ $ficha_id          = $ficha_id ?? '';
                             <tr>
                                 <td class="d-flex align-items-center gap-2">
                                     <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
-                                    <?= htmlspecialchars($fila['nombre_completo'] . ' ' . $fila['apellido']) ?>
+                                    <?= htmlspecialchars($fila['nombre_completo']) ?>
                                 </td>
                                 <td><?= htmlspecialchars($fila['nombre_programa'] . ' · ' . $fila['numero_ficha']) ?></td>
                                 <!-- Corrección: nombre_instructor ya contiene el nombre y apellido combinados desde el SQL -->

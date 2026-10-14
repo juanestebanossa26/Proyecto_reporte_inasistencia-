@@ -1,0 +1,179 @@
+/* ============================================================
+   Perfil de Usuario & Seguridad — Estilos visuales
+   Ubicación: assets/css/perfil.css
+   ============================================================ */
+
+.profile-hero {
+    background: radial-gradient(130% 140% at 20% 0%, #173b2c 0%, #0d2118 60%, #06110c 100%);
+    border-radius: 20px;
+    padding: 30px;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(13, 33, 24, 0.25);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.profile-hero::before {
+    content: "";
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(57, 169, 0, 0.25) 0%, rgba(57, 169, 0, 0) 70%);
+    top: -50px;
+    right: -30px;
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+.profile-avatar-large {
+    width: 90px;
+    height: 90px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #39a900 0%, #1f7a00 100%);
+    color: #fff;
+    font-size: 2.2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(57, 169, 0, 0.4);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+.account-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(124, 255, 107, 0.15);
+    border: 1px solid rgba(124, 255, 107, 0.35);
+    color: #7cff6b;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.status-dot-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #7cff6b;
+    box-shadow: 0 0 8px #7cff6b;
+}
+
+/* Nav Tabs estilizados */
+.profile-nav-tabs .nav-link {
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--texto-suave);
+    border: none;
+    border-bottom: 2.5px solid transparent;
+    padding: 12px 20px;
+    background: none;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-nav-tabs .nav-link:hover {
+    color: var(--sena-verde);
+}
+
+.profile-nav-tabs .nav-link.active {
+    color: var(--sena-verde);
+    border-bottom-color: var(--sena-verde);
+    background: none;
+}
+
+/* Tarjetas de información */
+.info-field-card {
+    background: #ffffff;
+    border: 1px solid var(--linea);
+    border-radius: 14px;
+    padding: 16px 18px;
+    height: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.info-field-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+.copy-btn {
+    background: none;
+    border: none;
+    color: #8b9992;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-btn:hover {
+    background: #f0fdf4;
+    color: #1f7a00;
+}
+
+/* Medidor de fuerza de contraseña */
+.password-strength-bar {
+    height: 6px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.password-strength-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.password-checklist {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+    font-size: 0.8rem;
+}
+
+.password-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #6b7280;
+    margin-top: 4px;
+    transition: color 0.2s;
+}
+
+.password-checklist li.valid {
+    color: #15803d;
+    font-weight: 500;
+}
+
+.password-checklist li.valid i {
+    color: #22c55e;
+}
+
+.toggle-pass-btn {
+    background: none;
+    border: none;
+    color: #8b9992;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 1.1rem;
+    z-index: 5;
+}
+
+.toggle-pass-btn:hover {
+    color: #142019;
+}

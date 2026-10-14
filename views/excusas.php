@@ -48,23 +48,42 @@ $tituloPagina  = 'Excusas médicas';
                                 <?php if (empty($fechas_faltas)): ?>
                                     <p class="text-suave mb-0 small">No tienes inasistencias pendientes por excusar.</p>
                                 <?php else: ?>
-                                    <div class="border rounded-3 p-2" style="max-height:170px; overflow-y:auto;">
+                                    <div class="border rounded-3 p-2" style="max-height:220px; overflow-y:auto; background: #fafbfa;">
                                         <?php foreach ($fechas_faltas as $fila): ?>
-                                            <div class="form-check">
-                                                <input class="form-check-input fecha-excusa-check" type="checkbox"
-                                                       name="fecha_excusa[]"
-                                                       value="<?= $fila['id_asistencia'] ?>"
-                                                       id="fecha_<?= $fila['id_asistencia'] ?>">
-                                                <label class="form-check-label" for="fecha_<?= $fila['id_asistencia'] ?>">
-                                                    <?= htmlspecialchars($fila['fecha']) ?>
-                                                </label>
+                                            <div class="p-2 mb-2 bg-white rounded-3 border">
+                                                <div class="form-check">
+                                                    <input class="form-check-input fecha-excusa-check" type="checkbox"
+                                                           name="fecha_excusa[]"
+                                                           value="<?= htmlspecialchars($fila['ids_asistencia_str'] ?? $fila['id_asistencia'] ?? '') ?>"
+                                                           id="fecha_<?= htmlspecialchars($fila['fecha'] ?? '') ?>">
+                                                    <label class="form-check-label w-100" for="fecha_<?= htmlspecialchars($fila['fecha'] ?? '') ?>" style="cursor:pointer;">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="fw-bold text-dark"><i class="bi bi-calendar-event me-1 text-sena"></i><?= htmlspecialchars($fila['fecha_formateada'] ?? $fila['fecha'] ?? '') ?></span>
+                                                            <?php if (!empty($fila['total_bloques']) && $fila['total_bloques'] > 1): ?>
+                                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: .7rem;">
+                                                                    <i class="bi bi-layers me-1"></i><?= $fila['total_bloques'] ?> Bloques
+                                                                </span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <?php if (!empty($fila['instructores_texto'])): ?>
+                                                        <div class="small text-muted mt-1" style="font-size: .78rem;">
+                                                            <i class="bi bi-person-badge text-secondary me-1"></i>
+                                                            <span class="fw-semibold text-dark">Instructor(es):</span> <?= htmlspecialchars($fila['instructores_texto']) ?>
+                                                        </div>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($fila['bloques_texto'])): ?>
+                                                        <div class="text-suave mt-1" style="font-size: .72rem;">
+                                                            <i class="bi bi-clock me-1"></i><?= htmlspecialchars($fila['bloques_texto']) ?>
+                                                        </div>
+                                                        <?php endif; ?>
+                                                    </label>
+                                                </div>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
                                     <small class="text-suave">
                                         <i class="bi bi-info-circle me-1"></i>
-                                        Si el mismo soporte médico cubre varios días, marca todas las fechas: se
-                                        guardará una sola excusa para todas.
+                                        Elige la fecha de la falta. Si ese día hubo dos o más bloques, quedará vinculada automáticamente a los instructores correspondientes.
                                     </small>
                                 <?php endif; ?>
                             </div>

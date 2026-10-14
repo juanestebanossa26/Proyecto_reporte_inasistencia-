@@ -185,12 +185,12 @@ class HorarioControlador extends ControladorBase
 
             if ($idHorario > 0) {
                 // Modo Edición: Actualizar horario existente
-                $this->modelo->actualizarHorario($idHorario, $idFicha, $horaEntrada, $horaSalida, $fecha);
+                $this->modelo->actualizarHorario($idHorario, $idFicha, $horaEntrada, $horaSalida, $fecha, $idInstructor);
                 $mensajeTitulo = '¡Horario actualizado!';
                 $mensajeTexto  = 'Los cambios fueron guardados exitosamente.';
             } else {
                 // Modo Creación: Registrar nuevo horario
-                $this->modelo->guardarHorario($idFicha, $horaEntrada, $horaSalida, $fecha);
+                $this->modelo->guardarHorario($idFicha, $horaEntrada, $horaSalida, $fecha, $idInstructor);
                 $mensajeTitulo = '¡Horario registrado!';
                 $mensajeTexto  = 'El horario fue guardado exitosamente en la base de datos.';
             }

@@ -15,13 +15,14 @@ class HorarioModelo
                     horarios.dia_semana AS fecha,
                     fichas.numero_ficha,
                     fichas.nombre_programa,
-                    fichas_has_usuarios.id_instructor,
-                    CONCAT(COALESCE(usuarios.nombre_completo, ''), ' ', COALESCE(usuarios.apellido, '')) AS instructor_nombre,
+                    COALESCE(horarios.id_instructor, fichas_has_usuarios.id_instructor) AS id_instructor,
+                    COALESCE(u_directo.nombre_completo, u_ficha.nombre_completo, '') AS instructor_nombre,
                     (SELECT COUNT(*) FROM aprendices WHERE aprendices.id_ficha = fichas.id_ficha) AS total_aprendices
                 FROM horarios
                 JOIN fichas ON fichas.id_ficha = horarios.id_ficha
+                LEFT JOIN usuarios u_directo ON u_directo.id_usuario = horarios.id_instructor
                 LEFT JOIN fichas_has_usuarios ON fichas_has_usuarios.fichas_id_ficha = fichas.id_ficha
-                LEFT JOIN usuarios ON usuarios.id_usuario = fichas_has_usuarios.id_instructor
+                LEFT JOIN usuarios u_ficha ON u_ficha.id_usuario = fichas_has_usuarios.id_instructor
                 GROUP BY horarios.id_horario
                 ORDER BY horarios.dia_semana ASC, horarios.hora_entrada_programada ASC";
 
@@ -128,44 +129,77 @@ class HorarioModelo
         return (bool) $stmt->fetchColumn();
     }
 
-    // Registra un nuevo horario asociado a una ficha
-    public function guardarHorario(int $idFicha, string $horaEntrada, string $horaSalida, string $fecha): void
+    // Registra un nuevo horario asociado a una ficha y opcionalmente a un instructor
+    public function guardarHorario(int $idFicha, string $horaEntrada, string $horaSalida, string $fecha, ?int $idInstructor = null): void
     {
-        $sql = "INSERT INTO horarios (id_ficha, hora_entrada_programada, hora_salida_programada, dia_semana)
-                VALUES (:id_ficha, :entrada, :salida, :fecha)";
+        try {
+            $sql = "INSERT INTO horarios (id_ficha, id_instructor, hora_entrada_programada, hora_salida_programada, dia_semana)
+                    VALUES (:id_ficha, :id_inst, :entrada, :salida, :fecha)";
 
-        $stmt = Conexion::obtener()->prepare($sql);
-        $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
-        $stmt->bindParam(':entrada',  $horaEntrada);
-        $stmt->bindParam(':salida',   $horaSalida);
-        $stmt->bindParam(':fecha',    $fecha);
-        $stmt->execute();
+            $stmt = Conexion::obtener()->prepare($sql);
+            $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
+            $stmt->bindValue(':id_inst',  $idInstructor > 0 ? $idInstructor : null, PDO::PARAM_INT);
+            $stmt->bindParam(':entrada',  $horaEntrada);
+            $stmt->bindParam(':salida',   $horaSalida);
+            $stmt->bindParam(':fecha',    $fecha);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            // Fallback si la columna id_instructor no existiera
+            $sql = "INSERT INTO horarios (id_ficha, hora_entrada_programada, hora_salida_programada, dia_semana)
+                    VALUES (:id_ficha, :entrada, :salida, :fecha)";
+
+            $stmt = Conexion::obtener()->prepare($sql);
+            $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
+            $stmt->bindParam(':entrada',  $horaEntrada);
+            $stmt->bindParam(':salida',   $horaSalida);
+            $stmt->bindParam(':fecha',    $fecha);
+            $stmt->execute();
+        }
     }
 
-    //actualizar horario
-    public function actualizarHorario(int $idHorario, int $idFicha, string $horaEntrada, string $horaSalida, string $fecha): void
+    // Actualiza un horario existente incluyendo el instructor asignado
+    public function actualizarHorario(int $idHorario, int $idFicha, string $horaEntrada, string $horaSalida, string $fecha, ?int $idInstructor = null): void
     {
-        $sql = "UPDATE horarios
-                SET id_ficha = :id_ficha,
-                    hora_entrada_programada = :entrada,
-                    hora_salida_programada = :salida,
-                    dia_semana = :fecha
-                WHERE id_horario = :id_horario";
+        try {
+            $sql = "UPDATE horarios
+                    SET id_ficha = :id_ficha,
+                        id_instructor = :id_inst,
+                        hora_entrada_programada = :entrada,
+                        hora_salida_programada = :salida,
+                        dia_semana = :fecha
+                    WHERE id_horario = :id_horario";
 
-        $stmt = Conexion::obtener()->prepare($sql);
-        $stmt->bindParam(':id_ficha',   $idFicha, PDO::PARAM_INT);
-        $stmt->bindParam(':entrada',    $horaEntrada);
-        $stmt->bindParam(':salida',     $horaSalida);
-        $stmt->bindParam(':fecha',      $fecha);
-        $stmt->bindParam(':id_horario', $idHorario, PDO::PARAM_INT);
-        $stmt->execute();
+            $stmt = Conexion::obtener()->prepare($sql);
+            $stmt->bindParam(':id_ficha',   $idFicha, PDO::PARAM_INT);
+            $stmt->bindValue(':id_inst',    $idInstructor > 0 ? $idInstructor : null, PDO::PARAM_INT);
+            $stmt->bindParam(':entrada',    $horaEntrada);
+            $stmt->bindParam(':salida',     $horaSalida);
+            $stmt->bindParam(':fecha',      $fecha);
+            $stmt->bindParam(':id_horario', $idHorario, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            $sql = "UPDATE horarios
+                    SET id_ficha = :id_ficha,
+                        hora_entrada_programada = :entrada,
+                        hora_salida_programada = :salida,
+                        dia_semana = :fecha
+                    WHERE id_horario = :id_horario";
+
+            $stmt = Conexion::obtener()->prepare($sql);
+            $stmt->bindParam(':id_ficha',   $idFicha, PDO::PARAM_INT);
+            $stmt->bindParam(':entrada',    $horaEntrada);
+            $stmt->bindParam(':salida',     $horaSalida);
+            $stmt->bindParam(':fecha',      $fecha);
+            $stmt->bindParam(':id_horario', $idHorario, PDO::PARAM_INT);
+            $stmt->execute();
+        }
     }
 
 
     // Lista instructores activos para el selector del formulario
     public function listarInstructores(): array
     {
-        $sql = "SELECT id_usuario, nombre_completo, apellido
+        $sql = "SELECT id_usuario, nombre_completo, usuario
                 FROM usuarios
                 WHERE id_role = 2 AND estado = 'Activo'
                 ORDER BY nombre_completo ASC";
@@ -174,38 +208,24 @@ class HorarioModelo
     }
 
     // Busca un instructor existente por coincidencia de nombre o lo crea automáticamente.
-     
     public function obtenerOCrearInstructor(string $nombreCompletoRaw, string $areaRaw = ''): array
     {
         $instructores = $this->listarInstructores();
 
-        //Se busca primero si el instructor existe
+        // Se busca primero si el instructor existe
         $encontrado = $this->buscarInstructorEnLista($nombreCompletoRaw, $instructores);
         if ($encontrado) {
             return [
                 'id_usuario' => (int) $encontrado['id_usuario'],
-                'nombre'     => $encontrado['nombre_completo'] . ' ' . $encontrado['apellido'],
+                'nombre'     => $encontrado['nombre_completo'],
                 'es_nuevo'   => false
             ];
         }
 
-        // Si no existe, crearlo automáticamente
-        $partes = preg_split('/\s+/', trim($nombreCompletoRaw));
-        $totalPartes = count($partes);
-
-        if ($totalPartes === 1) {
-            $nombre = $partes[0];
-            $apellido = '.';
-        } elseif ($totalPartes === 2) {
-            $nombre = $partes[0];
-            $apellido = $partes[1];
-        } elseif ($totalPartes === 3) {
-            $nombre = $partes[0];
-            $apellido = $partes[1] . ' ' . $partes[2];
-        } else {
-            $mitad = (int) ceil($totalPartes / 2);
-            $nombre = implode(' ', array_slice($partes, 0, $mitad));
-            $apellido = implode(' ', array_slice($partes, $mitad));
+        $nombreCompleto = trim($nombreCompletoRaw);
+        $usuarioGenerado = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nombreCompleto));
+        if ($usuarioGenerado === '') {
+            $usuarioGenerado = 'inst_' . time();
         }
 
         $area = trim($areaRaw);
@@ -218,13 +238,12 @@ class HorarioModelo
         $db = Conexion::obtener();
         $passHash = password_hash('123', PASSWORD_BCRYPT);
 
-        // Al importar del Excel se dejan el documento y el correo vacíos (null)
-        $sql = "INSERT INTO usuarios (nombre_completo, apellido, num_documento, area, correo_electronico, estado, contrasena, id_role)
-                VALUES (:nombre, :apellido, :doc, :area, :correo, 'Activo', :pass, 2)";
+        // Al importar del Excel se crea el usuario básico
+        $sql = "INSERT INTO usuarios (nombre_completo, usuario, area, correo_electronico, estado, contrasena, id_role)
+                VALUES (:nombre, :usuario, :area, :correo, 'Activo', :pass, 2)";
         $stmt = $db->prepare($sql);
-        $stmt->bindParam(':nombre',   $nombre);
-        $stmt->bindParam(':apellido', $apellido);
-        $stmt->bindValue(':doc',      null, PDO::PARAM_NULL);
+        $stmt->bindParam(':nombre',   $nombreCompleto);
+        $stmt->bindParam(':usuario',  $usuarioGenerado);
         $stmt->bindParam(':area',     $area);
         $stmt->bindValue(':correo',   null, PDO::PARAM_NULL);
         $stmt->bindParam(':pass',     $passHash);
@@ -234,7 +253,7 @@ class HorarioModelo
 
         return [
             'id_usuario' => $idNuevo,
-            'nombre'     => "$nombre $apellido",
+            'nombre'     => $nombreCompleto,
             'es_nuevo'   => true
         ];
     }
@@ -247,33 +266,22 @@ class HorarioModelo
 
         // Ordenar por longitud de nombre completo descendente
         usort($instructores, function ($a, $b) {
-            $lenA = mb_strlen(trim($a['nombre_completo'] . ' ' . $a['apellido']));
-            $lenB = mb_strlen(trim($b['nombre_completo'] . ' ' . $b['apellido']));
+            $lenA = mb_strlen(trim($a['nombre_completo']));
+            $lenB = mb_strlen(trim($b['nombre_completo']));
             return $lenB <=> $lenA;
         });
 
         // 1. Coincidencia directa del nombre completo
         foreach ($instructores as $inst) {
-            $nombreCompleto = $this->normalizarTexto($inst['nombre_completo'] . ' ' . $inst['apellido']);
+            $nombreCompleto = $this->normalizarTexto($inst['nombre_completo']);
             if ($nombreBuscar === $nombreCompleto || str_contains($nombreBuscar, $nombreCompleto) || str_contains($nombreCompleto, $nombreBuscar)) {
                 return $inst;
             }
         }
 
-        // 2. Coincidencia por partes (nombre y apellido simultáneamente)
+        // 2. Similitud léxica alta (> 80%)
         foreach ($instructores as $inst) {
-            $soloNombre   = $this->normalizarTexto($inst['nombre_completo']);
-            $soloApellido = $this->normalizarTexto($inst['apellido']);
-            if ($soloNombre !== '' && $soloApellido !== '') {
-                if (str_contains($nombreBuscar, $soloNombre) && str_contains($nombreBuscar, $soloApellido)) {
-                    return $inst;
-                }
-            }
-        }
-
-        // 3. Similitud léxica alta (> 80%)
-        foreach ($instructores as $inst) {
-            $nombreCompleto = $this->normalizarTexto($inst['nombre_completo'] . ' ' . $inst['apellido']);
+            $nombreCompleto = $this->normalizarTexto($inst['nombre_completo']);
             similar_text($nombreBuscar, $nombreCompleto, $percent);
             if ($percent >= 80) {
                 return $inst;
@@ -303,7 +311,7 @@ class HorarioModelo
                     COUNT(DISTINCT a.id_aprendiz) AS total_aprendices,
                     COUNT(DISTINCT h.id_horario) AS total_horarios,
                     fhu.id_instructor,
-                    GROUP_CONCAT(DISTINCT CONCAT(COALESCE(u.nombre_completo, ''), ' ', COALESCE(u.apellido, '')) SEPARATOR ', ') AS instructores
+                    GROUP_CONCAT(DISTINCT COALESCE(u.nombre_completo, '') SEPARATOR ', ') AS instructores
                 FROM fichas f
                 LEFT JOIN aprendices a ON a.id_ficha = f.id_ficha
                 LEFT JOIN horarios h ON h.id_ficha = f.id_ficha

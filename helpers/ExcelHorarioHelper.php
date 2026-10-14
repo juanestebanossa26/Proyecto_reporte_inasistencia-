@@ -104,7 +104,7 @@ class ExcelHorarioHelper
         // Pre-cargar instructores existentes en memoria para optimizar búsquedas
         $instructoresExistentes = $this->modelo->listarInstructores();
         foreach ($instructoresExistentes as $inst) {
-            $nomNorm = $this->modelo->normalizarTexto($inst['nombre_completo'] . ' ' . $inst['apellido']);
+            $nomNorm = $this->modelo->normalizarTexto($inst['nombre_completo']);
             $this->instructoresCache[$nomNorm] = (int)$inst['id_usuario'];
         }
 
@@ -190,7 +190,7 @@ class ExcelHorarioHelper
                 }
 
                 // 5. Guardar horario en la tabla horarios
-                $this->modelo->guardarHorario($idFicha, $horaEntrada, $horaSalida, $fecha);
+                $this->modelo->guardarHorario($idFicha, $horaEntrada, $horaSalida, $fecha, $idInstructor);
                 $resultado['guardados']++;
                 $resultado['detalles'][] = "Fila {$fila}: Guardado correctamente (Ficha {$numeroFicha}, {$fecha} {$horaEntrada}-{$horaSalida}).";
             }

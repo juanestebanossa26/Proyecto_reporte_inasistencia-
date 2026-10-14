@@ -98,7 +98,7 @@ $fichas            = $fichas ?? [];
                 <select class="form-select" name="instructor" id="form_instructor">
                     <option value="0">Seleccionar instructor...</option>
                     <?php foreach ($instructores as $inst): ?>
-                        <option value="<?= $inst['id_usuario'] ?>"><?= htmlspecialchars($inst['nombre_completo'] . ' ' . $inst['apellido']) ?></option>
+                        <option value="<?= $inst['id_usuario'] ?>"><?= htmlspecialchars($inst['nombre_completo']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

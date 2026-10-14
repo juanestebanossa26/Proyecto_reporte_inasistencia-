@@ -121,10 +121,9 @@ class ReporteModelo
 
         $sql = "SELECT
                     u_aprendiz.nombre_completo,
-                    u_aprendiz.apellido,
                     fichas.numero_ficha,
                     fichas.nombre_programa,
-                    GROUP_CONCAT(DISTINCT CONCAT(u_instructor.nombre_completo, ' ', u_instructor.apellido) SEPARATOR ', ') AS nombre_instructor,
+                    GROUP_CONCAT(DISTINCT u_instructor.nombre_completo SEPARATOR ', ') AS nombre_instructor,
                     SUM(asistencias.estado = 'Retardo') AS retardos,
                     COALESCE(SUM(asistencias.tiempo_retraso), 0) AS min_retardo,
                     SUM(asistencias.estado = 'Inasistencia' ) AS inasistencias
@@ -136,7 +135,7 @@ class ReporteModelo
                 LEFT JOIN asistencias ON asistencias.id_aprendiz = aprendices.id_aprendiz
                 LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
                 $whereSql
-                GROUP BY aprendices.id_aprendiz, u_aprendiz.nombre_completo, u_aprendiz.apellido,
+                GROUP BY aprendices.id_aprendiz, u_aprendiz.nombre_completo,
                          fichas.numero_ficha, fichas.nombre_programa";
 
         $stmt = Conexion::obtener()->prepare($sql);

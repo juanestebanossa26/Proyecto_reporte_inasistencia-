@@ -58,7 +58,7 @@ $fichas        = $fichas ?? [];
                             <thead>
                                 <tr>
                                     <th>Aprendiz</th>
-                                    <th>Documento</th>
+                                    <th>Usuario</th>
                                     <th>Ficha</th>
                                     <th>Código RFID</th>
                                     <th>Estado</th>
@@ -67,8 +67,8 @@ $fichas        = $fichas ?? [];
                             </thead>
                             <tbody>
                                 <?php foreach ($aprendices as $a):
-                                    $nombreCompleto = trim(($a['nombre_completo'] ?? '') . ' ' . ($a['apellido'] ?? '')) ?: ($a['nombre'] ?? '');
-                                    $documento      = $a['num_documento'] ?? $a['doc'] ?? '';
+                                    $nombreCompleto = trim($a['nombre_completo'] ?? $a['nombre'] ?? '');
+                                    $usuario        = $a['usuario'] ?? $a['num_documento'] ?? $a['doc'] ?? '';
                                     $fichaLabel     = $a['ficha_label'] ?? $a['ficha'] ?? '';
                                     $rfid           = $a['tag_rfid'] ?? $a['rfid'] ?? '';
                                     $estado         = strtolower($a['estado'] ?? 'activo');
@@ -79,7 +79,7 @@ $fichas        = $fichas ?? [];
                                             <span class="avatar-circ"><?= strtoupper(substr($nombreCompleto, 0, 1)) ?></span>
                                             <?= htmlspecialchars($nombreCompleto) ?>
                                         </td>
-                                        <td><?= htmlspecialchars($documento) ?></td>
+                                        <td><?= htmlspecialchars($usuario) ?></td>
                                         <td><?= htmlspecialchars($fichaLabel) ?></td>
                                         <td><code><?= htmlspecialchars($rfid) ?></code></td>
                                         <td>
@@ -93,9 +93,9 @@ $fichas        = $fichas ?? [];
                                             <button class="btn btn-sm btn-outline-secondary border-0 btn-editar"
                                                 title="Editar"
                                                 data-id="<?= $idUsuario ?>"
-                                                data-nombre="<?= htmlspecialchars($a['nombre_completo'] ?? '', ENT_QUOTES) ?>"
-                                                data-apellido="<?= htmlspecialchars($a['apellido'] ?? '', ENT_QUOTES) ?>"
-                                                data-documento="<?= htmlspecialchars($documento, ENT_QUOTES) ?>"
+                                                data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
+                                                data-usuario="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
+                                                data-documento="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
                                                 data-correo="<?= htmlspecialchars($a['correo_electronico'] ?? '', ENT_QUOTES) ?>"
                                                 data-rfid="<?= htmlspecialchars($rfid, ENT_QUOTES) ?>"
                                                 data-ficha="<?= (int) ($a['id_ficha'] ?? 0) ?>">
@@ -147,17 +147,13 @@ $fichas        = $fichas ?? [];
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">Nombres</label>
-                            <input type="text" class="form-control" name="nombre" id="modal_nombre" placeholder="Ej: Laura" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Apellidos</label>
-                            <input type="text" class="form-control" name="apellido" id="modal_apellido" placeholder="Ej: Martínez" required>
+                            <label class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" name="nombre" id="modal_nombre" placeholder="Ej: Laura Martínez" required>
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Número de documento</label>
-                                <input type="text" class="form-control" name="documento" id="modal_documento" required>
+                                <label class="form-label">Usuario</label>
+                                <input type="text" class="form-control" name="usuario" id="modal_usuario" placeholder="Ej: 10245678" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Código RFID</label>
@@ -196,7 +192,7 @@ $fichas        = $fichas ?? [];
         </div>
     </div>
 
-    //un formulario esta oculto para cambiar el estado
+    <!-- Formulario oculto para cambiar el estado -->
     <form id="formCambiarEstado" action="<?= BASE_URL ?>/index.php?accion=cambiarEstadoAprendiz" method="POST" style="display:none;">
         <input type="hidden" name="id_usuario" id="estado_id_usuario" value="0">
         <input type="hidden" name="estado" id="estado_nuevo" value="">

@@ -44,13 +44,12 @@ class InstructorControlador extends ControladorBase
         }
 
         $nombre    = trim($_POST['nombre'] ?? '');
-        $apellido  = trim($_POST['apellido'] ?? '');
-        $documento = trim($_POST['documento'] ?? '');
+        $usuario   = trim($_POST['usuario'] ?? $_POST['documento'] ?? '');
         $area      = trim($_POST['area'] ?? '');
         $correo    = trim($_POST['correo'] ?? '');
         $password  = trim($_POST['password'] ?? '');
 
-        if ($nombre === '' || $apellido === '' || $documento === '' || $area === '' || $correo === '' || $password === '') {
+        if ($nombre === '' || $usuario === '' || $area === '' || $correo === '' || $password === '') {
             Seguridad::alertaYRedirigir('warning', 'Campos incompletos', 'Llene todos los campos.', $this->urlAccion(self::ACCION_LISTADO));
             return;
         }
@@ -60,15 +59,14 @@ class InstructorControlador extends ControladorBase
             return;
         }
 
-        $modelo    = new UsuarioModelo();
-        $nombre    = Seguridad::sanitizar($nombre);
-        $apellido  = Seguridad::sanitizar($apellido);
-        $documento = Seguridad::sanitizar($documento);
-        $area      = Seguridad::sanitizar($area);
-        $correo    = Seguridad::sanitizar($correo);
+        $modelo  = new UsuarioModelo();
+        $nombre  = Seguridad::sanitizar($nombre);
+        $usuario = Seguridad::sanitizar($usuario);
+        $area    = Seguridad::sanitizar($area);
+        $correo  = filter_var($correo, FILTER_SANITIZE_EMAIL);
 
-        if ($modelo->existeDocumento($documento)) {
-            Seguridad::alertaYRedirigir('warning', 'Documento en uso', 'El usuario ya existe.', $this->urlAccion(self::ACCION_LISTADO));
+        if ($modelo->existeUsuario($usuario)) {
+            Seguridad::alertaYRedirigir('warning', 'Usuario en uso', 'El usuario ya existe en el sistema.', $this->urlAccion(self::ACCION_LISTADO));
             return;
         }
 
@@ -78,8 +76,7 @@ class InstructorControlador extends ControladorBase
         }
 
         try {
-            // Se envía $area en la posición correcta que espera UsuarioModelo::crearInstructor
-            $modelo->crearInstructor($nombre, $apellido, $documento, $area, $correo, password_hash($password, PASSWORD_BCRYPT));
+            $modelo->crearInstructor($nombre, $usuario, $area, $correo, password_hash($password, PASSWORD_BCRYPT));
             Seguridad::alertaYRedirigir('success', '¡Registrado con éxito!', 'El instructor ha sido registrado correctamente.', $this->urlAccion(self::ACCION_LISTADO));
         } catch (PDOException $e) {
             error_log('Error al crear instructor: ' . $e->getMessage());
@@ -99,13 +96,12 @@ class InstructorControlador extends ControladorBase
 
         $id        = filter_var($_POST['id_usuario'] ?? '', FILTER_SANITIZE_NUMBER_INT);
         $nombre    = trim($_POST['nombre'] ?? '');
-        $apellido  = trim($_POST['apellido'] ?? '');
-        $documento = trim($_POST['documento'] ?? '');
+        $usuario   = trim($_POST['usuario'] ?? $_POST['documento'] ?? '');
         $area      = trim($_POST['area'] ?? '');
         $correo    = trim($_POST['correo'] ?? '');
         $password  = trim($_POST['password'] ?? '');
 
-        if ($id === '' || $nombre === '' || $apellido === '' || $documento === '' || $area === '' || $correo === '') {
+        if ($id === '' || $nombre === '' || $usuario === '' || $area === '' || $correo === '') {
             Seguridad::alertaYRedirigir('warning', 'Campos incompletos', 'Por favor complete todos los campos obligatorios.', $this->urlAccion(self::ACCION_LISTADO));
             return;
         }
@@ -115,17 +111,16 @@ class InstructorControlador extends ControladorBase
             return;
         }
 
-        $id        = (int) $id;
-        $nombre    = Seguridad::sanitizar($nombre);
-        $apellido  = Seguridad::sanitizar($apellido);
-        $documento = Seguridad::sanitizar($documento);
-        $area      = Seguridad::sanitizar($area);
-        $correo    = filter_var($correo, FILTER_SANITIZE_EMAIL);
+        $id      = (int) $id;
+        $nombre  = Seguridad::sanitizar($nombre);
+        $usuario = Seguridad::sanitizar($usuario);
+        $area    = Seguridad::sanitizar($area);
+        $correo  = filter_var($correo, FILTER_SANITIZE_EMAIL);
 
         $modelo = new UsuarioModelo();
 
-        if ($modelo->existeDocumento($documento, $id)) {
-            Seguridad::alertaYRedirigir('warning', 'Documento en uso', 'El número de documento ya está asignado a otro usuario.', $this->urlAccion(self::ACCION_LISTADO));
+        if ($modelo->existeUsuario($usuario, $id)) {
+            Seguridad::alertaYRedirigir('warning', 'Usuario en uso', 'El usuario ya está asignado a otra persona.', $this->urlAccion(self::ACCION_LISTADO));
             return;
         }
 
@@ -136,8 +131,7 @@ class InstructorControlador extends ControladorBase
 
         try {
             $passwordHash = $password !== '' ? password_hash($password, PASSWORD_BCRYPT) : null;
-            // Se pasa $area al método UsuarioModelo::actualizarInstructor
-            $modelo->actualizarInstructor($id, $nombre, $apellido, $documento, $area, $correo, $passwordHash);
+            $modelo->actualizarInstructor($id, $nombre, $usuario, $area, $correo, $passwordHash);
             Seguridad::alertaYRedirigir('success', '¡Actualizado con éxito!', 'Los datos del instructor han sido actualizados.', $this->urlAccion(self::ACCION_LISTADO));
         } catch (PDOException $e) {
             error_log('Error al actualizar instructor: ' . $e->getMessage());
@@ -146,35 +140,34 @@ class InstructorControlador extends ControladorBase
     }
 
     public function cambiarEstado(): void
-{
-    $this->exigirSesion(['Administrador']);
+    {
+        $this->exigirSesion(['Administrador']);
 
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        Seguridad::alertaYRedirigir('error', 'Error', 'Método no permitido.', $this->urlAccion(self::ACCION_LISTADO));
-        return;
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            Seguridad::alertaYRedirigir('error', 'Error', 'Método no permitido.', $this->urlAccion(self::ACCION_LISTADO));
+            return;
+        }
+
+        $id = filter_var($_POST['id_usuario'] ?? '', FILTER_SANITIZE_NUMBER_INT);
+        $estadoActual = trim($_POST['estado_actual'] ?? '');
+
+        if (empty($id)) {
+            Seguridad::alertaYRedirigir('warning', 'Atención', 'Identificador de usuario inválido.', $this->urlAccion(self::ACCION_LISTADO));
+            return;
+        }
+
+        // Alternar estado: si está Activo pasa a Inactivo, de lo contrario pasa a Activo
+        $nuevoEstado = (strtolower($estadoActual) === 'activo') ? 'Inactivo' : 'Activo';
+
+        try {
+            $modelo = new UsuarioModelo();
+            $modelo->cambiarEstadoInstructor((int) $id, $nuevoEstado);
+
+            $mensaje = $nuevoEstado === 'Inactivo' ? 'El instructor ha sido inactivado.' : 'El instructor ha sido activado.';
+            Seguridad::alertaYRedirigir('success', '¡Estado actualizado!', $mensaje, $this->urlAccion(self::ACCION_LISTADO));
+        } catch (PDOException $e) {
+            error_log('Error al cambiar estado del instructor: ' . $e->getMessage());
+            Seguridad::alertaYRedirigir('error', 'Error', 'No se pudo cambiar el estado.', $this->urlAccion(self::ACCION_LISTADO));
+        }
     }
-
-    $id = filter_var($_POST['id_usuario'] ?? '', FILTER_SANITIZE_NUMBER_INT);
-    $estadoActual = trim($_POST['estado_actual'] ?? '');
-
-    if (empty($id)) {
-        Seguridad::alertaYRedirigir('warning', 'Atención', 'Identificador de usuario inválido.', $this->urlAccion(self::ACCION_LISTADO));
-        return;
-    }
-
-    // Alternar estado: si está Activo pasa a Inactivo, de lo contrario pasa a Activo
-    $nuevoEstado = (strtolower($estadoActual) === 'activo') ? 'Inactivo' : 'Activo';
-
-    try {
-        $modelo = new UsuarioModelo();
-        $modelo->cambiarEstadoInstructor((int) $id, $nuevoEstado);
-
-        $mensaje = $nuevoEstado === 'Inactivo' ? 'El instructor ha sido inactivado.' : 'El instructor ha sido activado.';
-        Seguridad::alertaYRedirigir('success', '¡Estado actualizado!', $mensaje, $this->urlAccion(self::ACCION_LISTADO));
-    } catch (PDOException $e) {
-        error_log('Error al cambiar estado del instructor: ' . $e->getMessage());
-        Seguridad::alertaYRedirigir('error', 'Error', 'No se pudo cambiar el estado.', $this->urlAccion(self::ACCION_LISTADO));
-    }
-}
-
 }

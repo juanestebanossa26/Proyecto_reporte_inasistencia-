@@ -43,7 +43,7 @@ session_set_cookie_params([
     // el uso en un entorno de práctica local sin certificado.
     'secure'   => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
     'httponly' => true,
-    'samesite' => 'Strict',
+    'samesite' => 'Lax',
 ]);
 session_start();
 
@@ -63,19 +63,19 @@ require_once BASE_PATH . '/models/ReporteModelo.php';
 require_once BASE_PATH . '/models/AprendicesModelo.php';
 require_once BASE_PATH . '/models/HorarioModelo.php';
 require_once BASE_PATH . '/models/MarcajeModelo.php';
-//controladores
+
 // Controladores
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 
 require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
 require_once BASE_PATH . '/controllers/InstructorControlador.php';
 require_once BASE_PATH . '/controllers/ExcusaControlador.php';
-require_once BASE_PATH . '/controllers/ExcusaControlador.php';
 require_once BASE_PATH . '/controllers/HorarioControlador.php'; 
 require_once BASE_PATH . '/controllers/MarcajeControlador.php';
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
 require_once BASE_PATH . '/controllers/aprendizControlador.php';
 require_once BASE_PATH . '/controllers/ReporteControlador.php';
+
 // Cualquier excepción que ningún Controlador haya capturado llega hasta
 // aquí. El detalle técnico se registra en el servidor y el usuario final
 // solo ve un mensaje genérico, salvo en modo de depuración.
@@ -96,7 +96,6 @@ $accion = $_GET['accion'] ?? 'login';
 
 $auth        = new AuthControlador();
 $pagina      = new PaginaControlador();
-
 $historial   = new HistorialControlador();
 $excusa      = new ExcusaControlador();
 $aprendiz    = new AprendizControlador();
@@ -106,61 +105,53 @@ $marcaje     = new MarcajeControlador();
 $reporte     = new ReporteControlador();
 
 match ($accion) {
-    // --- Autenticación ---
-    'login'      => $auth->mostrarLogin(),
-    'autenticar' => $auth->login(),
-    'logout'     => $auth->logout(),
+    // --- Autenticación y Perfil ---
+    'login'             => $auth->mostrarLogin(),
+    'autenticar'        => $auth->login(),
+    'logout'            => $auth->logout(),
+    'perfil'            => $auth->mostrarPerfil(),
+    'cambiarPassword'   => $auth->cambiarPassword(),
+    'cambiarContrasena' => $auth->cambiarPassword(),
 
-    //acciones 
-    'guardarAprendiz' => $aprendiz-> guardar(),
-    'guardarInstructor' =>$instructor->guardar(),
-    'guardarExcusa'=>$excusa->guardar(),
-    'actualizarInstructor' => $instructor->actualizar(),
-    'cambiarEstadoInstructor' => $instructor->cambiarEstado(),
+    // --- Marcaje RFID ---
+    'marcaje'           => $marcaje->mostrar(),
+    'marcarAsistencia'  => $marcaje->marcar(),
+
+    // --- Aprendices ---
+    'aprendices'            => $aprendiz->mostrar(),
+    'guardarAprendiz'       => $aprendiz->guardar(),
     'cambiarEstadoAprendiz' => $aprendiz->cambiarEstado(),
     'desactivarAprendiz'    => $aprendiz->cambiarEstado(),
 
-    'procesarExcusa' => $excusa->procesar(), 
+    // --- Instructores ---
+    'instructores'            => $instructor->listar(),
+    'guardarInstructor'       => $instructor->guardar(),
+    'actualizarInstructor'    => $instructor->actualizar(),
+    'cambiarEstadoInstructor' => $instructor->cambiarEstado(),
 
+    // --- Excusas Médicas ---
+    'excusas'          => $excusa->listar(),
+    'guardarExcusa'    => $excusa->guardar(),
+    'reenviarExcusa'   => $excusa->reenviar(),
+    'validarExcusas'   => $excusa->listarPendientes(),
+    'procesarExcusa'   => $excusa->procesar(),
 
-    'guardarHorario'        => $horario->guardar(),
+    // --- Fichas y Horarios ---
+    'fichas'                => $horario->mostrarFichas(),
     'guardarFicha'          => $horario->guardarFicha(),
+    'horarios'              => $horario->mostrarHorarios(),
+    'guardarHorario'        => $horario->guardar(),
     'importarHorariosExcel' => $horario->importarExcel(),
     'importarExcel'         => $horario->importarExcel(),
 
-    // --- Páginas de solo lectura CON datos: el Controlador arma las
-    //     variables y se las pasa listas a la vista (ya no consultan la
-    //     base de datos por su cuenta) ---
-    
-  'aprendices'     => $aprendiz->mostrar(),
-  'historial'      => $historial->mostrar(),
-  'instructores'   => $instructor->listar(),
-  'excusas'        => $excusa->listar(),
-  'validarExcusas'=>$excusa->listarPendientes(),
-   
-  'reenviarExcusa' => $excusa->reenviar(),
-  'reportes'       => $reporte->mostrar(),
-  'generarPdf'     => $reporte->generarPdf(),
-  'generarExcel'   => $reporte->generarExcel(),
+    // --- Historial y Reportes ---
+    'historial'        => $historial->mostrar(),
+    'reportes'         => $reporte->mostrar(),
+    'generarPdf'       => $reporte->generarPdf(),
+    'generarExcel'     => $reporte->generarExcel(),
 
-
-
-    // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
-    'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor','Administrador']),
-    'fichas'          => $pagina->mostrar('fichas', ['Instructor', 'Administrador']),
-
-  'fichas'         => $horario->mostrarFichas(),
-  'horarios'       => $horario->mostrarHorarios(),
-
-    // --- Páginas de solo lectura (protegidas por sesión Y rol) ---
-    'dashboard'       => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
-
-    'instructores'    => $pagina->mostrar('instructores', ['Administrador']),
-    'marcaje'         => $marcaje->mostrar(),
-    'marcarAsistencia' => $marcaje->marcar(),
-    'perfil'          => $pagina->mostrar('perfil', ['Aprendiz', 'Instructor', 'Administrador']),
-    'excusas'         => $pagina->mostrar('excusas', ['Aprendiz']),
-    'validarExcusas'  => $pagina->mostrar('validar_excusas', ['Instructor', 'Administrador']),
+    // --- Dashboard ---
+    'dashboard'        => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
 
     default => $auth->mostrarLogin(),
 };

@@ -45,8 +45,7 @@ $(document).ready(function () {
 
     $("#inst_id_usuario").val(btn.data("id"));
     $("#inst_nombre").val(btn.data("nombre"));
-    $("#inst_apellido").val(btn.data("apellido"));
-    $("#inst_documento").val(btn.data("documento"));
+    $("#inst_usuario").val(btn.data("usuario") || btn.data("documento"));
     $("#inst_area").val(btn.data("area"));
     $("#inst_correo").val(btn.data("correo"));
 

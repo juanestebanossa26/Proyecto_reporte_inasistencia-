@@ -30,8 +30,7 @@ $(document).ready(function() {
 
         $('#modal_id_usuario').val(btn.data('id'));
         $('#modal_nombre').val(btn.data('nombre'));
-        $('#modal_apellido').val(btn.data('apellido'));
-        $('#modal_documento').val(btn.data('documento'));
+        $('#modal_usuario').val(btn.data('usuario') || btn.data('documento'));
         $('#modal_correo').val(btn.data('correo'));
         $('#modal_codigo_rfid').val(btn.data('rfid'));
         $('#modal_ficha_id').val(btn.data('ficha'));

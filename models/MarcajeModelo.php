@@ -17,7 +17,6 @@ class MarcajeModelo
                     aprendices.id_ficha,
                     usuarios.id_usuario,
                     usuarios.nombre_completo,
-                    usuarios.apellido,
                     usuarios.estado,
                     fichas.numero_ficha,
                     fichas.nombre_programa
@@ -112,7 +111,6 @@ class MarcajeModelo
 
         $sql = "SELECT
                     usuarios.nombre_completo,
-                    usuarios.apellido,
                     fichas.numero_ficha,
                     fichas.nombre_programa,
                     asistencias.hora_entrada_real,

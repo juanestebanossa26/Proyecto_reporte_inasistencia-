@@ -148,7 +148,7 @@ $instructores = $instructores ?? [];
                 <select class="form-select" name="id_instructor" id="form_id_instructor">
                     <option value="0">Seleccionar instructor...</option>
                     <?php foreach ($instructores as $inst): ?>
-                        <option value="<?= $inst['id_usuario'] ?>"><?= htmlspecialchars($inst['nombre_completo'] . ' ' . $inst['apellido']) ?></option>
+                        <option value="<?= $inst['id_usuario'] ?>"><?= htmlspecialchars($inst['nombre_completo']) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <div class="form-text">Puedes asociar un instructor de referencia a esta ficha.</div>

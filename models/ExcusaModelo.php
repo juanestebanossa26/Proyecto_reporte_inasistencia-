@@ -102,14 +102,23 @@ class ExcusaModelo
 
     // Inserta UNA fila de excusas_medicas para una fecha puntual, y crea
     // su revisión pendiente por cada instructor de la ficha. No maneja su
-    // propia transacción: quien la llama decide cuándo confirmar/revertir.
+    // Inserta UNA fila de excusas_medicas para una fecha/bloque puntual, y crea
+    // su revisión pendiente para el instructor que tenía clase en ese bloque
+    // (o para los instructores de la ficha si no había uno asignado en horarios).
     private function insertarExcusaYNotificar(PDO $conexion, int $idAsistencia, string $rutaRelativaArchivo, string $motivo): void
     {
         $stmtInfo = $conexion->prepare("
-            SELECT ap.id_aprendiz, ap.id_ficha
+            SELECT 
+                a.id_asistencia,
+                a.id_horario,
+                ap.id_aprendiz, 
+                ap.id_ficha,
+                h.id_instructor AS horario_instructor
             FROM asistencias a
             JOIN aprendices ap ON a.id_aprendiz = ap.id_aprendiz
+            LEFT JOIN horarios h ON a.id_horario = h.id_horario
             WHERE a.id_asistencia = :id_asistencia
+            LIMIT 1
         ");
         $stmtInfo->bindParam(':id_asistencia', $idAsistencia, PDO::PARAM_INT);
         $stmtInfo->execute();
@@ -119,8 +128,9 @@ class ExcusaModelo
             throw new Exception("No se encontró el aprendiz para esta asistencia.");
         }
 
-        $idAprendiz = $infoAprendiz['id_aprendiz'];
-        $idFicha    = $infoAprendiz['id_ficha'];
+        $idAprendiz        = (int) $infoAprendiz['id_aprendiz'];
+        $idFicha           = (int) $infoAprendiz['id_ficha'];
+        $idInstructorClase = !empty($infoAprendiz['horario_instructor']) ? (int) $infoAprendiz['horario_instructor'] : 0;
 
         $stmtExcusa = $conexion->prepare("
             INSERT INTO excusas_medicas (id_asistencia, aprendices_id_aprendiz, archivo_adjunto, motivo, fecha_creacion)
@@ -132,16 +142,23 @@ class ExcusaModelo
         $stmtExcusa->bindParam(':motivo', $motivo);
         $stmtExcusa->execute();
 
-        $idNuevaExcusa = $conexion->lastInsertId();
+        $idNuevaExcusa = (int) $conexion->lastInsertId();
 
-        $stmtInstructores = $conexion->prepare("
-            SELECT id_instructor
-            FROM fichas_has_usuarios
-            WHERE fichas_id_ficha = :id_ficha
-        ");
-        $stmtInstructores->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
-        $stmtInstructores->execute();
-        $instructores = $stmtInstructores->fetchAll(PDO::FETCH_ASSOC);
+        // Determinar instructor a relacionar: el que tenía la clase en ese horario
+        $instructores = [];
+        if ($idInstructorClase > 0) {
+            $instructores = [['id_instructor' => $idInstructorClase]];
+        } else {
+            // Si el horario no tenía instructor específico, se asocian los de la ficha
+            $stmtInstructores = $conexion->prepare("
+                SELECT id_instructor
+                FROM fichas_has_usuarios
+                WHERE fichas_id_ficha = :id_ficha
+            ");
+            $stmtInstructores->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
+            $stmtInstructores->execute();
+            $instructores = $stmtInstructores->fetchAll(PDO::FETCH_ASSOC);
+        }
 
         if (!empty($instructores)) {
             $stmtRevision = $conexion->prepare("
@@ -150,9 +167,12 @@ class ExcusaModelo
             ");
 
             foreach ($instructores as $inst) {
-                $stmtRevision->bindValue(':id_excusa', $idNuevaExcusa, PDO::PARAM_INT);
-                $stmtRevision->bindValue(':id_instructor', $inst['id_instructor'], PDO::PARAM_INT);
-                $stmtRevision->execute();
+                $idInst = (int) ($inst['id_instructor'] ?? 0);
+                if ($idInst > 0) {
+                    $stmtRevision->bindValue(':id_excusa', $idNuevaExcusa, PDO::PARAM_INT);
+                    $stmtRevision->bindValue(':id_instructor', $idInst, PDO::PARAM_INT);
+                    $stmtRevision->execute();
+                }
             }
         }
     }
@@ -199,11 +219,12 @@ class ExcusaModelo
     {
         $sql = "SELECT
                     usuarios.nombre_completo,
-                    usuarios.apellido,
                     fichas.nombre_programa,
                     fichas.numero_ficha,
                     excusas_medicas.motivo,
                     asistencias.fecha,
+                    horarios.hora_entrada_programada,
+                    horarios.hora_salida_programada,
                     excusas_medicas.archivo_adjunto,
                     revision_excusas.estado AS estado_excusa,
                     revision_excusas.id_revision,
@@ -211,6 +232,7 @@ class ExcusaModelo
                 FROM revision_excusas
                 JOIN excusas_medicas ON revision_excusas.id_excusa = excusas_medicas.id_excusa
                 JOIN asistencias ON excusas_medicas.id_asistencia = asistencias.id_asistencia
+                LEFT JOIN horarios ON asistencias.id_horario = horarios.id_horario
                 JOIN aprendices ON excusas_medicas.aprendices_id_aprendiz = aprendices.id_aprendiz
                 JOIN usuarios ON aprendices.id_usuario = usuarios.id_usuario
                 JOIN fichas ON aprendices.id_ficha = fichas.id_ficha

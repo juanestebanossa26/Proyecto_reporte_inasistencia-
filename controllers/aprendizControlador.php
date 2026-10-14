@@ -41,19 +41,17 @@ class AprendizControlador extends ControladorBase
         // 1. Solo el Administrador puede gestionar aprendices
         $this->exigirSesion(['Administrador', 'admin']);
 
-
-        //  Recoger y limpiar campos del formulario
+        // Recoger y limpiar campos del formulario
         $idUsuario = (int) ($_POST['id_usuario'] ?? 0);  // 0 = crear, >0 = actualizar
-        $nombre    = Seguridad::sanitizar($_POST['nombre']    ?? '');
-        $apellido  = Seguridad::sanitizar($_POST['apellido']  ?? '');
-        $documento = Seguridad::sanitizar($_POST['documento'] ?? '');
-        $correo    = trim($_POST['correo']    ?? '');
-        $password  = $_POST['password']  ?? '';
-        $idFicha   = (int) ($_POST['ficha_id']    ?? 0);
+        $nombre    = Seguridad::sanitizar($_POST['nombre'] ?? '');
+        $usuario   = Seguridad::sanitizar($_POST['usuario'] ?? $_POST['documento'] ?? '');
+        $correo    = trim($_POST['correo'] ?? '');
+        $password  = $_POST['password'] ?? '';
+        $idFicha   = (int) ($_POST['ficha_id'] ?? 0);
         $tagRfid   = Seguridad::sanitizar($_POST['codigo_rfid'] ?? '');
 
-        //  Validaciones de campos requeridos
-        if ($nombre === '' || $apellido === '' || $documento === '' || $idFicha === 0 || $tagRfid === '') {
+        // Validaciones de campos requeridos
+        if ($nombre === '' || $usuario === '' || $idFicha === 0 || $tagRfid === '') {
             Seguridad::alertaYRedirigir(
                 'warning',
                 'Campos incompletos',
@@ -62,8 +60,6 @@ class AprendizControlador extends ControladorBase
             );
         }
 
-        // El correo no es requerido solo si el aprendiz edita (puede dejarse igual)
-        // pero si se envía debe tener formato válido
         if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
             Seguridad::alertaYRedirigir(
                 'warning',
@@ -84,12 +80,12 @@ class AprendizControlador extends ControladorBase
             );
         }
 
-        //  Validar duplicados
-        if ($this->modelo->existeDocumento($documento, $esNuevo ? null : $idUsuario)) {
+        // Validar duplicados
+        if ($this->modelo->existeUsuario($usuario, $esNuevo ? null : $idUsuario)) {
             Seguridad::alertaYRedirigir(
                 'warning',
-                'Documento duplicado',
-                'Ya existe un usuario registrado con ese número de documento.',
+                'Usuario duplicado',
+                'Ya existe un usuario registrado con ese identificador.',
                 $this->urlAccion('aprendices')
             );
         }
@@ -112,17 +108,16 @@ class AprendizControlador extends ControladorBase
             );
         }
 
-        //  Hash de la contraseña (solo si se proporcionó una nueva)
+        // Hash de la contraseña (solo si se proporcionó una nueva)
         $passwordHash = ($password !== '') ? password_hash($password, PASSWORD_BCRYPT) : null;
 
-        //  Ejecutar la operación correcta según si es nuevo o edición
+        // Ejecutar la operación correcta según si es nuevo o edición
         try {
             if ($esNuevo) {
                 // CREAR: inserta en usuarios + aprendices (transacción)
                 $this->modelo->crear(
                     $nombre,
-                    $apellido,
-                    $documento,
+                    $usuario,
                     $correo,
                     $passwordHash,
                     $idFicha,
@@ -150,8 +145,7 @@ class AprendizControlador extends ControladorBase
                 $this->modelo->actualizar(
                     $idUsuario,
                     $nombre,
-                    $apellido,
-                    $documento,
+                    $usuario,
                     $correo,
                     $passwordHash,
                     $idFicha,

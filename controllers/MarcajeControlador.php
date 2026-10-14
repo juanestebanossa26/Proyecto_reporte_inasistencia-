@@ -113,7 +113,7 @@ class MarcajeControlador extends ControladorBase
         string $fechaHoy
     ): array {
         $idAprendiz = (int) $aprendiz['id_aprendiz'];
-        $nombreCompleto = trim($aprendiz['nombre_completo'] . ' ' . $aprendiz['apellido']);
+        $nombreCompleto = trim($aprendiz['nombre_completo'] ?? '');
         $fichaLabel = $aprendiz['numero_ficha'] . ' · ' . $aprendiz['nombre_programa'];
 
         // 1) ¿Hay algún bloque con entrada marcada y salida todavía vacía?

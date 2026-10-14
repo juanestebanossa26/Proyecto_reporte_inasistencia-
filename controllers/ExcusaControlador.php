@@ -12,8 +12,9 @@ class ExcusaControlador extends ControladorBase
         $this->exigirSesion(['Aprendiz']);
 
         try {
-            $misExcusas    = (new ExcusaModelo())->listarPorAprendiz((int) $_SESSION['id']);
-            $fechas_faltas = (new AsistenciaModelo())->listarFaltasSinExcusa((int) $_SESSION['id']);
+            $asistenciaModelo = new AsistenciaModelo();
+            $misExcusas       = (new ExcusaModelo())->listarPorAprendiz((int) $_SESSION['id']);
+            $fechas_faltas    = $asistenciaModelo->listarFaltasAgrupadasPorFecha((int) $_SESSION['id']);
         } catch (PDOException $e) {
             error_log('Error al listar excusas: ' . $e->getMessage());
             $misExcusas    = [];
@@ -45,7 +46,7 @@ class ExcusaControlador extends ControladorBase
     }
 
     // accion=guardarExcusa -> radica una excusa nueva. Puede cubrir varias
-    // fechas de inasistencia a la vez (checkboxes en la vista), todas con
+    // fechas o bloques de inasistencia a la vez (checkboxes en la vista), todas con
     // el mismo archivo y el mismo motivo.
     public function guardar(): void
     {
@@ -58,15 +59,24 @@ class ExcusaControlador extends ControladorBase
         $this->exigirCsrfValido('excusas');
 
         $motivo        = trim($_POST['motivo'] ?? '');
-        $idsAsistencia = $_POST['fecha_excusa'] ?? [];
+        $idsRaw        = $_POST['fecha_excusa'] ?? [];
         $archivoSubido = $_FILES['archivo'] ?? null;
 
-        // El campo puede llegar como un solo valor (compatibilidad) o como
-        // arreglo (checkboxes name="fecha_excusa[]"); aquí se normaliza.
-        if (!is_array($idsAsistencia)) {
-            $idsAsistencia = $idsAsistencia !== '' ? [$idsAsistencia] : [];
+        // Normalizar arreglo y descomponer valores que vengan agrupados por coma ("101,102")
+        if (!is_array($idsRaw)) {
+            $idsRaw = $idsRaw !== '' ? [$idsRaw] : [];
         }
-        $idsAsistencia = array_values(array_filter($idsAsistencia, fn($v) => $v !== '' && $v !== null));
+
+        $idsAsistencia = [];
+        foreach ($idsRaw as $item) {
+            foreach (explode(',', (string) $item) as $id) {
+                $id = (int) trim($id);
+                if ($id > 0) {
+                    $idsAsistencia[] = $id;
+                }
+            }
+        }
+        $idsAsistencia = array_values(array_unique($idsAsistencia));
 
         if ($motivo === '' || empty($idsAsistencia) || !$archivoSubido || $archivoSubido['error'] === UPLOAD_ERR_NO_FILE) {
             Seguridad::imprimirEncabezadoAnimacion();
