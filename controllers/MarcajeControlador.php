@@ -49,7 +49,7 @@ class MarcajeControlador extends ControladorBase
     // sin recargar la página.
     public function marcar(): void
     {
-        $this->exigirSesion(['Instructor', 'Administrador']);
+        $this->exigirSesion(['Instructor']);
         header('Content-Type: application/json; charset=utf-8');
 
         if (!Seguridad::validarCsrf($_POST['csrf_token'] ?? null)) {

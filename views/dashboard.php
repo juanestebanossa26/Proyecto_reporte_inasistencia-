@@ -138,7 +138,7 @@ function getBadgeClass($estado) {
                     <div class="card p-3 h-100">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h2 class="h6 fw-bold mb-0">Ingresos recientes</h2>
-                            <a href="marcaje.php" class="btn btn-sm btn-outline-sena">Ver marcaje RFID</a>
+                            <a href="<?= BASE_URL ?>/index.php?accion=marcaje" class="btn btn-sm btn-outline-sena">Ver marcaje RFID</a>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-app align-middle mb-0">

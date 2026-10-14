@@ -46,7 +46,7 @@ function navLink($href, $icon, $label, $slug, $paginaActiva) {
 
                 <div class="sidebar-section-label">Control</div>
                 <?php navLink(BASE_URL . '/index.php?accion=marcaje', 'bi-wifi', 'Marcaje RFID', 'marcaje', $paginaActiva); ?>
-                <?php navLink(BASE_URL . '/index.php?accion=validarExcusas', 'bi-file-earmark-medical-fill', 'Excusas médicas', 'validar_excusas', $paginaActiva); ?>
+            
 
                 <div class="sidebar-section-label">Reportes</div>
                 <?php navLink(BASE_URL . '/index.php?accion=reportes', 'bi-bar-chart-line-fill', 'Reportes', 'reportes', $paginaActiva); ?>

@@ -147,23 +147,7 @@ foreach ($ultimosMarcajes as $m) {
                             </div>
                         </form>
 
-                        <!-- Simulador interactivo: etiquetas de prueba rápida con un clic -->
-                        <div class="mt-4 pt-3 border-top border-white border-opacity-10">
-                            <div class="text-white text-opacity-75 small mb-2 fw-semibold">
-                                <i class="bi bi-cursor-fill me-1 text-sena"></i> Simulación interactiva con un clic:
-                            </div>
-                            <div class="d-flex flex-wrap gap-2 justify-content-center">
-                                <button type="button" class="virtual-card-chip" onclick="simularMarcaje('RFID-1001')">
-                                    <i class="bi bi-credit-card-2-front"></i> Carné Aprendiz 1
-                                </button>
-                                <button type="button" class="virtual-card-chip" onclick="simularMarcaje('RFID-1002')">
-                                    <i class="bi bi-credit-card-2-front"></i> Carné Aprendiz 2
-                                </button>
-                                <button type="button" class="virtual-card-chip" onclick="simularMarcaje('123456')">
-                                    <i class="bi bi-person-badge"></i> Tag Genérico
-                                </button>
-                            </div>
-                        </div>
+                  
                     </div>
                 </div>
 
