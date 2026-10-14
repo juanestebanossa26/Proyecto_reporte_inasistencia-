@@ -195,6 +195,13 @@ class HorarioModelo
         }
     }
 
+    // Elimina un horario por su ID
+    public function eliminarHorario(int $idHorario): bool
+    {
+        $stmt = Conexion::obtener()->prepare("DELETE FROM horarios WHERE id_horario = :id");
+        return $stmt->execute([':id' => $idHorario]);
+    }
+
 
     // Lista instructores activos para el selector del formulario
     public function listarInstructores(): array

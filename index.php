@@ -141,6 +141,7 @@ match ($accion) {
     'guardarFicha'          => $horario->guardarFicha(),
     'horarios'              => $horario->mostrarHorarios(),
     'guardarHorario'        => $horario->guardar(),
+    'eliminarHorario'       => $horario->eliminar(),
     'importarHorariosExcel' => $horario->importarExcel(),
     'importarExcel'         => $horario->importarExcel(),
 
