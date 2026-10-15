@@ -15,10 +15,14 @@ class HorarioControlador extends ControladorBase
     {
         $this->exigirSesion(['Administrador', 'Instructor']);
 
+        $rolActivo          = $_SESSION['rol'] ?? 'Administrador';
+        $esInstructor       = (strtolower($rolActivo) === 'instructor');
+        $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
+
         try {
-            $horarios     = $this->modelo->listarHorarios();
+            $horarios     = $this->modelo->listarHorarios($idInstructorSesion);
             $instructores = $this->modelo->listarInstructores();
-            $fichas       = $this->modelo->listarFichasDetalladas();
+            $fichas       = $this->modelo->listarFichasDetalladas($idInstructorSesion);
 
             // Paleta de colores con contraste óptimo para texto blanco
             $paletaGoogle = [
@@ -49,33 +53,94 @@ class HorarioControlador extends ControladorBase
                 $idFicha = (int) $h['id_ficha'];
                 $colorEvento = $coloresFicha[$idFicha] ?? '#039be5';
 
+                $horaEntrada = substr($h['hora_entrada_programada'], 0, 5);
+                $horaSalida  = substr($h['hora_salida_programada'], 0, 5);
+
+                // Duración en minutos y horas
+                $tEntrada = strtotime($h['hora_entrada_programada']);
+                $tSalida  = strtotime($h['hora_salida_programada']);
+                $duracionMinutos = ($tSalida > $tEntrada) ? (int) (($tSalida - $tEntrada) / 60) : 0;
+                $duracionHoras   = round($duracionMinutos / 60, 1);
+
                 $eventosCalendario[] = [
                     'id'              => (string) $h['id_horario'],
                     'title'           => $h['numero_ficha'] . ' · ' . $h['nombre_programa'],
-                    'start'           => $h['fecha'] . 'T' . substr($h['hora_entrada_programada'], 0, 5) . ':00',
-                    'end'             => $h['fecha'] . 'T' . substr($h['hora_salida_programada'], 0, 5) . ':00',
+                    'start'           => $h['fecha'] . 'T' . $horaEntrada . ':00',
+                    'end'             => $h['fecha'] . 'T' . $horaSalida . ':00',
                     'backgroundColor' => $colorEvento,
                     'borderColor'     => $colorEvento,
                     'textColor'       => '#ffffff',
                     'extendedProps'   => [
-                        'id_ficha'      => $idFicha,
-                        'ficha'         => $h['numero_ficha'],
-                        'programa'      => $h['nombre_programa'],
-                        'instructor'    => trim($h['instructor_nombre'] ?? '') !== '' ? $h['instructor_nombre'] : 'Sin asignar',
-                        'id_instructor' => (int) ($h['id_instructor'] ?? 0),
-                        'entrada'       => substr($h['hora_entrada_programada'], 0, 5),
-                        'salida'        => substr($h['hora_salida_programada'], 0, 5),
-                        'aprendices'    => (int) ($h['total_aprendices'] ?? 0),
-                        'fecha'         => $h['fecha'],
-                        'color'         => $colorEvento,
+                        'id_ficha'       => $idFicha,
+                        'ficha'          => $h['numero_ficha'],
+                        'programa'       => $h['nombre_programa'],
+                        'instructor'     => trim($h['instructor_nombre'] ?? '') !== '' ? $h['instructor_nombre'] : 'Sin asignar',
+                        'id_instructor'  => (int) ($h['id_instructor'] ?? 0),
+                        'area'           => trim($h['instructor_area'] ?? ''),
+                        'entrada'        => $horaEntrada,
+                        'salida'         => $horaSalida,
+                        'duracion_min'   => $duracionMinutos,
+                        'duracion_horas' => $duracionHoras,
+                        'aprendices'     => (int) ($h['total_aprendices'] ?? 0),
+                        'fecha'          => $h['fecha'],
+                        'color'          => $colorEvento,
                     ]
                 ];
             }
+
+            // Resumen de la Jornada para el instructor
+            $fechaHoy     = date('Y-m-d');
+            $horaActual   = date('H:i:s');
+            $clasesHoy    = [];
+            $proximaClase = null;
+            $horasHoy     = 0.0;
+
+            foreach ($horarios as $h) {
+                if ($h['fecha'] === $fechaHoy) {
+                    $clasesHoy[] = $h;
+                    $t1 = strtotime($h['hora_entrada_programada']);
+                    $t2 = strtotime($h['hora_salida_programada']);
+                    if ($t2 > $t1) {
+                        $horasHoy += ($t2 - $t1) / 3600;
+                    }
+
+                    if ($h['hora_salida_programada'] > $horaActual && $proximaClase === null) {
+                        $proximaClase = $h;
+                    }
+                }
+            }
+
+            // Si hoy no hay pendientes, buscar la primera clase próxima en el calendario
+            if ($proximaClase === null) {
+                foreach ($horarios as $h) {
+                    if ($h['fecha'] > $fechaHoy || ($h['fecha'] === $fechaHoy && $h['hora_salida_programada'] > $horaActual)) {
+                        $proximaClase = $h;
+                        break;
+                    }
+                }
+            }
+
+            $resumenJornada = [
+                'total_clases_hoy' => count($clasesHoy),
+                'total_horas_hoy'  => round($horasHoy, 1),
+                'total_fichas'     => count($fichas),
+                'proxima_clase'    => $proximaClase,
+                'fecha_hoy'        => $fechaHoy,
+            ];
+
         } catch (PDOException $e) {
             error_log('Error al listar horarios: ' . $e->getMessage());
             $eventosCalendario = [];
             $instructores      = [];
             $fichas            = [];
+            $coloresFicha      = [];
+            $resumenJornada    = [
+                'total_clases_hoy' => 0,
+                'total_horas_hoy'  => 0,
+                'total_fichas'     => 0,
+                'proxima_clase'    => null,
+                'fecha_hoy'        => date('Y-m-d'),
+            ];
             $_SESSION['mensaje_error'] = 'No se pudieron cargar los horarios. Intenta de nuevo.';
         }
 
@@ -87,8 +152,12 @@ class HorarioControlador extends ControladorBase
     {
         $this->exigirSesion(['Administrador', 'Instructor']);
 
+        $rolSesion          = $_SESSION['rol'] ?? 'Administrador';
+        $esInstructor       = (strtolower($rolSesion) === 'instructor');
+        $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
+
         try {
-            $fichas       = $this->modelo->listarFichasDetalladas();
+            $fichas       = $this->modelo->listarFichasDetalladas($idInstructorSesion);
             $instructores = $this->modelo->listarInstructores();
         } catch (PDOException $e) {
             error_log('Error al listar fichas: ' . $e->getMessage());
