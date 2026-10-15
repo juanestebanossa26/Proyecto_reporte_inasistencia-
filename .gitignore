@@ -1,2 +1,4 @@
 git add .gitignore/vendor/
 
+/vendor/
+/.env

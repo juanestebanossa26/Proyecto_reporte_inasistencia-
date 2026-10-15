@@ -20,16 +20,45 @@ class HorarioControlador extends ControladorBase
             $instructores = $this->modelo->listarInstructores();
             $fichas       = $this->modelo->listarFichasDetalladas();
 
+            // Paleta de colores con contraste óptimo para texto blanco
+            $paletaGoogle = [
+                '#1976d2', // Azul corporativo
+                '#2e7d32', // Verde SENA
+                '#7b1fa2', // Púrpura intenso
+                '#c2185b', // Frambuesa
+                '#d97706', // Ámbar oscuro
+                '#e65100', // Naranja intenso
+                '#303f9f', // Índigo profundo
+                '#00796b', // Turquesa oscuro
+                '#d32f2f', // Carmesí / Rojo
+                '#455a64', // Pizarra / Grafito
+                '#00838f', // Cian oscuro
+                '#4e342e', // Café moka
+            ];
+
+            // Asignar color único y consistente a cada ficha
+            $coloresFicha = [];
+            foreach ($fichas as $idx => $f) {
+                $idF = (int) $f['id_ficha'];
+                $coloresFicha[$idF] = $paletaGoogle[$idx % count($paletaGoogle)];
+            }
+
             // Transformación a formato de eventos FullCalendar
             $eventosCalendario = [];
             foreach ($horarios as $h) {
+                $idFicha = (int) $h['id_ficha'];
+                $colorEvento = $coloresFicha[$idFicha] ?? '#039be5';
+
                 $eventosCalendario[] = [
-                    'id'            => (string) $h['id_horario'],
-                    'title'         => $h['numero_ficha'] . ' · ' . $h['nombre_programa'],
-                    'start'         => $h['fecha'] . 'T' . substr($h['hora_entrada_programada'], 0, 5) . ':00',
-                    'end'           => $h['fecha'] . 'T' . substr($h['hora_salida_programada'], 0, 5) . ':00',
-                    'extendedProps' => [
-                        'id_ficha'      => (int) $h['id_ficha'],
+                    'id'              => (string) $h['id_horario'],
+                    'title'           => $h['numero_ficha'] . ' · ' . $h['nombre_programa'],
+                    'start'           => $h['fecha'] . 'T' . substr($h['hora_entrada_programada'], 0, 5) . ':00',
+                    'end'             => $h['fecha'] . 'T' . substr($h['hora_salida_programada'], 0, 5) . ':00',
+                    'backgroundColor' => $colorEvento,
+                    'borderColor'     => $colorEvento,
+                    'textColor'       => '#ffffff',
+                    'extendedProps'   => [
+                        'id_ficha'      => $idFicha,
                         'ficha'         => $h['numero_ficha'],
                         'programa'      => $h['nombre_programa'],
                         'instructor'    => trim($h['instructor_nombre'] ?? '') !== '' ? $h['instructor_nombre'] : 'Sin asignar',
@@ -37,7 +66,8 @@ class HorarioControlador extends ControladorBase
                         'entrada'       => substr($h['hora_entrada_programada'], 0, 5),
                         'salida'        => substr($h['hora_salida_programada'], 0, 5),
                         'aprendices'    => (int) ($h['total_aprendices'] ?? 0),
-                        'fecha'         => $h['fecha']
+                        'fecha'         => $h['fecha'],
+                        'color'         => $colorEvento,
                     ]
                 ];
             }
@@ -209,6 +239,25 @@ class HorarioControlador extends ControladorBase
                 'Ocurrió un error al guardar el horario. Intenta de nuevo.',
                 $this->urlAccion('horarios')
             );
+        }
+    }
+
+    // accion=eliminarHorario
+    public function eliminar(): void
+    {
+        $this->exigirSesion(['Administrador', 'admin']);
+        $idHorario = (int) ($_POST['horario_id'] ?? $_GET['id'] ?? 0);
+
+        if ($idHorario > 0) {
+            $this->modelo->eliminarHorario($idHorario);
+            Seguridad::alertaYRedirigir(
+                'success',
+                '¡Horario eliminado!',
+                'El horario fue eliminado exitosamente.',
+                $this->urlAccion('horarios')
+            );
+        } else {
+            $this->redirigirAccion('horarios');
         }
     }
 
