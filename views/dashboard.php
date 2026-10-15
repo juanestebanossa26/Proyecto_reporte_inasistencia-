@@ -1,9 +1,9 @@
 <?php
 
 
-// 1. Variables de sesión simuladas (cambia 'admin' por 'aprendiz' para ver la otra vista)
-$rolActivo = $_GET['rol'] ?? 'admin'; // Usando $_GET para que pruebes fácil: dashboard.php?rol=aprendiz
-$nombreUsuario = 'Juan Esteban'; // Nombre simulado para el saludo
+// 1. Variables de sesión activas (o fallback para vista inicial)
+$rolActivo = $_SESSION['rol'] ?? ($_GET['rol'] ?? 'Administrador');
+$nombreUsuario = $_SESSION['nombre'] ?? 'Usuario';
 $paginaActiva = 'dashboard';
 $tituloPagina = 'Panel principal';
 $fechaHoy = date('Y-m-d');
@@ -83,7 +83,7 @@ function getBadgeClass($estado) {
                 <p class="text-suave mb-0">Este es el resumen de asistencia del día.</p>
             </div>
 
-            <?php if ($rolActivo === 'Administrador' || $rolActivo === 'instructor'): ?>
+            <?php if (in_array(strtolower($rolActivo), ['administrador', 'instructor', 'admin'], true)): ?>
             
             <!-- KPI cards -->
             <div class="row g-3 mb-4">
@@ -138,7 +138,7 @@ function getBadgeClass($estado) {
                     <div class="card p-3 h-100">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h2 class="h6 fw-bold mb-0">Ingresos recientes</h2>
-                            <a href="marcaje.php" class="btn btn-sm btn-outline-sena">Ver marcaje RFID</a>
+                            <a href="<?= BASE_URL ?>/index.php?accion=marcaje" class="btn btn-sm btn-outline-sena">Ver marcaje RFID</a>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-app align-middle mb-0">
@@ -203,7 +203,7 @@ function getBadgeClass($estado) {
                             <?php endforeach; ?>
                         <?php endif; ?>
                         
-                        <a href="<?= BASE_URL ?>/index.php?accion=validarexcusas" class="btn btn-sm btn-sena w-100 mt-auto">Revisar excusas</a>
+                        <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="btn btn-sm btn-sena w-100 mt-auto">Revisar excusas</a>
                     </div>
                 </div>
             </div>
@@ -235,7 +235,7 @@ function getBadgeClass($estado) {
                 <i class="bi bi-wifi text-sena" style="font-size:2rem;"></i>
                 <h2 class="h6 fw-bold mt-2">¿Ya marcaste tu ingreso hoy?</h2>
                 <p class="text-suave">Acerca tu carné al lector para registrar tu entrada.</p>
-                <a href="marcaje.php" class="btn btn-sena mx-auto" style="width:fit-content;">Ir a marcaje RFID</a>
+                <a href="<?= BASE_URL ?>/index.php?accion=marcaje" class="btn btn-sena mx-auto" style="width:fit-content;">Ir a marcaje RFID</a>
             </div>
             
             <?php endif; ?>

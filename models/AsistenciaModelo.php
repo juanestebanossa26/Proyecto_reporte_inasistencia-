@@ -27,11 +27,11 @@ class AsistenciaModelo
         $sql = "SELECT COUNT(asistencias.id_asistencia)
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
-                WHERE aprendices.id_usuario = :id_usuario  and asistencias.estado=:estado";
+                WHERE aprendices.id_usuario = :id_usuario AND LOWER(asistencias.estado) = LOWER(:estado)";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
-        $stmt->bindParam(':estado', $estado, PDO::PARAM_INT);
+        $stmt->bindParam(':estado', $estado, PDO::PARAM_STR);
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
@@ -39,17 +39,65 @@ class AsistenciaModelo
 
     public function contarExcusasPendientes(int $idUsuario): int
     {
-        $sql = "SELECT COUNT(excusas_medicas.id_excusa)
+        $sql = "SELECT COUNT(DISTINCT excusas_medicas.id_excusa)
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-                WHERE aprendices.id_usuario = :id_usuario ";
+                LEFT JOIN revision_excusas ON revision_excusas.id_excusa = excusas_medicas.id_excusa
+                WHERE aprendices.id_usuario = :id_usuario
+                  AND (LOWER(revision_excusas.estado) = 'pendiente' OR revision_excusas.id_revision IS NULL)";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
+    }
+
+    // Obtiene la información académica y personal del aprendiz para el reporte individual
+    public function obtenerInfoAprendiz(int $idUsuario): array|false
+    {
+        $sql = "SELECT 
+                    u.nombre_completo,
+                    u.usuario AS documento,
+                    u.correo_electronico,
+                    f.numero_ficha,
+                    f.nombre_programa
+                FROM aprendices ap
+                JOIN usuarios u ON u.id_usuario = ap.id_usuario
+                JOIN fichas f ON f.id_ficha = ap.id_ficha
+                WHERE ap.id_usuario = :id_usuario
+                LIMIT 1";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Historial ordenado y con detalle de horario programado para el reporte PDF
+    public function listarHistorialCompleto(int $idUsuario): array
+    {
+        $sql = "SELECT 
+                    a.fecha,
+                    a.hora_entrada_real,
+                    a.hora_salida_real,
+                    a.tiempo_retraso,
+                    a.estado,
+                    h.hora_entrada_programada,
+                    h.hora_salida_programada
+                FROM asistencias a
+                JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
+                LEFT JOIN horarios h ON h.id_horario = a.id_horario
+                WHERE ap.id_usuario = :id_usuario
+                ORDER BY a.fecha DESC, a.hora_entrada_real DESC";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // Asegura que todas las clases pasadas programadas en horarios sin marcaje

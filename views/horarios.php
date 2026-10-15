@@ -36,21 +36,11 @@ if (!isset($iniciales)) {
 <head>
     <?php include 'includes/head.php'; ?>
     
-    <!-- Estilos específicos del Calendario integrados con el SENA (con versión anti-caché) -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/calendario.css?v=<?= file_exists(BASE_PATH . '/assets/css/calendario.css') ? filemtime(BASE_PATH . '/assets/css/calendario.css') : time() ?>">
-
-    <!-- Reglas críticas de estructura para asegurar visualización inmediata -->
-    <style>
-        .cal-body-wrapper { display: flex !important; flex-direction: row !important; min-height: 750px !important; }
-        .cal-fichas-sidebar { width: 270px !important; min-width: 270px !important; max-width: 270px !important; flex-shrink: 0 !important; }
-        .cal-main-container { flex: 1 1 0% !important; min-width: 0 !important; overflow: hidden !important; }
-        #calendar { width: 100% !important; min-height: 720px !important; }
-        .cal-ficha-item { display: flex !important; align-items: center !important; }
-        .cal-ficha-item input[type="checkbox"] { display: none !important; }
-        .cal-summary-box { overflow: hidden !important; min-width: 0 !important; }
-        .cal-summary-content { flex: 1 1 0% !important; min-width: 0 !important; overflow: hidden !important; }
-        .cal-summary-val, .cal-summary-sub { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-    </style>
+    <!-- FullCalendar 6 Bundle CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    
+    <!-- Estilos específicos de Horarios integrados con el SENA -->
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/horarios.css?v=<?= time() ?>">
 </head>
 <body>
 <div class="app-shell">
@@ -128,32 +118,37 @@ if (!isset($iniciales)) {
 
                 <div class="row g-2 align-items-stretch">
                     <!-- Tarjeta 1: Próxima Clase (Interactiva / Clickeable para ver detalles y aprendices) -->
-                    <div class="col-12 col-sm-6 col-lg-3 overflow-hidden" style="min-width: 0;">
+                    <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
                         <div class="cal-summary-box cal-summary-box-clickable h-100" 
                              onclick="abrirDetalleProximaClase()" 
                              role="button" 
                              tabindex="0"
+                             style="min-width: 0; max-width: 100%; overflow: hidden;"
                              title="Clic para ver detalles de la ficha, horario y aprendices matriculados">
-                            <div class="cal-summary-icon bg-success-subtle text-success">
+                            <div class="cal-summary-icon bg-success-subtle text-success flex-shrink-0">
                                 <i class="bi bi-clock-history"></i>
                             </div>
-                            <div class="cal-summary-content overflow-hidden flex-grow-1" style="min-width: 0;">
-                                <div class="d-flex align-items-center justify-content-between mb-1" style="min-width: 0;">
-                                    <div class="cal-summary-label mb-0 text-truncate">Próxima clase</div>
+                            <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
+                                <div class="d-flex align-items-center justify-content-between gap-1 mb-1 min-w-0">
+                                    <div class="cal-summary-label mb-0 text-truncate" style="min-width: 0;">Próxima clase</div>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle py-0 px-1 flex-shrink-0" style="font-size: 0.62rem;">
                                         <i class="bi bi-eye-fill me-1"></i>Ver
                                     </span>
                                 </div>
-                                <div class="cal-summary-val text-truncate" id="sumProximaHora">
+                                <div class="cal-summary-val text-truncate" id="sumProximaHora" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?php if ($resumenJornada['proxima_clase']): ?>
                                         <?= substr($resumenJornada['proxima_clase']['hora_entrada_programada'], 0, 5) ?> – <?= substr($resumenJornada['proxima_clase']['hora_salida_programada'], 0, 5) ?>
                                     <?php else: ?>
                                         <span class="text-muted fw-normal fs-6">Sin pendientes</span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="cal-summary-sub text-truncate" id="sumProximaFicha" title="<?= $resumenJornada['proxima_clase'] ? htmlspecialchars($resumenJornada['proxima_clase']['numero_ficha'] . ' · ' . $resumenJornada['proxima_clase']['nombre_programa']) : '' ?>">
+                                <?php 
+                                    $proxProg = $resumenJornada['proxima_clase'] ? htmlspecialchars(html_entity_decode($resumenJornada['proxima_clase']['nombre_programa'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8')) : '';
+                                    $proxFicha = $resumenJornada['proxima_clase'] ? htmlspecialchars($resumenJornada['proxima_clase']['numero_ficha'] ?? '') : '';
+                                ?>
+                                <div class="cal-summary-sub text-truncate" id="sumProximaFicha" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= $resumenJornada['proxima_clase'] ? ($proxFicha . ' · ' . $proxProg) : '' ?>">
                                     <?php if ($resumenJornada['proxima_clase']): ?>
-                                        Ficha <?= htmlspecialchars($resumenJornada['proxima_clase']['numero_ficha']) ?> · <?= htmlspecialchars($resumenJornada['proxima_clase']['nombre_programa']) ?>
+                                        Ficha <?= $proxFicha ?> · <?= $proxProg ?>
                                     <?php else: ?>
                                         No hay sesiones próximas registradas
                                     <?php endif; ?>
@@ -163,17 +158,17 @@ if (!isset($iniciales)) {
                     </div>
 
                     <!-- Tarjeta 2: Clases de hoy -->
-                    <div class="col-12 col-sm-6 col-lg-3 overflow-hidden" style="min-width: 0;">
-                        <div class="cal-summary-box h-100">
-                            <div class="cal-summary-icon bg-primary-subtle text-primary">
+                    <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
+                        <div class="cal-summary-box h-100" style="min-width: 0; max-width: 100%; overflow: hidden;">
+                            <div class="cal-summary-icon bg-primary-subtle text-primary flex-shrink-0">
                                 <i class="bi bi-calendar2-week"></i>
                             </div>
-                            <div class="cal-summary-content overflow-hidden flex-grow-1" style="min-width: 0;">
+                            <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
                                 <div class="cal-summary-label text-truncate">Clases de hoy</div>
-                                <div class="cal-summary-val text-truncate" id="sumTotalClases">
+                                <div class="cal-summary-val text-truncate" id="sumTotalClases" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?= $resumenJornada['total_clases_hoy'] ?> <span class="fs-6 fw-normal text-muted">sesiones</span>
                                 </div>
-                                <div class="cal-summary-sub text-truncate" id="sumTotalClasesSub">
+                                <div class="cal-summary-sub text-truncate" id="sumTotalClasesSub" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?= $resumenJornada['total_clases_hoy'] > 0 ? 'En la jornada actual' : 'Jornada libre de clases hoy' ?>
                                 </div>
                             </div>
@@ -181,17 +176,17 @@ if (!isset($iniciales)) {
                     </div>
 
                     <!-- Tarjeta 3: Horas programadas -->
-                    <div class="col-12 col-sm-6 col-lg-3 overflow-hidden" style="min-width: 0;">
-                        <div class="cal-summary-box h-100">
-                            <div class="cal-summary-icon bg-warning-subtle text-warning-emphasis">
+                    <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
+                        <div class="cal-summary-box h-100" style="min-width: 0; max-width: 100%; overflow: hidden;">
+                            <div class="cal-summary-icon bg-warning-subtle text-warning-emphasis flex-shrink-0">
                                 <i class="bi bi-hourglass-split"></i>
                             </div>
-                            <div class="cal-summary-content overflow-hidden flex-grow-1" style="min-width: 0;">
+                            <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
                                 <div class="cal-summary-label text-truncate">Horas programadas</div>
-                                <div class="cal-summary-val text-truncate" id="sumTotalHoras">
+                                <div class="cal-summary-val text-truncate" id="sumTotalHoras" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?= $resumenJornada['total_horas_hoy'] ?> <span class="fs-6 fw-normal text-muted">horas</span>
                                 </div>
-                                <div class="cal-summary-sub text-truncate">
+                                <div class="cal-summary-sub text-truncate" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?= $resumenJornada['total_horas_hoy'] > 0 ? 'Dedicación acumulada de hoy' : 'Sin horas asignadas hoy' ?>
                                 </div>
                             </div>
@@ -199,17 +194,17 @@ if (!isset($iniciales)) {
                     </div>
 
                     <!-- Tarjeta 4: Fichas activas -->
-                    <div class="col-12 col-sm-6 col-lg-3 overflow-hidden" style="min-width: 0;">
-                        <div class="cal-summary-box h-100">
-                            <div class="cal-summary-icon bg-info-subtle text-info-emphasis">
+                    <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
+                        <div class="cal-summary-box h-100" style="min-width: 0; max-width: 100%; overflow: hidden;">
+                            <div class="cal-summary-icon bg-info-subtle text-info-emphasis flex-shrink-0">
                                 <i class="bi bi-journal-bookmark"></i>
                             </div>
-                            <div class="cal-summary-content overflow-hidden flex-grow-1" style="min-width: 0;">
+                            <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
                                 <div class="cal-summary-label text-truncate">Fichas activas</div>
-                                <div class="cal-summary-val text-truncate" id="sumTotalFichas">
+                                <div class="cal-summary-val text-truncate" id="sumTotalFichas" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?= $resumenJornada['total_fichas'] ?> <span class="fs-6 fw-normal text-muted">fichas</span>
                                 </div>
-                                <div class="cal-summary-sub text-truncate">
+                                <div class="cal-summary-sub text-truncate" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     Con programación activa
                                 </div>
                             </div>
@@ -301,7 +296,7 @@ if (!isset($iniciales)) {
                                     $idF = (int) $f['id_ficha'];
                                     $colorFicha = $coloresFicha[$idF] ?? '#1976d2';
                                     $numeroFicha = htmlspecialchars($f['numero_ficha']);
-                                    $nombrePrograma = htmlspecialchars($f['nombre_programa']);
+                                    $nombrePrograma = htmlspecialchars(html_entity_decode($f['nombre_programa'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'));
                                 ?>
                                 <label class="cal-ficha-item item-ficha-filtro" data-ficha-id="<?= $idF ?>" data-ficha-text="<?= strtolower($numeroFicha . ' ' . $nombrePrograma) ?>">
                                     <input type="checkbox" class="chk-ficha-individual" value="<?= $idF ?>" checked onchange="filtrarFichas()">
@@ -641,572 +636,18 @@ if (!isset($iniciales)) {
 <!-- FullCalendar 6 Bundle JS -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 
-<script>
-// Estado de sesión y datos provistos por PHP
-const esAdmin = <?= json_encode($rolActivo === 'Administrador') ?>;
-const todosLosEventos = <?= json_encode($eventosCalendario) ?>;
-const fichasDisponibles = <?= json_encode($fichas) ?>;
-const coloresFicha = <?= json_encode($coloresFicha) ?>;
-const proximaClaseInfo = <?= json_encode($resumenJornada['proxima_clase'] ?? null) ?>;
-
-// Modales Bootstrap e Instancias
-let modalFichaBs, modalDetalleBs, modalEliminarBs, modalProxBs;
-let calendar;
-let eventoActual = null;
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar modales Bootstrap de forma segura
-    const modalFichaEl = document.getElementById('modalFicha');
-    if (modalFichaEl && window.bootstrap) modalFichaBs = new bootstrap.Modal(modalFichaEl);
-    
-    const modalDetalleEl = document.getElementById('modalDetalleHorario');
-    if (modalDetalleEl && window.bootstrap) modalDetalleBs = new bootstrap.Modal(modalDetalleEl);
-    
-    const modalEliminarEl = document.getElementById('modalEliminarHorario');
-    if (modalEliminarEl && window.bootstrap) modalEliminarBs = new bootstrap.Modal(modalEliminarEl);
-
-    const modalProxEl = document.getElementById('modalDetalleProximaClase');
-    if (modalProxEl && window.bootstrap) modalProxBs = new bootstrap.Modal(modalProxEl);
-
-    const calendarEl = document.getElementById('calendar');
-
-    calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        locale: 'es',
-        firstDay: 1, // Lunes (semana académica SENA)
-        height: 750, // Altura explícita para renderizar la cuadrícula y permitir scroll interno
-        expandRows: true,
-        headerToolbar: false, // Barra propia y limpia arriba
-        slotMinTime: '06:00:00',
-        slotMaxTime: '22:00:00',
-        scrollTime: '06:00:00',
-        slotDuration: '00:30:00',
-        slotLabelInterval: '01:00:00',
-        allDaySlot: false,
-        nowIndicator: true, // Línea roja con punto para hora actual
-        events: todosLosEventos,
-        eventDisplay: 'block',
-        dayMaxEvents: false,
-        editable: false,
-        selectable: esAdmin,
-
-        // ======================================================================
-        // SOLUCIÓN CLAVE A LA SUPERPOSICIÓN:
-        // slotEventOverlap: false -> distribuye eventos simultáneos en columnas
-        // paralelas adyacentes, evitando que un evento tape u oculte a otro.
-        // ======================================================================
-        slotEventOverlap: false,
-        eventMinHeight: 28,
-
-        // Formato limpio de horas: 7 AM, 8 AM... 12 PM, 1 PM...
-        slotLabelContent: function(arg) {
-            const date = arg.date;
-            let hour = date.getHours();
-            const meridiem = hour >= 12 ? 'PM' : 'AM';
-            hour = hour % 12;
-            if (hour === 0) hour = 12;
-            return `${hour} ${meridiem}`;
-        },
-
-        // Encabezados de días con nombre y número circular
-        dayHeaderContent: function(arg) {
-            const fecha = arg.date;
-            const hoy = new Date();
-            const esHoy = fecha.getFullYear() === hoy.getFullYear() &&
-                          fecha.getMonth() === hoy.getMonth() &&
-                          fecha.getDate() === hoy.getDate();
-            const diasSemana = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
-            const diaNombre = diasSemana[fecha.getDay()];
-            const diaNumero = fecha.getDate();
-
-            return {
-                html: `
-                    <div class="cal-header-day ${esHoy ? 'is-today' : ''}">
-                        <div class="cal-header-dayname">${diaNombre}</div>
-                        <div class="cal-header-daynum">${diaNumero}</div>
-                    </div>
-                `
-            };
-        },
-
-        // Renderizado inteligente y adaptativo del contenido del evento
-        eventContent: function(arg) {
-            const props = arg.event.extendedProps || {};
-            const ficha = props.ficha || arg.event.title;
-            const programa = props.programa || '';
-            const entrada = props.entrada || '';
-            const salida = props.salida || '';
-            const instructor = props.instructor || '';
-
-            // Duración en minutos
-            const duracionMin = (arg.event.end - arg.event.start) / (1000 * 60);
-
-            const div = document.createElement('div');
-            div.className = 'fc-event-main-frame';
-
-            let html = '';
-            if (duracionMin <= 45) {
-                // Evento corto: 1 línea compacta
-                html = `
-                    <div class="fc-event-single-line">
-                        <span class="fc-event-num">${ficha}</span>
-                        <span class="fc-event-time-short ms-1">${entrada}–${salida}</span>
-                    </div>
-                `;
-            } else if (duracionMin <= 90) {
-                // Evento mediano: 2 líneas
-                html = `
-                    <div class="fc-event-title-line">
-                        <span class="fc-event-num">${ficha}</span>
-                        ${programa ? `<span class="fc-event-prog-short ms-1">· ${programa}</span>` : ''}
-                    </div>
-                    <div class="fc-event-time-line">${entrada} – ${salida}</div>
-                `;
-            } else {
-                // Evento completo: ficha, horas e instructor
-                html = `
-                    <div class="fc-event-title-line">
-                        <span class="fc-event-num">${ficha}</span>
-                        ${programa ? `<span class="fc-event-prog-short ms-1">· ${programa}</span>` : ''}
-                    </div>
-                    <div class="fc-event-time-line">${entrada} – ${salida}</div>
-                    ${instructor && instructor !== 'Sin asignar' ? `
-                        <div class="fc-event-inst-line text-truncate">
-                            <i class="bi bi-person-fill"></i> ${instructor}
-                        </div>
-                    ` : ''}
-                `;
-            }
-
-            div.innerHTML = html;
-            return { domNodes: [div] };
-        },
-
-        // Tooltip nativo al posar el cursor sobre cualquier bloque
-        eventDidMount: function(info) {
-            const p = info.event.extendedProps || {};
-            const horario = `${p.entrada || ''} - ${p.salida || ''}`;
-            const inst = p.instructor || 'Sin asignar';
-            info.el.setAttribute('title', `Ficha: ${p.ficha}\nPrograma: ${p.programa}\nHorario: ${horario}\nInstructor: ${inst}\nAprendices: ${p.aprendices || 0}`);
-        },
-
-        // Clic en evento: abre modal con detalles completos
-        eventClick: function(info) {
-            info.jsEvent.preventDefault();
-            abrirDetalleHorario(info.event);
-        },
-
-        // Clic en celda vacía: abre modal para crear nuevo horario
-        select: function(info) {
-            if (esAdmin) {
-                const fechaStr = info.startStr.split('T')[0];
-                const horaInicio = info.startStr.split('T')[1]?.substring(0, 5) || '07:00';
-                const horaFin = info.endStr?.split('T')[1]?.substring(0, 5) || '13:00';
-                abrirModalCrear(fechaStr, horaInicio, horaFin);
-            }
-        },
-
-        // Actualizar título dinámico de periodo
-        datesSet: function(info) {
-            actualizarTituloPeriodo();
-        }
-    });
-
-    calendar.render();
-
-    // Controles de navegación superior
-    document.getElementById('btnToday').addEventListener('click', irAHoy);
-    document.getElementById('btnPrev').addEventListener('click', () => calendar.prev());
-    document.getElementById('btnNext').addEventListener('click', () => calendar.next());
-
-    // Toggle de visualización de panel de filtros
-    document.getElementById('btnToggleFiltros').addEventListener('click', toggleOcultarFiltros);
-
-    // Búsqueda en vivo de fichas / programas / instructores
-    const inputBuscar = document.getElementById('inputBuscarFicha');
-    const btnClearSearch = document.getElementById('btnClearSearch');
-
-    if (inputBuscar) {
-        inputBuscar.addEventListener('input', function() {
-            const query = this.value.toLowerCase().trim();
-            if (btnClearSearch) {
-                btnClearSearch.classList.toggle('d-none', query === '');
-            }
-
-            // Filtrar checkboxes del panel lateral
-            document.querySelectorAll('.item-ficha-filtro').forEach(item => {
-                const text = item.getAttribute('data-ficha-text') || '';
-                item.style.display = text.includes(query) ? 'flex' : 'none';
-            });
-
-            // Filtrar eventos directamente en la cuadrícula de FullCalendar
-            if (query !== '') {
-                calendar.removeAllEvents();
-                const filtrados = todosLosEventos.filter(ev => {
-                    const p = ev.extendedProps || {};
-                    const cadena = `${p.ficha} ${p.programa} ${p.instructor} ${p.area || ''}`.toLowerCase();
-                    return cadena.includes(query);
-                });
-                calendar.addEventSource(filtrados);
-            } else {
-                filtrarFichas();
-            }
-        });
-    }
-
-    if (btnClearSearch) {
-        btnClearSearch.addEventListener('click', function() {
-            if (inputBuscar) {
-                inputBuscar.value = '';
-                btnClearSearch.classList.add('d-none');
-                inputBuscar.dispatchEvent(new Event('input'));
-            }
-        });
-    }
-
-    // Botones de acción en el modal de detalles
-    const btnEditar = document.getElementById('btnEditarDesdeDetalle');
-    if (btnEditar) {
-        btnEditar.addEventListener('click', function() {
-            modalDetalleBs.hide();
-            if (eventoActual) abrirModalEditar(eventoActual);
-        });
-    }
-
-    const btnEliminar = document.getElementById('btnEliminarDesdeDetalle');
-    if (btnEliminar) {
-        btnEliminar.addEventListener('click', function() {
-            modalDetalleBs.hide();
-            if (eventoActual) {
-                document.getElementById('eliminar_horario_id').value = eventoActual.id;
-                modalEliminarBs.show();
-            }
-        });
-    }
-
-    // Spinner al importar Excel
-    const formImportar = document.getElementById('formImportarExcel');
-    if (formImportar) {
-        formImportar.addEventListener('submit', function() {
-            const btn = document.getElementById('btnSubirExcel');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Importando datos...';
-        });
-    }
-});
-
-// ==========================================================================
-// Funciones de Control de Periodo y Vistas
-// ==========================================================================
-function irAHoy() {
-    if (!calendar) return;
-    calendar.today();
-}
-
-function actualizarTituloPeriodo() {
-    if (!calendar) return;
-    const view = calendar.view;
-    const meses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-
-    if (view.type === 'timeGridDay') {
-        const d = calendar.getDate();
-        const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const diaNombre = diasSemana[d.getDay()];
-        const mesNombre = meses[d.getMonth()];
-        document.getElementById('calendarTitle').innerText = `${diaNombre}, ${d.getDate()} de ${mesNombre} de ${d.getFullYear()}`;
-    } else if (view.type === 'timeGridWeek') {
-        const start = new Date(view.currentStart);
-        // currentEnd en FullCalendar es exclusivo (un día después)
-        const end = new Date(view.currentEnd);
-        end.setDate(end.getDate() - 1);
-
-        if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-            document.getElementById('calendarTitle').innerText = `${start.getDate()} al ${end.getDate()} de ${meses[start.getMonth()]} de ${start.getFullYear()}`;
-        } else if (start.getFullYear() === end.getFullYear()) {
-            document.getElementById('calendarTitle').innerText = `${start.getDate()} de ${meses[start.getMonth()]} al ${end.getDate()} de ${meses[end.getMonth()]} de ${start.getFullYear()}`;
-        } else {
-            document.getElementById('calendarTitle').innerText = `${start.getDate()} de ${meses[start.getMonth()]} ${start.getFullYear()} al ${end.getDate()} de ${meses[end.getMonth()]} ${end.getFullYear()}`;
-        }
-    } else {
-        const fecha = calendar.getDate();
-        const mes = meses[fecha.getMonth()];
-        const anio = fecha.getFullYear();
-        document.getElementById('calendarTitle').innerText = `${mes} de ${anio}`;
-    }
-}
-
-function cambiarVista(vistaNombre) {
-    if (!calendar) return;
-    calendar.changeView(vistaNombre);
-    
-    // Actualizar botones de vista
-    document.querySelectorAll('.cal-view-group .btn').forEach(b => b.classList.remove('active'));
-    if (vistaNombre === 'timeGridDay') document.getElementById('btnViewDay').classList.add('active');
-    if (vistaNombre === 'timeGridWeek') document.getElementById('btnViewWeek').classList.add('active');
-    if (vistaNombre === 'dayGridMonth') document.getElementById('btnViewMonth').classList.add('active');
-}
-
-function toggleOcultarFiltros() {
-    const sidebar = document.getElementById('panelFiltrosFichas');
-    sidebar.classList.toggle('is-collapsed');
-    setTimeout(() => {
-        if (calendar) calendar.updateSize();
-    }, 230);
-}
-
-// ==========================================================================
-// Filtros de Fichas (Todas, Una, o Múltiples)
-// ==========================================================================
-function toggleTodasFichas(masterCheckbox) {
-    const estado = masterCheckbox.checked;
-    document.querySelectorAll('.chk-ficha-individual').forEach(chk => {
-        chk.checked = estado;
-    });
-    filtrarFichas();
-}
-
-function limpiarFiltros() {
-    const inputBuscar = document.getElementById('inputBuscarFicha');
-    if (inputBuscar) {
-        inputBuscar.value = '';
-        const btnClear = document.getElementById('btnClearSearch');
-        if (btnClear) btnClear.classList.add('d-none');
-    }
-
-    document.querySelectorAll('.item-ficha-filtro').forEach(item => {
-        item.style.display = 'flex';
-    });
-
-    const chkTodas = document.getElementById('chkTodasFichas');
-    if (chkTodas) chkTodas.checked = true;
-
-    document.querySelectorAll('.chk-ficha-individual').forEach(chk => {
-        chk.checked = true;
-    });
-
-    filtrarFichas();
-}
-
-function filtrarFichas() {
-    const checksActivos = Array.from(document.querySelectorAll('.chk-ficha-individual:checked')).map(chk => parseInt(chk.value));
-    const totalIndividuales = document.querySelectorAll('.chk-ficha-individual').length;
-    const chkTodas = document.getElementById('chkTodasFichas');
-
-    if (chkTodas) {
-        chkTodas.checked = (checksActivos.length === totalIndividuales);
-    }
-
-    // Actualizar badge
-    const badge = document.getElementById('badgeFichasActivas');
-    if (badge) badge.innerText = checksActivos.length;
-
-    // Filtrar eventos en el calendario
-    calendar.removeAllEvents();
-    const eventosFiltrados = todosLosEventos.filter(ev => {
-        const idFicha = ev.extendedProps?.id_ficha;
-        return checksActivos.includes(idFicha);
-    });
-    calendar.addEventSource(eventosFiltrados);
-}
-
-// ==========================================================================
-// Detalles de Evento y Modales
-// ==========================================================================
-function abrirDetalleHorario(evento) {
-    eventoActual = evento;
-    const p = evento.extendedProps || {};
-    const color = p.color || evento.backgroundColor || 'var(--cal-verde-sena)';
-
-    document.getElementById('modalDetalleHeader').style.backgroundColor = color;
-    document.getElementById('modalDetalleFicha').innerText = `Ficha ${p.ficha}`;
-    document.getElementById('modalDetallePrograma').innerText = p.programa || 'Programa sin especificar';
-    document.getElementById('modalDetalleHorarioTexto').innerText = `${p.entrada} – ${p.salida}`;
-    
-    // Duración
-    const duracionTxt = p.duracion_horas ? `${p.duracion_horas} horas` : (p.duracion_min ? `${p.duracion_min} min` : 'No calculada');
-    document.getElementById('modalDetalleDuracion').innerText = duracionTxt;
-
-    // Formatear fecha legible
-    const fObj = new Date(p.fecha + 'T12:00:00');
-    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const fechaTxt = fObj.toLocaleDateString('es-ES', opciones);
-    document.getElementById('modalDetalleFechaTexto').innerText = fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1);
-
-    document.getElementById('modalDetalleInstructor').innerText = p.instructor || 'Sin asignar';
-    
-    // Área / Especialidad si existe
-    const rowArea = document.getElementById('rowDetalleArea');
-    if (rowArea) {
-        if (p.area && p.area.trim() !== '') {
-            rowArea.style.display = 'flex';
-            document.getElementById('modalDetalleArea').innerText = p.area;
-        } else {
-            rowArea.style.display = 'none';
-        }
-    }
-
-    document.getElementById('modalDetalleAprendices').innerText = `${p.aprendices || 0} aprendices matriculados`;
-
-    // Estado de la sesión (Finalizada, En curso, Programada)
-    const badgeEstado = document.getElementById('modalDetalleEstadoBadge');
-    if (badgeEstado && evento.start && evento.end) {
-        const ahora = new Date();
-        badgeEstado.className = 'badge-estado-sesion border';
-        if (ahora > evento.end) {
-            badgeEstado.innerText = 'Finalizada';
-            badgeEstado.classList.add('bg-secondary', 'text-white');
-        } else if (ahora >= evento.start && ahora <= evento.end) {
-            badgeEstado.innerText = 'En curso';
-            badgeEstado.classList.add('bg-success', 'text-white');
-        } else {
-            badgeEstado.innerText = 'Programada';
-            badgeEstado.classList.add('bg-primary-subtle', 'text-primary');
-        }
-    }
-
-    modalDetalleBs.show();
-}
-
-function abrirModalCrear(fecha = '', horaEntrada = '07:00', horaSalida = '13:00') {
-    document.getElementById('formFicha').reset();
-    document.getElementById('form_horario_id').value = '';
-    document.getElementById('form_instructor').value = '0';
-    document.getElementById('modalTitulo').innerText = 'Programar horario';
-    
-    if (fecha) {
-        document.getElementById('form_fecha').value = fecha;
-    } else {
-        const hoy = new Date().toISOString().split('T')[0];
-        document.getElementById('form_fecha').value = hoy;
-    }
-
-    document.getElementById('form_hora_entrada').value = horaEntrada;
-    document.getElementById('form_hora_salida').value = horaSalida;
-
-    habilitarCampos(true);
-    modalFichaBs.show();
-}
-
-function abrirModalEditar(evento) {
-    const p = evento.extendedProps || {};
-    document.getElementById('modalTitulo').innerText = 'Editar horario';
-    document.getElementById('form_horario_id').value = evento.id;
-    document.getElementById('form_numero_ficha').value = p.ficha || '';
-    document.getElementById('form_programa').value = p.programa || '';
-    document.getElementById('form_fecha').value = p.fecha || '';
-    document.getElementById('form_aprendices').value = p.aprendices || 0;
-
-    if (p.id_instructor && p.id_instructor > 0) {
-        document.getElementById('form_instructor').value = p.id_instructor;
-    } else {
-        document.getElementById('form_instructor').value = '0';
-    }
-
-    document.getElementById('form_hora_entrada').value = p.entrada || '';
-    document.getElementById('form_hora_salida').value = p.salida || '';
-
-    habilitarCampos(esAdmin);
-    modalFichaBs.show();
-}
-
-function habilitarCampos(editable) {
-    const inputs = document.querySelectorAll('#formFicha input, #formFicha select');
-    inputs.forEach(el => el.disabled = !editable);
-}
-
-// ==========================================================================
-// Modal Próxima Clase (Instructor)
-// ==========================================================================
-function abrirDetalleProximaClase() {
-    if (!proximaClaseInfo) {
-        alert('No hay información de una próxima clase programada disponible.');
-        return;
-    }
-
-    const p = proximaClaseInfo;
-    const fichaNum = p.numero_ficha ? `Ficha ${p.numero_ficha}` : 'Ficha sin asignar';
-    const programa = p.nombre_programa || 'Programa de formación sin especificar';
-    const entrada = p.hora_entrada_programada ? p.hora_entrada_programada.substring(0, 5) : '';
-    const salida = p.hora_salida_programada ? p.hora_salida_programada.substring(0, 5) : '';
-    const totalAprendices = parseInt(p.total_aprendices || 0);
-
-    const elFicha = document.getElementById('modalProxFichaNum');
-    if (elFicha) elFicha.innerText = fichaNum;
-
-    const elProg = document.getElementById('modalProxPrograma');
-    if (elProg) elProg.innerText = programa;
-
-    const elAprendices = document.getElementById('modalProxTotalAprendices');
-    if (elAprendices) {
-        elAprendices.innerText = `${totalAprendices} ${totalAprendices === 1 ? 'aprendiz matriculado' : 'aprendices matriculados'}`;
-    }
-
-    const elHorario = document.getElementById('modalProxHorario');
-    if (elHorario) elHorario.innerText = `${entrada} – ${salida}`;
-
-    // Calcular duración en horas y minutos
-    let duracionTxt = '';
-    if (entrada && salida) {
-        const [h1, m1] = entrada.split(':').map(Number);
-        const [h2, m2] = salida.split(':').map(Number);
-        const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (mins > 0) {
-            const horas = (mins / 60).toFixed(1).replace('.0', '');
-            duracionTxt = `${horas} hora${horas !== '1' ? 's' : ''} (${mins} min)`;
-        }
-    }
-    const elDur = document.getElementById('modalProxDuracion');
-    if (elDur) elDur.innerText = duracionTxt ? `Duración: ${duracionTxt}` : 'Duración estimada';
-
-    // Fecha legible
-    if (p.fecha) {
-        const partes = p.fecha.split('-');
-        if (partes.length === 3) {
-            const fObj = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
-            const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const fechaTxt = fObj.toLocaleDateString('es-ES', opciones);
-            const elFecha = document.getElementById('modalProxFecha');
-            if (elFecha) elFecha.innerText = `${partes[2]}/${partes[1]}/${partes[0]}`;
-            const elDia = document.getElementById('modalProxDiaSemana');
-            if (elDia) elDia.innerText = fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1);
-        }
-    }
-
-    const elInst = document.getElementById('modalProxInstructor');
-    if (elInst) elInst.innerText = p.instructor_nombre || p.instructor || 'Instructor asignado';
-
-    const rowArea = document.getElementById('modalProxRowArea');
-    const elArea = document.getElementById('modalProxArea');
-    const area = p.instructor_area || p.area || '';
-    if (rowArea && elArea) {
-        if (area.trim() !== '') {
-            rowArea.style.display = 'flex';
-            elArea.innerText = area;
-        } else {
-            rowArea.style.display = 'none';
-        }
-    }
-
-    if (modalProxBs) {
-        modalProxBs.show();
-    } else {
-        const modalEl = document.getElementById('modalDetalleProximaClase');
-        if (modalEl && window.bootstrap) {
-            modalProxBs = new bootstrap.Modal(modalEl);
-            modalProxBs.show();
-        }
-    }
-}
-
-function ubicarProximaClaseEnCalendario() {
-    if (!calendar || !proximaClaseInfo || !proximaClaseInfo.fecha) return;
-    if (modalProxBs) modalProxBs.hide();
-    calendar.gotoDate(proximaClaseInfo.fecha);
-    cambiarVista('timeGridDay');
-}
+<!-- Datos del servidor inyectados para el módulo de horarios -->
+<script id="horarios-data" type="application/json">
+<?= json_encode([
+    'esAdmin'           => ($rolActivo === 'Administrador'),
+    'todosLosEventos'   => $eventosCalendario,
+    'fichasDisponibles' => $fichas,
+    'coloresFicha'      => $coloresFicha,
+    'proximaClaseInfo'  => $resumenJornada['proxima_clase'] ?? null,
+], JSON_UNESCAPED_UNICODE) ?>
 </script>
+
+<!-- Script externo con la lógica del Módulo de Horarios -->
+<script src="<?= BASE_URL ?>/assets/js/horarios.js?v=<?= time() ?>"></script>
 </body>
 </html>

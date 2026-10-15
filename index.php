@@ -134,6 +134,7 @@ match ($accion) {
     'guardarExcusa'    => $excusa->guardar(),
     'reenviarExcusa'   => $excusa->reenviar(),
     'validarExcusas'   => $excusa->listarPendientes(),
+    'validarexcusas'   => $excusa->listarPendientes(),
     'procesarExcusa'   => $excusa->procesar(),
 
     // --- Fichas y Horarios ---
@@ -146,10 +147,12 @@ match ($accion) {
     'importarExcel'         => $horario->importarExcel(),
 
     // --- Historial y Reportes ---
-    'historial'        => $historial->mostrar(),
-    'reportes'         => $reporte->mostrar(),
-    'generarPdf'       => $reporte->generarPdf(),
-    'generarExcel'     => $reporte->generarExcel(),
+    'historial'                => $historial->mostrar(),
+    'descargarMiReporte'       => $historial->descargarReportePdf(),
+    'descargarReporteAprendiz' => $historial->descargarReportePdf(),
+    'reportes'                 => $reporte->mostrar(),
+    'generarPdf'               => $reporte->generarPdf(),
+    'generarExcel'             => $reporte->generarExcel(),
 
     // --- Dashboard ---
     'dashboard'        => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
