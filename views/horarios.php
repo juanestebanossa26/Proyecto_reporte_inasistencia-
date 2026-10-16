@@ -496,6 +496,7 @@ if (!isset($iniciales)) {
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow: hidden;">
         <form id="formFicha" action="<?= BASE_URL ?>/index.php?accion=guardarHorario" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= Seguridad::tokenCsrf() ?>">
         <input type="hidden" name="horario_id" id="form_horario_id">
         <div class="modal-header border-0 pb-0 px-4 pt-4">
           <h5 class="modal-title fw-bold" id="modalTitulo">Programar horario</h5>

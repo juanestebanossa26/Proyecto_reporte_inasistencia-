@@ -335,3 +335,90 @@ a{ text-decoration:none; }
   border:2px dashed var(--linea); border-radius:var(--radius);
   padding:34px; text-align:center; background:#FAFBFA;
 }
+
+/* ---------- Badge Moderno para TAG RFID ---------- */
+.rfid-tag-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rfid-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(22, 101, 52, 0.05);
+  transition: all 0.2s ease;
+  max-width: 170px;
+}
+
+.rfid-tag-badge:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #14532d;
+  box-shadow: 0 2px 4px rgba(22, 101, 52, 0.1);
+}
+
+.rfid-tag-badge .rfid-icon {
+  font-size: 0.85rem;
+  color: #16a34a;
+  animation: pulseRfid 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseRfid {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.rfid-tag-badge .rfid-code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-copy-tag {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.btn-copy-tag:hover {
+  background-color: #e2e8f0;
+  color: #166534;
+  transform: scale(1.1);
+}
+
+.btn-copy-tag:active {
+  transform: scale(0.95);
+}
+
+.rfid-tag-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  font-size: 0.76rem;
+  font-weight: 500;
+  font-style: normal;
+}
+

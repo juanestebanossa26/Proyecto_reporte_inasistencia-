@@ -274,10 +274,156 @@ function inicializarHorarios() {
         });
     }
 
-    // Spinner al importar Excel
+    // Autocompletar nombre de programa al ingresar número de ficha
+    const inputNumFicha = document.getElementById('form_numero_ficha');
+    const inputProgFicha = document.getElementById('form_programa');
+    if (inputNumFicha && inputProgFicha) {
+        const actualizarProgramaSegunFicha = function() {
+            const numVal = inputNumFicha.value.trim().toLowerCase();
+            if (!numVal) return;
+            const encontrada = fichasDisponibles.find(f => 
+                String(f.numero_ficha).trim().toLowerCase() === numVal
+            );
+            if (encontrada && encontrada.nombre_programa) {
+                inputProgFicha.value = encontrada.nombre_programa;
+            }
+        };
+        inputNumFicha.addEventListener('input', actualizarProgramaSegunFicha);
+        inputNumFicha.addEventListener('change', actualizarProgramaSegunFicha);
+    }
+
+    // Validación del formulario de Guardar/Editar Horario
+    const formFichaModal = document.getElementById('formFicha');
+    if (formFichaModal) {
+        formFichaModal.addEventListener('submit', function(e) {
+            const numFicha = (document.getElementById('form_numero_ficha')?.value || '').trim();
+            const fecha = (document.getElementById('form_fecha')?.value || '').trim();
+            const hEntrada = (document.getElementById('form_hora_entrada')?.value || '').trim();
+            const hSalida = (document.getElementById('form_hora_salida')?.value || '').trim();
+
+            if (!numFicha || !fecha || !hEntrada || !hSalida) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Campos requeridos',
+                        text: 'Por favor completa todos los campos obligatorios.',
+                        confirmButtonColor: '#39a900'
+                    });
+                }
+                return;
+            }
+
+            // Comprobar que la hora de entrada sea estrictamente menor que la de salida
+            if (hEntrada >= hSalida) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Horas incongruentes',
+                        text: `La hora de entrada (${hEntrada}) debe ser anterior a la hora de salida (${hSalida}).`,
+                        confirmButtonColor: '#39a900'
+                    });
+                } else {
+                    alert(`La hora de entrada (${hEntrada}) debe ser anterior a la hora de salida (${hSalida}).`);
+                }
+                return;
+            }
+
+            // Validar existencia de la ficha en la lista disponible
+            if (fichasDisponibles.length > 0) {
+                const existeFicha = fichasDisponibles.some(f => 
+                    String(f.numero_ficha).trim().toLowerCase() === numFicha.toLowerCase()
+                );
+                if (!existeFicha) {
+                    e.preventDefault();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Ficha no registrada',
+                            text: `El número de ficha '${numFicha}' no está registrado en el sistema. Debes crearla previamente en el módulo de Fichas.`,
+                            confirmButtonColor: '#39a900'
+                        });
+                    } else {
+                        alert(`El número de ficha '${numFicha}' no está registrado en el sistema.`);
+                    }
+                    return;
+                }
+            }
+        });
+    }
+
+    // Validación y spinner al importar Excel
     const formImportar = document.getElementById('formImportarExcel');
+    const inputExcel = document.getElementById('inputArchivoExcel');
+
+    if (inputExcel) {
+        inputExcel.addEventListener('change', function() {
+            const archivo = this.files[0];
+            if (!archivo) return;
+
+            const nombre = archivo.name.toLowerCase();
+            const esValido = nombre.endsWith('.xlsx') || nombre.endsWith('.xls');
+
+            if (!esValido) {
+                this.value = '';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Formato no permitido',
+                        text: 'Formato no válido. Solo se permiten archivos Excel (.xlsx, .xls).',
+                        confirmButtonColor: '#39a900'
+                    });
+                } else {
+                    alert('Formato no válido. Solo se permiten archivos Excel (.xlsx, .xls).');
+                }
+                return;
+            }
+
+            if (archivo.size === 0) {
+                this.value = '';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo vacío',
+                        text: 'El archivo seleccionado está vacío (0 bytes). Por favor selecciona un archivo con datos.',
+                        confirmButtonColor: '#39a900'
+                    });
+                }
+                return;
+            }
+
+            if (archivo.size > 15 * 1024 * 1024) {
+                this.value = '';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo muy grande',
+                        text: 'El archivo supera el tamaño máximo permitido de 15MB.',
+                        confirmButtonColor: '#39a900'
+                    });
+                }
+                return;
+            }
+        });
+    }
+
     if (formImportar) {
-        formImportar.addEventListener('submit', function() {
+        formImportar.addEventListener('submit', function(e) {
+            const archivo = inputExcel ? inputExcel.files[0] : null;
+            if (!archivo) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo requerido',
+                        text: 'Por favor selecciona un archivo de Excel antes de importar.',
+                        confirmButtonColor: '#39a900'
+                    });
+                }
+                return;
+            }
+
             const btn = document.getElementById('btnSubirExcel');
             if (btn) {
                 btn.disabled = true;

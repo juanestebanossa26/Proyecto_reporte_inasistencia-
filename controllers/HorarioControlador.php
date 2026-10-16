@@ -197,23 +197,61 @@ class HorarioControlador extends ControladorBase
         }
 
         $idFicha      = (int) ($_POST['id_ficha'] ?? 0);
-        $numeroFicha  = Seguridad::sanitizar($_POST['numero_ficha'] ?? '');
-        $programa     = Seguridad::sanitizar($_POST['nombre_programa'] ?? '');
+        $numeroFicha  = trim(Seguridad::sanitizar($_POST['numero_ficha'] ?? ''));
+        $programa     = trim(Seguridad::sanitizar($_POST['nombre_programa'] ?? ''));
         $idInstructor = (int) ($_POST['id_instructor'] ?? 0);
 
+        // 1. Validación de campos obligatorios
         if ($numeroFicha === '' || $programa === '') {
             Seguridad::alertaYRedirigir(
                 'warning',
-                'Campos requeridos',
-                'Por favor ingresa el número de ficha y el nombre del programa.',
+                'Campos obligatorios',
+                'Por favor ingresa tanto el número de ficha como el nombre del programa.',
+                $this->urlAccion('fichas')
+            );
+            return;
+        }
+
+        // 2. Validación de formato de número de ficha (3 a 20 caracteres alfanuméricos)
+        if (!preg_match('/^[a-zA-Z0-9\-_]{3,20}$/', $numeroFicha)) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Formato no válido',
+                'El número de ficha debe contener entre 3 y 20 caracteres alfanuméricos (letras, números o guiones) sin espacios ni símbolos especiales.',
+                $this->urlAccion('fichas')
+            );
+            return;
+        }
+
+        if (mb_strlen($programa) < 3) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Programa no válido',
+                'El nombre del programa de formación debe tener al menos 3 caracteres.',
+                $this->urlAccion('fichas')
+            );
+            return;
+        }
+
+        // 3. Validación de duplicados en la base de datos
+        $esEdicion = ($idFicha > 0);
+        if ($this->modelo->existeNumeroFicha($numeroFicha, $esEdicion ? $idFicha : null)) {
+            $msgDuplicado = $esEdicion
+                ? "Ya existe otra ficha registrada con el número '{$numeroFicha}'. Por favor verifica el número ingresado."
+                : "Ya existe una ficha registrada con este número ({$numeroFicha}). No se permiten números de ficha duplicados.";
+
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Ficha duplicada',
+                $msgDuplicado,
                 $this->urlAccion('fichas')
             );
             return;
         }
 
         try {
-            if ($idFicha > 0) {
-                // Actualizar ficha existente
+            if ($esEdicion) {
+                // Actualizar ficha existente conservando su identidad si corresponde
                 $this->modelo->actualizarFicha($idFicha, $numeroFicha, $programa);
                 if ($idInstructor > 0) {
                     $this->modelo->asociarInstructor($idFicha, $idInstructor);
@@ -221,8 +259,8 @@ class HorarioControlador extends ControladorBase
                 $titulo = '¡Ficha actualizada!';
                 $texto  = 'La información de la ficha fue guardada exitosamente.';
             } else {
-                // Crear nueva ficha
-                $idNueva = $this->modelo->obtenerOCrearFicha($numeroFicha, $programa);
+                // Crear nueva ficha verificada
+                $idNueva = $this->modelo->crearFicha($numeroFicha, $programa);
                 if ($idInstructor > 0) {
                     $this->modelo->asociarInstructor($idNueva, $idInstructor);
                 }
@@ -238,10 +276,14 @@ class HorarioControlador extends ControladorBase
             );
         } catch (PDOException $e) {
             error_log('Error al guardar ficha: ' . $e->getMessage());
+            $errorMsg = ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry'))
+                ? "Ya existe una ficha registrada con el número '{$numeroFicha}'."
+                : 'Ocurrió un error al guardar la ficha. Intenta de nuevo.';
+
             Seguridad::alertaYRedirigir(
                 'error',
-                'Error de base de datos',
-                'Ocurrió un error al guardar la ficha. Intenta de nuevo.',
+                'Error al guardar',
+                $errorMsg,
                 $this->urlAccion('fichas')
             );
         }
@@ -255,28 +297,90 @@ class HorarioControlador extends ControladorBase
 
         // Recoger y limpiar campos del formulario
         $idHorario    = (int) ($_POST['horario_id'] ?? 0);
-        $numeroFicha  = Seguridad::sanitizar($_POST['numero_ficha'] ?? '');
-        $programa     = Seguridad::sanitizar($_POST['programa'] ?? '');
-        $fecha        = Seguridad::sanitizar($_POST['fecha'] ?? '');
-        $horaEntrada  = Seguridad::sanitizar($_POST['hora_entrada'] ?? '');
-        $horaSalida   = Seguridad::sanitizar($_POST['hora_salida'] ?? '');
+        $numeroFicha  = trim(Seguridad::sanitizar($_POST['numero_ficha'] ?? ''));
+        $programa     = trim(Seguridad::sanitizar($_POST['programa'] ?? ''));
+        $fecha        = trim(Seguridad::sanitizar($_POST['fecha'] ?? ''));
+        $horaEntrada  = trim(Seguridad::sanitizar($_POST['hora_entrada'] ?? ''));
+        $horaSalida   = trim(Seguridad::sanitizar($_POST['hora_salida'] ?? ''));
         $idInstructor = (int) ($_POST['instructor'] ?? 0);
 
-        // Validaciones de campos requeridos
-        if ($numeroFicha === '' || $programa === '' || $fecha === '' || $horaEntrada === '' || $horaSalida === '') {
+        // 1. Validaciones de campos requeridos
+        if ($numeroFicha === '' || $fecha === '' || $horaEntrada === '' || $horaSalida === '') {
             Seguridad::alertaYRedirigir(
                 'warning',
                 'Campos incompletos',
-                'Por favor completa todos los campos obligatorios.',
+                'Por favor completa todos los campos obligatorios (ficha, fecha, hora de entrada y salida).',
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
+        // 2. Validación de formato de fecha (YYYY-MM-DD)
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) || !strtotime($fecha)) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Fecha no válida',
+                'La fecha seleccionada no tiene un formato válido.',
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
+        // 3. Validación de horas: entrada debe ser anterior a salida
+        if (strtotime($horaEntrada) >= strtotime($horaSalida)) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Horario incongruente',
+                "La hora de entrada ({$horaEntrada}) debe ser anterior a la hora de salida ({$horaSalida}).",
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
+        // 4. Comprobar que el número de ficha asociado exista y sea válido
+        $fichaExistente = $this->modelo->buscarFichaPorNumero($numeroFicha);
+        if (!$fichaExistente) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Ficha no encontrada',
+                "El número de ficha '{$numeroFicha}' no existe en la base de datos. Debes registrar previamente la ficha en el módulo de Fichas antes de crearle un horario.",
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+        $idFicha = (int) $fichaExistente['id_ficha'];
+
+        // 5. Evitar horarios duplicados o con solapamiento para la misma ficha
+        $conflicto = $this->modelo->verificarConflictoHorario(
+            $idFicha,
+            $fecha,
+            $horaEntrada,
+            $horaSalida,
+            $idHorario > 0 ? $idHorario : null
+        );
+
+        if ($conflicto !== null) {
+            $hConfIni = substr($conflicto['hora_entrada_programada'], 0, 5);
+            $hConfFin = substr($conflicto['hora_salida_programada'], 0, 5);
+
+            if ($conflicto['tipo_conflicto'] === 'identico') {
+                $mensajeConflicto = "Ya existe un horario idéntico registrado para la ficha {$numeroFicha} el día {$fecha} de {$hConfIni} a {$hConfFin}. No es posible registrar horarios duplicados.";
+                $tituloConflicto  = 'Horario duplicado';
+            } else {
+                $mensajeConflicto = "La ficha {$numeroFicha} ya tiene una clase programada el día {$fecha} de {$hConfIni} a {$hConfFin}, la cual se solapa con el horario ingresado ({$horaEntrada} - {$horaSalida}). Por favor selecciona otro rango de horas o fecha.";
+                $tituloConflicto  = 'Conflicto de horario';
+            }
+
+            Seguridad::alertaYRedirigir(
+                'warning',
+                $tituloConflicto,
+                $mensajeConflicto,
                 $this->urlAccion('horarios')
             );
             return;
         }
 
         try {
-            // Obtener el id de la ficha o crearla si es nueva
-            $idFicha = $this->modelo->obtenerOCrearFicha($numeroFicha, $programa);
-
             // Asociar instructor si se seleccionó uno
             if ($idInstructor > 0) {
                 $this->modelo->asociarInstructor($idFicha, $idInstructor);
@@ -286,12 +390,12 @@ class HorarioControlador extends ControladorBase
                 // Modo Edición: Actualizar horario existente
                 $this->modelo->actualizarHorario($idHorario, $idFicha, $horaEntrada, $horaSalida, $fecha, $idInstructor);
                 $mensajeTitulo = '¡Horario actualizado!';
-                $mensajeTexto  = 'Los cambios fueron guardados exitosamente.';
+                $mensajeTexto  = 'Los cambios en el horario fueron guardados exitosamente.';
             } else {
                 // Modo Creación: Registrar nuevo horario
                 $this->modelo->guardarHorario($idFicha, $horaEntrada, $horaSalida, $fecha, $idInstructor);
                 $mensajeTitulo = '¡Horario registrado!';
-                $mensajeTexto  = 'El horario fue guardado exitosamente en la base de datos.';
+                $mensajeTexto  = 'El horario fue guardado exitosamente en el calendario.';
             }
 
             Seguridad::alertaYRedirigir(
@@ -302,10 +406,14 @@ class HorarioControlador extends ControladorBase
             );
         } catch (PDOException $e) {
             error_log('Error al guardar horario: ' . $e->getMessage());
+            $errorMsg = ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry'))
+                ? "Ya existe un horario programado para esta ficha el día {$fecha} en este mismo horario."
+                : 'Ocurrió un error al guardar el horario. Intenta de nuevo.';
+
             Seguridad::alertaYRedirigir(
                 'error',
-                'Error de base de datos',
-                'Ocurrió un error al guardar el horario. Intenta de nuevo.',
+                'Error al guardar',
+                $errorMsg,
                 $this->urlAccion('horarios')
             );
         }

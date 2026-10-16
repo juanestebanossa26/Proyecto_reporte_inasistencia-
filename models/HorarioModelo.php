@@ -68,11 +68,53 @@ class HorarioModelo
     {
         $sql = "SELECT id_ficha FROM fichas WHERE numero_ficha = :num LIMIT 1";
         $stmt = Conexion::obtener()->prepare($sql);
-        $stmt->bindParam(':num', $numeroFicha);
-        $stmt->execute();
+        $stmt->execute([':num' => trim($numeroFicha)]);
         $id = $stmt->fetchColumn();
 
         return $id !== false ? (int)$id : null;
+    }
+
+    // Busca los datos completos de una ficha por su número
+    public function buscarFichaPorNumero(string $numeroFicha): ?array
+    {
+        $sql = "SELECT id_ficha, numero_ficha, nombre_programa FROM fichas WHERE numero_ficha = :num LIMIT 1";
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->execute([':num' => trim($numeroFicha)]);
+        $ficha = $stmt->fetch();
+
+        return $ficha ?: null;
+    }
+
+    // Comprueba si un número de ficha ya existe en la base de datos
+    public function existeNumeroFicha(string $numeroFicha, ?int $excluirIdFicha = null): bool
+    {
+        $numeroFicha = trim($numeroFicha);
+        $sql = "SELECT id_ficha FROM fichas WHERE numero_ficha = :num";
+        $params = [':num' => $numeroFicha];
+
+        if ($excluirIdFicha !== null && $excluirIdFicha > 0) {
+            $sql .= " AND id_ficha != :id";
+            $params[':id'] = $excluirIdFicha;
+        }
+
+        $stmt = Conexion::obtener()->prepare($sql . " LIMIT 1");
+        $stmt->execute($params);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    // Crea una nueva ficha garantizando su inserción individual
+    public function crearFicha(string $numeroFicha, string $nombrePrograma): int
+    {
+        $db = Conexion::obtener();
+        $sql = "INSERT INTO fichas (numero_ficha, nombre_programa) VALUES (:num, :prog)";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([
+            ':num'  => trim($numeroFicha),
+            ':prog' => trim($nombrePrograma)
+        ]);
+
+        return (int) $db->lastInsertId();
     }
 
     // Manejo de transacciones para la base de datos
@@ -147,6 +189,9 @@ class HorarioModelo
     // Comprueba si un horario ya existe para evitar registros duplicados
     public function existeHorario(int $idFicha, string $horaEntrada, string $horaSalida, string $fecha): bool
     {
+        $hEntrada = (strlen($horaEntrada) === 5) ? $horaEntrada . ':00' : $horaEntrada;
+        $hSalida  = (strlen($horaSalida) === 5) ? $horaSalida . ':00' : $horaSalida;
+
         $sql = "SELECT id_horario FROM horarios 
                 WHERE id_ficha = :id_ficha 
                   AND dia_semana = :fecha 
@@ -156,11 +201,74 @@ class HorarioModelo
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
         $stmt->bindParam(':fecha',    $fecha);
-        $stmt->bindParam(':entrada',  $horaEntrada);
-        $stmt->bindParam(':salida',   $horaSalida);
+        $stmt->bindParam(':entrada',  $hEntrada);
+        $stmt->bindParam(':salida',   $hSalida);
         $stmt->execute();
 
         return (bool) $stmt->fetchColumn();
+    }
+
+    // Verifica si existe un conflicto de horario (duplicado idéntico o solapamiento de horas)
+    // para la misma ficha en la misma fecha, excluyendo opcionalmente un horario en edición.
+    public function verificarConflictoHorario(int $idFicha, string $fecha, string $horaEntrada, string $horaSalida, ?int $excluirIdHorario = null): ?array
+    {
+        $hEntrada = (strlen($horaEntrada) === 5) ? $horaEntrada . ':00' : $horaEntrada;
+        $hSalida  = (strlen($horaSalida) === 5) ? $horaSalida . ':00' : $horaSalida;
+
+        // 1. Chequeo de duplicado idéntico exacto
+        $sqlExacto = "SELECT id_horario, id_ficha, hora_entrada_programada, hora_salida_programada, dia_semana
+                      FROM horarios
+                      WHERE id_ficha = :id_ficha
+                        AND dia_semana = :fecha
+                        AND hora_entrada_programada = :entrada
+                        AND hora_salida_programada = :salida";
+        $paramsExacto = [
+            ':id_ficha' => $idFicha,
+            ':fecha'    => $fecha,
+            ':entrada'  => $hEntrada,
+            ':salida'   => $hSalida,
+        ];
+        if ($excluirIdHorario !== null && $excluirIdHorario > 0) {
+            $sqlExacto .= " AND id_horario != :excluir";
+            $paramsExacto[':excluir'] = $excluirIdHorario;
+        }
+        $sqlExacto .= " LIMIT 1";
+
+        $stmt = Conexion::obtener()->prepare($sqlExacto);
+        $stmt->execute($paramsExacto);
+        $dup = $stmt->fetch();
+        if ($dup) {
+            $dup['tipo_conflicto'] = 'identico';
+            return $dup;
+        }
+
+        // 2. Chequeo de solapamiento de horas (nueva entrada < salida existente Y nueva salida > entrada existente)
+        $sqlSolapado = "SELECT id_horario, id_ficha, hora_entrada_programada, hora_salida_programada, dia_semana
+                        FROM horarios
+                        WHERE id_ficha = :id_ficha
+                          AND dia_semana = :fecha
+                          AND (:nueva_entrada < hora_salida_programada AND :nueva_salida > hora_entrada_programada)";
+        $paramsSolapado = [
+            ':id_ficha'      => $idFicha,
+            ':fecha'         => $fecha,
+            ':nueva_entrada' => $hEntrada,
+            ':nueva_salida'  => $hSalida,
+        ];
+        if ($excluirIdHorario !== null && $excluirIdHorario > 0) {
+            $sqlSolapado .= " AND id_horario != :excluir";
+            $paramsSolapado[':excluir'] = $excluirIdHorario;
+        }
+        $sqlSolapado .= " LIMIT 1";
+
+        $stmt = Conexion::obtener()->prepare($sqlSolapado);
+        $stmt->execute($paramsSolapado);
+        $solap = $stmt->fetch();
+        if ($solap) {
+            $solap['tipo_conflicto'] = 'solapado';
+            return $solap;
+        }
+
+        return null;
     }
 
     // Registra un nuevo horario asociado a una ficha y opcionalmente a un instructor
@@ -264,9 +372,9 @@ class HorarioModelo
         }
 
         $nombreCompleto = trim($nombreCompletoRaw);
-        $usuarioGenerado = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nombreCompleto));
-        if ($usuarioGenerado === '') {
-            $usuarioGenerado = 'inst_' . time();
+        $usuarioBase = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $nombreCompleto));
+        if ($usuarioBase === '') {
+            $usuarioBase = 'inst_' . time();
         }
 
         $area = trim($areaRaw);
@@ -279,6 +387,21 @@ class HorarioModelo
         $db = Conexion::obtener();
         $passHash = password_hash('123', PASSWORD_BCRYPT);
 
+        // Garantizar unicidad de usuario y correo para cumplir con restricciones NOT NULL y UNIQUE
+        $usuarioGenerado = $usuarioBase;
+        $correoGenerado  = $usuarioBase . '@sena.edu.co';
+        $i = 1;
+        while (true) {
+            $chk = $db->prepare("SELECT id_usuario FROM usuarios WHERE usuario = :u OR correo_electronico = :c");
+            $chk->execute([':u' => $usuarioGenerado, ':c' => $correoGenerado]);
+            if (!$chk->fetch()) {
+                break;
+            }
+            $usuarioGenerado = substr($usuarioBase, 0, 40) . '_' . $i;
+            $correoGenerado  = substr($usuarioBase, 0, 30) . '_' . $i . '@sena.edu.co';
+            $i++;
+        }
+
         // Al importar del Excel se crea el usuario básico
         $sql = "INSERT INTO usuarios (nombre_completo, usuario, area, correo_electronico, estado, contrasena, id_role)
                 VALUES (:nombre, :usuario, :area, :correo, 'Activo', :pass, 2)";
@@ -286,7 +409,7 @@ class HorarioModelo
         $stmt->bindParam(':nombre',   $nombreCompleto);
         $stmt->bindParam(':usuario',  $usuarioGenerado);
         $stmt->bindParam(':area',     $area);
-        $stmt->bindValue(':correo',   null, PDO::PARAM_NULL);
+        $stmt->bindParam(':correo',   $correoGenerado);
         $stmt->bindParam(':pass',     $passHash);
         $stmt->execute();
 

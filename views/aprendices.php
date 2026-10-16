@@ -81,7 +81,27 @@ $fichas        = $fichas ?? [];
                                         </td>
                                         <td><?= htmlspecialchars($usuario) ?></td>
                                         <td><?= htmlspecialchars($fichaLabel) ?></td>
-                                        <td><code><?= htmlspecialchars($rfid) ?></code></td>
+                                        <td>
+                                            <?php
+                                            $rfidVal = trim((string)($rfid ?? ''));
+                                            $tieneRfid = ($rfidVal !== '' && $rfidVal !== '0' && strtolower($rfidVal) !== 'sin tag' && strtolower($rfidVal) !== 'null');
+                                            ?>
+                                            <?php if ($tieneRfid): ?>
+                                                <div class="rfid-tag-container" title="TAG RFID: <?= htmlspecialchars($rfidVal) ?>">
+                                                    <span class="rfid-tag-badge">
+                                                        <i class="bi bi-broadcast rfid-icon"></i>
+                                                        <span class="rfid-code"><?= htmlspecialchars($rfidVal) ?></span>
+                                                    </span>
+                                                    <button type="button" class="btn-copy-tag" title="Copiar código RFID" onclick="copiarTag(event, '<?= htmlspecialchars($rfidVal, ENT_QUOTES) ?>')">
+                                                        <i class="bi bi-clipboard"></i>
+                                                    </button>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="rfid-tag-empty" title="Aprendiz sin tarjeta o TAG asignado">
+                                                    <i class="bi bi-slash-circle me-1"></i>Sin TAG asignado
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php if ($estado === 'activo'): ?>
                                                 <span class="badge-estado badge-a-tiempo">Activo</span>
@@ -97,7 +117,7 @@ $fichas        = $fichas ?? [];
                                                 data-usuario="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
                                                 data-documento="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
                                                 data-correo="<?= htmlspecialchars($a['correo_electronico'] ?? '', ENT_QUOTES) ?>"
-                                                data-rfid="<?= htmlspecialchars($rfid, ENT_QUOTES) ?>"
+                                                data-rfid="<?= htmlspecialchars($rfidVal, ENT_QUOTES) ?>"
                                                 data-ficha="<?= (int) ($a['id_ficha'] ?? 0) ?>">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
@@ -136,9 +156,10 @@ $fichas        = $fichas ?? [];
 
     <div class="modal fade" id="modalAprendiz" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content border-0 shadow">
 
                 <form action="<?= BASE_URL ?>/index.php?accion=guardarAprendiz" method="POST" id="formAprendiz">
+                    <input type="hidden" name="csrf_token" value="<?= Seguridad::tokenCsrf() ?>">
                     <input type="hidden" name="id_usuario" id="modal_id_usuario" value="0">
 
                     <div class="modal-header border-0 pb-0">
@@ -147,22 +168,24 @@ $fichas        = $fichas ?? [];
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">Nombre completo</label>
-                            <input type="text" class="form-control" name="nombre" id="modal_nombre" placeholder="Ej: Laura Martínez" required>
+                            <label class="form-label fw-semibold">Nombre completo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="nombre" id="modal_nombre" placeholder="Ej: Laura Martínez" required minlength="3" maxlength="120">
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Usuario</label>
-                                <input type="text" class="form-control" name="usuario" id="modal_usuario" placeholder="Ej: 10245678" required>
+                                <label class="form-label fw-semibold">Usuario / Documento <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="usuario" id="modal_usuario" placeholder="Ej: 10245678" required pattern="[a-zA-Z0-9\-_]{4,25}" maxlength="25">
+                                <div class="form-text">Documento único de identidad.</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Código RFID</label>
-                                <input type="text" class="form-control" name="codigo_rfid" id="modal_codigo_rfid" placeholder="RF-00000" required>
+                                <label class="form-label fw-semibold">Código TAG RFID</label>
+                                <input type="text" class="form-control" name="codigo_rfid" id="modal_codigo_rfid" placeholder="Ej: RF-1001 o 0009433667" maxlength="50" pattern="[a-zA-Z0-9\-_]{3,50}">
+                                <div class="form-text">Opcional. Código único de la tarjeta.</div>
                             </div>
                         </div>
                         <div class="row g-3 mt-0">
                             <div class="col-md-6">
-                                <label class="form-label">Ficha</label>
+                                <label class="form-label fw-semibold">Ficha <span class="text-danger">*</span></label>
                                 <select class="form-select" name="ficha_id" id="modal_ficha_id" required>
                                     <option value="">Seleccione una ficha...</option>
                                     <?php foreach ($fichas as $f): ?>
@@ -173,12 +196,12 @@ $fichas        = $fichas ?? [];
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Correo electrónico</label>
-                                <input type="email" class="form-control" name="correo" id="modal_correo">
+                                <label class="form-label fw-semibold">Correo electrónico</label>
+                                <input type="email" class="form-control" name="correo" id="modal_correo" placeholder="correo@ejemplo.com">
                             </div>
                         </div>
                         <div class="mb-0 mt-3">
-                            <label class="form-label" id="modal_password_label">Contraseña de acceso</label>
+                            <label class="form-label fw-semibold" id="modal_password_label">Contraseña de acceso <span class="text-danger" id="modal_password_req">*</span></label>
                             <input type="password" class="form-control" name="password" id="modal_password" placeholder="Se usará para iniciar sesión">
                             <small class="text-muted d-none" id="modal_password_help">Deja en blanco si deseas mantener la contraseña actual.</small>
                         </div>
