@@ -12,12 +12,14 @@ $rolActivo = $_SESSION['rol'] ?? 'invitado';
 
 if (!isset($paginaActiva)) { $paginaActiva = ''; }
 
-function navLink($href, $icon, $label, $slug, $paginaActiva) {
-    $active = $paginaActiva === $slug ? 'active' : '';
-    echo '<li class="nav-item">';
-    echo '<a class="nav-link ' . htmlspecialchars($active) . '" href="' . htmlspecialchars($href) . '" data-bs-toggle="tooltip" data-bs-placement="right" title="' . htmlspecialchars($label) . '">';
-    echo '<i class="bi ' . htmlspecialchars($icon) . '"></i><span>' . htmlspecialchars($label) . '</span>';
-    echo '</a></li>';
+if (!function_exists('navLink')) {
+    function navLink($href, $icon, $label, $slug, $paginaActiva) {
+        $active = $paginaActiva === $slug ? 'active' : '';
+        echo '<li class="nav-item">';
+        echo '<a class="nav-link ' . htmlspecialchars($active) . '" href="' . htmlspecialchars($href) . '" data-bs-toggle="tooltip" data-bs-placement="right" title="' . htmlspecialchars($label) . '">';
+        echo '<i class="bi ' . htmlspecialchars($icon) . '"></i><span>' . htmlspecialchars($label) . '</span>';
+        echo '</a></li>';
+    }
 }
 ?>
 <aside class="app-sidebar">

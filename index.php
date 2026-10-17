@@ -63,6 +63,7 @@ require_once BASE_PATH . '/models/ReporteModelo.php';
 require_once BASE_PATH . '/models/AprendicesModelo.php';
 require_once BASE_PATH . '/models/HorarioModelo.php';
 require_once BASE_PATH . '/models/MarcajeModelo.php';
+require_once BASE_PATH . '/models/DashboardModelo.php';
 
 // Controladores
 require_once BASE_PATH . '/controllers/ControladorBase.php'; 
@@ -75,6 +76,7 @@ require_once BASE_PATH . '/controllers/MarcajeControlador.php';
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
 require_once BASE_PATH . '/controllers/aprendizControlador.php';
 require_once BASE_PATH . '/controllers/ReporteControlador.php';
+require_once BASE_PATH . '/controllers/DashboardControlador.php';
 
 // Cualquier excepción que ningún Controlador haya capturado llega hasta
 // aquí. El detalle técnico se registra en el servidor y el usuario final
@@ -103,6 +105,7 @@ $instructor  = new InstructorControlador();
 $horario     = new HorarioControlador();
 $marcaje     = new MarcajeControlador();
 $reporte     = new ReporteControlador();
+$dashboard   = new DashboardControlador();
 
 match ($accion) {
     // --- Autenticación y Perfil ---
@@ -152,7 +155,9 @@ match ($accion) {
     'generarExcel'     => $reporte->generarExcel(),
 
     // --- Dashboard ---
-    'dashboard'        => $pagina->mostrar('dashboard', ['Aprendiz', 'Instructor', 'Administrador']),
+    'dashboard'           => $dashboard->mostrar(),
+    'dashboardAdmin'      => $dashboard->mostrarAdmin(),
+    'dashboardInstructor' => $dashboard->mostrarInstructor(),
 
     default => $auth->mostrarLogin(),
 };

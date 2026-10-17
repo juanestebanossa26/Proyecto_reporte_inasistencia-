@@ -58,33 +58,25 @@ class ReporteModelo
     {
         if ($rolActual === 'Instructor') {
             return [
-                ' WHERE fichas.id_ficha IN (
+                ' WHERE (fichas.id_ficha IN (
                      SELECT fhu.fichas_id_ficha
                      FROM fichas_has_usuarios fhu
                      WHERE fhu.id_instructor = :id_usuario_actual
-                 ) ',
-                [':id_usuario_actual' => $idUsuarioActual],
+                 ) OR fichas.id_ficha IN (
+                     SELECT h.id_ficha
+                     FROM horarios h
+                     WHERE h.id_instructor = :id_usuario_horario
+                 )) ',
+                [
+                    ':id_usuario_actual'  => $idUsuarioActual,
+                    ':id_usuario_horario' => $idUsuarioActual,
+                ],
             ];
         }
 
         if ($rolActual === 'Administrador') {
-            $area = $this->obtenerAreaUsuario($idUsuarioActual);
-
-            // Si el administrador no tiene área asignada, no ve ninguna
-            // ficha (evita que un dato faltante termine mostrando todo).
-            if (empty($area)) {
-                return [' WHERE 1=0 ', []];
-            }
-
-            return [
-                ' WHERE fichas.id_ficha IN (
-                     SELECT fhu.fichas_id_ficha
-                     FROM fichas_has_usuarios fhu
-                     JOIN usuarios u_ins ON u_ins.id_usuario = fhu.id_instructor
-                     WHERE u_ins.area = :area_actual
-                 ) ',
-                [':area_actual' => $area],
-            ];
+            // El administrador puede generar reportes de cualquier ficha sin importar el área
+            return [' WHERE 1=1 ', []];
         }
 
         // Cualquier otro rol: por seguridad, no ve fichas de nadie.

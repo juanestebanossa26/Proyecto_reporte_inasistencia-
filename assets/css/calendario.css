@@ -209,10 +209,15 @@
    Contenedor Principal de FullCalendar
    ========================================================================== */
 .cal-main-container {
-    flex: 1;
+    flex: 1 1 0%;
     min-width: 0;
     overflow: hidden;
     background: #FFFFFF;
+}
+
+#calendar {
+    width: 100%;
+    min-height: 720px;
 }
 
 /* FullCalendar Styling */
@@ -480,3 +485,115 @@
     border-radius: 50%;
     margin-right: 6px;
 }
+
+/* ==========================================================================
+   Resumen de la Jornada para el Instructor (Compacto y Elegante)
+   ========================================================================== */
+.cal-summary-bar {
+    background: #FFFFFF;
+    border: 1px solid var(--cal-linea);
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(20, 32, 25, 0.03);
+}
+
+.cal-summary-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #FAFBFB;
+    border: 1px solid #E8ECE9;
+    border-radius: 10px;
+    transition: all 0.15s ease;
+    overflow: hidden !important;
+    min-width: 0 !important;
+}
+
+.cal-summary-box:hover {
+    background: #F4F7F5;
+    border-color: #D3DDD7;
+}
+
+.cal-summary-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.cal-summary-content {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+.cal-summary-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cal-texto-suave);
+    line-height: 1.2;
+    margin-bottom: 2px;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.cal-summary-val {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--cal-texto-fuerte);
+    line-height: 1.2;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.cal-summary-sub {
+    font-size: 0.72rem;
+    color: #6C7A72;
+    line-height: 1.2;
+    margin-top: 2px;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.badge-estado-sesion {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+}
+
+.btn-limpiar-filtro {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+}
+
+/* Tarjeta interactiva con efecto clic y sombra */
+.cal-summary-box-clickable {
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cal-summary-box-clickable:hover {
+    background: #F0F9F2 !important;
+    border-color: var(--cal-verde-sena) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(57, 169, 0, 0.16);
+}
+
+.cal-summary-box-clickable:active {
+    transform: translateY(0);
+}
+
+

@@ -1,15 +1,5 @@
 <?php
 // Controlador de marcaje RFID.
-//
-// Reglas de negocio (ver también MarcajeModelo):
-// - Un día puede tener 1 o 2 bloques (horarios) por ficha.
-// - Un marcaje es ENTRADA si el aprendiz no tiene ninguna fila de
-//   asistencia todavía para ese bloque.
-// - Un marcaje es SALIDA si ya tiene una fila con entrada marcada y
-//   salida vacía para ese bloque.
-// - Se tolera marcar entrada hasta 30 min antes del inicio del bloque.
-// - Pasada la hora de salida programada del bloque, ya no se puede
-//   marcar ENTRADA a ese bloque (se considera cerrado).
 
 class MarcajeControlador extends ControladorBase
 {

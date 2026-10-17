@@ -4,9 +4,42 @@
 
 class HorarioModelo
 {
-    // Lista todos los horarios registrados con datos de la ficha, instructor y aprendices.
-    public function listarHorarios(): array
+    // Lista horarios registrados con datos de la ficha, instructor, área y aprendices.
+    // Si se especifica $idInstructor, filtra exclusivamente los horarios de ese instructor.
+    public function listarHorarios(?int $idInstructor = null): array
     {
+        if ($idInstructor !== null && $idInstructor > 0) {
+            $sql = "SELECT
+                        horarios.id_horario,
+                        horarios.id_ficha,
+                        horarios.hora_entrada_programada,
+                        horarios.hora_salida_programada,
+                        horarios.dia_semana AS fecha,
+                        fichas.numero_ficha,
+                        fichas.nombre_programa,
+                        COALESCE(horarios.id_instructor, fichas_has_usuarios.id_instructor) AS id_instructor,
+                        COALESCE(u_directo.nombre_completo, u_ficha.nombre_completo, '') AS instructor_nombre,
+                        COALESCE(u_directo.area, u_ficha.area, '') AS instructor_area,
+                        (SELECT COUNT(*) FROM aprendices WHERE aprendices.id_ficha = fichas.id_ficha) AS total_aprendices
+                    FROM horarios
+                    JOIN fichas ON fichas.id_ficha = horarios.id_ficha
+                    LEFT JOIN usuarios u_directo ON u_directo.id_usuario = horarios.id_instructor
+                    LEFT JOIN fichas_has_usuarios ON fichas_has_usuarios.fichas_id_ficha = fichas.id_ficha AND fichas_has_usuarios.id_instructor = :id_inst1
+                    LEFT JOIN usuarios u_ficha ON u_ficha.id_usuario = fichas_has_usuarios.id_instructor
+                    WHERE horarios.id_instructor = :id_inst2
+                       OR (horarios.id_instructor IS NULL AND fichas_has_usuarios.id_instructor = :id_inst3)
+                    GROUP BY horarios.id_horario
+                    ORDER BY horarios.dia_semana ASC, horarios.hora_entrada_programada ASC";
+
+            $stmt = Conexion::obtener()->prepare($sql);
+            $stmt->execute([
+                ':id_inst1' => $idInstructor,
+                ':id_inst2' => $idInstructor,
+                ':id_inst3' => $idInstructor,
+            ]);
+            return $stmt->fetchAll();
+        }
+
         $sql = "SELECT
                     horarios.id_horario,
                     horarios.id_ficha,
@@ -17,6 +50,7 @@ class HorarioModelo
                     fichas.nombre_programa,
                     COALESCE(horarios.id_instructor, fichas_has_usuarios.id_instructor) AS id_instructor,
                     COALESCE(u_directo.nombre_completo, u_ficha.nombre_completo, '') AS instructor_nombre,
+                    COALESCE(u_directo.area, u_ficha.area, '') AS instructor_area,
                     (SELECT COUNT(*) FROM aprendices WHERE aprendices.id_ficha = fichas.id_ficha) AS total_aprendices
                 FROM horarios
                 JOIN fichas ON fichas.id_ficha = horarios.id_ficha
@@ -309,8 +343,41 @@ class HorarioModelo
         return preg_replace('/\s+/', ' ', $str);
     }
 
-    public function listarFichasDetalladas(): array
+    // Lista fichas detalladas con métricas de aprendices y horarios.
+    // Si se especifica $idInstructor, solo lista las fichas asociadas a ese instructor.
+    public function listarFichasDetalladas(?int $idInstructor = null): array
     {
+        if ($idInstructor !== null && $idInstructor > 0) {
+            $sql = "SELECT 
+                        f.id_ficha,
+                        f.numero_ficha,
+                        f.nombre_programa,
+                        COUNT(DISTINCT a.id_aprendiz) AS total_aprendices,
+                        COUNT(DISTINCT h.id_horario) AS total_horarios,
+                        fhu.id_instructor,
+                        GROUP_CONCAT(DISTINCT COALESCE(u.nombre_completo, '') SEPARATOR ', ') AS instructores
+                    FROM fichas f
+                    LEFT JOIN aprendices a ON a.id_ficha = f.id_ficha
+                    LEFT JOIN horarios h ON h.id_ficha = f.id_ficha AND h.id_instructor = :id_inst1
+                    LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = f.id_ficha
+                    LEFT JOIN usuarios u ON u.id_usuario = fhu.id_instructor
+                    WHERE f.id_ficha IN (
+                        SELECT id_ficha FROM horarios WHERE id_instructor = :id_inst2
+                        UNION
+                        SELECT fichas_id_ficha FROM fichas_has_usuarios WHERE id_instructor = :id_inst3
+                    )
+                    GROUP BY f.id_ficha
+                    ORDER BY f.numero_ficha ASC";
+
+            $stmt = Conexion::obtener()->prepare($sql);
+            $stmt->execute([
+                ':id_inst1' => $idInstructor,
+                ':id_inst2' => $idInstructor,
+                ':id_inst3' => $idInstructor,
+            ]);
+            return $stmt->fetchAll();
+        }
+
         $sql = "SELECT 
                     f.id_ficha,
                     f.numero_ficha,
