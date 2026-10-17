@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $rolActual = strtolower(trim((string) ($_SESSION['rol'] ?? '')));
 
-if (in_array($rolActual, ['instructor', 'docente', 'profesor'], true)) {
+if (in_array($rolActual, ['instructor'], true)) {
     if (!isset($kpis)) {
         (new DashboardControlador())->mostrarInstructor();
         return;
