@@ -122,7 +122,7 @@ $ficha_id          = $ficha_id ?? '';
                             <tr>
                                 <th>Aprendiz</th>
                                 <th>Ficha</th>
-                                <th>Instructor</th>
+                     
                                 <th class="text-center">Retardos</th>
                                 <th class="text-center">Tiempo Total de Retardo</th>
                                 <th class="text-center">Inasistencias</th>
@@ -142,7 +142,7 @@ $ficha_id          = $ficha_id ?? '';
                                 </td>
                                 <td><?= htmlspecialchars($fila['nombre_programa'] . ' · ' . $fila['numero_ficha']) ?></td>
                                 <!-- Corrección: nombre_instructor ya contiene el nombre y apellido combinados desde el SQL -->
-                                <td><?= htmlspecialchars(!empty($fila['nombre_instructor']) ? $fila['nombre_instructor'] : 'Sin instructor') ?></td>
+                            
                                 <td class="text-center"><?= $fila['retardos'] ?? 0 ?></td>
                                 <td class="text-center"><?= $tiempoFormato ?></td>
                                 <td class="text-center"><?= $fila['inasistencias'] ?? 0 ?></td>

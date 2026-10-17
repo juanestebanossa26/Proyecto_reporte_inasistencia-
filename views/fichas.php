@@ -134,13 +134,14 @@ $instructores = $instructores ?? [];
         </div>
         <div class="modal-body">
             <div class="mb-3">
-                <label class="form-label fw-semibold">Número de Ficha</label>
-                <input type="text" class="form-control" name="numero_ficha" id="form_numero_ficha" required placeholder="Ej. 3064749">
+                <label class="form-label fw-semibold">Número de Ficha <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="numero_ficha" id="form_numero_ficha" required maxlength="20" minlength="3" pattern="[a-zA-Z0-9\-_]{3,20}" placeholder="Ej. 3064749" autocomplete="off">
+                <div class="form-text">Código único de la ficha académica (3 a 20 caracteres, sin espacios ni símbolos especiales).</div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label fw-semibold">Programa de Formación</label>
-                <input type="text" class="form-control" name="nombre_programa" id="form_nombre_programa" required placeholder="Ej. TECNOLOGÍA EN ANÁLISIS Y DESARROLLO DE SOFTWARE">
+                <label class="form-label fw-semibold">Programa de Formación <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="nombre_programa" id="form_nombre_programa" required minlength="3" maxlength="150" placeholder="Ej. TECNOLOGÍA EN ANÁLISIS Y DESARROLLO DE SOFTWARE">
             </div>
 
             <div class="mb-3">
@@ -169,6 +170,7 @@ $instructores = $instructores ?? [];
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 const modalEl = document.getElementById('modalFicha');
@@ -178,6 +180,7 @@ function abrirModalCrearFicha() {
     document.getElementById('formFicha').reset();
     document.getElementById('form_id_ficha').value = '0';
     document.getElementById('modalTituloFicha').innerHTML = '<i class="bi bi-journal-bookmark text-success me-2"></i>Nueva Ficha';
+    document.getElementById('btnGuardarFicha').textContent = 'Guardar Ficha';
     modalBs.show();
 }
 
@@ -204,8 +207,52 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('form_id_instructor').value = instructor || '0';
 
         document.getElementById('modalTituloFicha').innerHTML = '<i class="bi bi-pencil-square text-success me-2"></i>Editar Ficha';
+        document.getElementById('btnGuardarFicha').textContent = 'Actualizar Ficha';
         modalBs.show();
     });
+
+    // Validación del formulario en frontend antes de enviar
+    const formFicha = document.getElementById('formFicha');
+    if (formFicha) {
+        formFicha.addEventListener('submit', function(e) {
+            const numFicha = document.getElementById('form_numero_ficha').value.trim();
+            const prog = document.getElementById('form_nombre_programa').value.trim();
+
+            if (!numFicha) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Número requerido',
+                    text: 'Debes ingresar el número de ficha.',
+                    confirmButtonColor: '#39a900'
+                });
+                return;
+            }
+
+            const regexFicha = /^[a-zA-Z0-9\-_]{3,20}$/;
+            if (!regexFicha.test(numFicha)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Formato no válido',
+                    text: 'El número de ficha debe tener entre 3 y 20 caracteres alfanuméricos sin espacios ni símbolos especiales.',
+                    confirmButtonColor: '#39a900'
+                });
+                return;
+            }
+
+            if (prog.length < 3) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Programa no válido',
+                    text: 'El nombre del programa debe contener al menos 3 caracteres.',
+                    confirmButtonColor: '#39a900'
+                });
+                return;
+            }
+        });
+    }
 });
 </script>
 </body>

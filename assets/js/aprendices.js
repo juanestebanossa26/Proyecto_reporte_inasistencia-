@@ -21,6 +21,7 @@ $(document).ready(function() {
         $('#modalAprendizTitulo').text('Nuevo aprendiz');
         $('#modalAprendizBoton').text('Guardar aprendiz');
         $('#modal_password').prop('required', true).attr('placeholder', 'Se usará para iniciar sesión');
+        $('#modal_password_req').removeClass('d-none');
         $('#modal_password_help').addClass('d-none');
     });
 
@@ -38,6 +39,7 @@ $(document).ready(function() {
         $('#modalAprendizTitulo').text('Editar aprendiz');
         $('#modalAprendizBoton').text('Actualizar aprendiz');
         $('#modal_password').val('').prop('required', false).attr('placeholder', 'Dejar en blanco para mantener la actual');
+        $('#modal_password_req').addClass('d-none');
         $('#modal_password_help').removeClass('d-none');
 
         if (bsModalAprendiz) {
@@ -45,6 +47,78 @@ $(document).ready(function() {
         }
     });
 
+    // Validación del formulario de aprendiz antes de enviar
+    $('#formAprendiz').on('submit', function(e) {
+        var nombre = $('#modal_nombre').val().trim();
+        var usuario = $('#modal_usuario').val().trim();
+        var fichaId = $('#modal_ficha_id').val();
+        var rfid = $('#modal_codigo_rfid').val().trim();
+        var correo = $('#modal_correo').val().trim();
+        var idUsuario = parseInt($('#modal_id_usuario').val()) || 0;
+        var pass = $('#modal_password').val();
+
+        if (!nombre || !usuario || !fichaId) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campos requeridos',
+                text: 'Por favor completa los campos obligatorios: Nombre, Usuario/Documento y Ficha.',
+                confirmButtonColor: '#39a900'
+            });
+            return;
+        }
+
+        var regexDoc = /^[a-zA-Z0-9\-_]{4,25}$/;
+        if (!regexDoc.test(usuario)) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Documento no válido',
+                text: 'El documento o usuario debe tener entre 4 y 25 caracteres alfanuméricos sin espacios.',
+                confirmButtonColor: '#39a900'
+            });
+            return;
+        }
+
+        if (rfid !== '') {
+            var regexRfid = /^[a-zA-Z0-9\-_]{3,50}$/;
+            if (!regexRfid.test(rfid)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'TAG RFID no válido',
+                    text: 'El código TAG RFID debe tener entre 3 y 50 caracteres alfanuméricos sin espacios.',
+                    confirmButtonColor: '#39a900'
+                });
+                return;
+            }
+        }
+
+        if (correo !== '') {
+            var regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!regexCorreo.test(correo)) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Correo no válido',
+                    text: 'El formato del correo electrónico ingresado no es válido.',
+                    confirmButtonColor: '#39a900'
+                });
+                return;
+            }
+        }
+
+        if (idUsuario === 0 && !pass) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Contraseña requerida',
+                text: 'Debes asignar una contraseña para el nuevo aprendiz.',
+                confirmButtonColor: '#39a900'
+            });
+            return;
+        }
+    });
 
     // Boton de activar y desativar aprendiz
     $('#tablaAprendices').on('click', '.btn-estado', function() {
@@ -88,3 +162,52 @@ $(document).ready(function() {
         }
     });
 });
+
+// Función para copiar el código RFID al portapapeles con confirmación visual
+window.copiarTag = function(event, tag) {
+    if (event) event.stopPropagation();
+    if (!tag) return;
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(tag).then(function() {
+            mostrarToastCopiado(tag);
+        }).catch(function() {
+            fallbackCopiar(tag);
+        });
+    } else {
+        fallbackCopiar(tag);
+    }
+};
+
+function fallbackCopiar(tag) {
+    var textArea = document.createElement("textarea");
+    textArea.value = tag;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        mostrarToastCopiado(tag);
+    } catch (err) {
+        console.error('Error al copiar:', err);
+    }
+    document.body.removeChild(textArea);
+}
+
+function mostrarToastCopiado(tag) {
+    if (typeof Swal !== 'undefined') {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+        Toast.fire({
+            icon: 'success',
+            title: 'TAG ' + tag + ' copiado'
+        });
+    }
+}

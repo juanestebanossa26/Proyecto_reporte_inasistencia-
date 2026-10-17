@@ -62,13 +62,16 @@ class AprendizModelo
         return Conexion::obtener()->query($sql)->fetchAll();
     }
 
-    // Comprueba si el usuario ya existe en `usuarios`.
+    // Comprueba si el usuario (documento o nombre de usuario) ya existe en `usuarios`.
     public function existeUsuario(string $usuario, ?int $excluirIdUsuario = null): bool
     {
+        $usuario = trim($usuario);
+        if ($usuario === '') return false;
+
         $sql    = "SELECT id_usuario FROM usuarios WHERE usuario = :user";
         $params = [':user' => $usuario];
 
-        if ($excluirIdUsuario !== null) {
+        if ($excluirIdUsuario !== null && $excluirIdUsuario > 0) {
             $sql .= " AND id_usuario != :id";
             $params[':id'] = $excluirIdUsuario;
         }
@@ -88,10 +91,13 @@ class AprendizModelo
     // Comprueba si el correo ya existe en `usuarios`.
     public function existeCorreo(string $correo, ?int $excluirIdUsuario = null): bool
     {
+        $correo = trim($correo);
+        if ($correo === '') return false;
+
         $sql    = "SELECT id_usuario FROM usuarios WHERE correo_electronico = :correo";
         $params = [':correo' => $correo];
 
-        if ($excluirIdUsuario !== null) {
+        if ($excluirIdUsuario !== null && $excluirIdUsuario > 0) {
             $sql .= " AND id_usuario != :id";
             $params[':id'] = $excluirIdUsuario;
         }
@@ -102,13 +108,18 @@ class AprendizModelo
         return (bool) $stmt->fetchColumn();
     }
 
-    // Comprueba si el tag RFID ya existe en `aprendices`.
+    // Comprueba si el tag RFID ya existe en `aprendices` para otro aprendiz diferente.
     public function existeRfid(string $rfid, ?int $excluirIdUsuario = null): bool
     {
+        $rfid = trim($rfid);
+        if ($rfid === '' || $rfid === '0' || strtolower($rfid) === 'sin tag' || strtolower($rfid) === 'null') {
+            return false;
+        }
+
         $sql    = "SELECT aprendices.id_aprendiz FROM aprendices WHERE aprendices.tag_rfid = :rfid";
         $params = [':rfid' => $rfid];
 
-        if ($excluirIdUsuario !== null) {
+        if ($excluirIdUsuario !== null && $excluirIdUsuario > 0) {
             $sql .= " AND aprendices.id_usuario != :id";
             $params[':id'] = $excluirIdUsuario;
         }
@@ -119,12 +130,15 @@ class AprendizModelo
         return (bool) $stmt->fetchColumn();
     }
 
-    public function crear(string $nombre, string $usuario, string $correo, string $passwordHash, int $idFicha, string $tagRfid): void
+    public function crear(string $nombre, string $usuario, ?string $correo, string $passwordHash, int $idFicha, ?string $tagRfid = null): void
     {
         $db = Conexion::obtener();
         $db->beginTransaction();
 
         try {
+            $correoVal = (trim($correo ?? '') !== '') ? trim($correo) : null;
+            $tagVal    = (trim($tagRfid ?? '') !== '' && trim($tagRfid) !== '0') ? trim($tagRfid) : null;
+
             // Insertar en usuarios con rol Aprendiz (id_role = 3)
             $sqlUsuario = "INSERT INTO usuarios (nombre_completo, usuario, correo_electronico, estado, contrasena, id_role)
                            VALUES (:nombre, :usuario, :correo, 'Activo', :pass, 3)";
@@ -132,8 +146,12 @@ class AprendizModelo
             $stmtU = $db->prepare($sqlUsuario);
             $stmtU->bindParam(':nombre',  $nombre);
             $stmtU->bindParam(':usuario', $usuario);
-            $stmtU->bindParam(':correo',  $correo);
-            $stmtU->bindParam(':pass',    $passwordHash);
+            if ($correoVal !== null) {
+                $stmtU->bindParam(':correo', $correoVal);
+            } else {
+                $stmtU->bindValue(':correo', null, PDO::PARAM_NULL);
+            }
+            $stmtU->bindParam(':pass', $passwordHash);
             $stmtU->execute();
 
             $idUsuarioNuevo = (int) $db->lastInsertId();
@@ -145,7 +163,11 @@ class AprendizModelo
             $stmtA = $db->prepare($sqlAprendiz);
             $stmtA->bindParam(':id_usuario', $idUsuarioNuevo, PDO::PARAM_INT);
             $stmtA->bindParam(':id_ficha',   $idFicha,        PDO::PARAM_INT);
-            $stmtA->bindParam(':rfid',       $tagRfid);
+            if ($tagVal !== null) {
+                $stmtA->bindParam(':rfid', $tagVal);
+            } else {
+                $stmtA->bindValue(':rfid', null, PDO::PARAM_NULL);
+            }
             $stmtA->execute();
 
             $db->commit();
@@ -155,12 +177,15 @@ class AprendizModelo
         }
     }
 
-    public function actualizar(int $idUsuario, string $nombre, string $usuario, string $correo, ?string $passwordHash, int $idFicha, string $tagRfid): void
+    public function actualizar(int $idUsuario, string $nombre, string $usuario, ?string $correo, ?string $passwordHash, int $idFicha, ?string $tagRfid = null): void
     {
         $db = Conexion::obtener();
         $db->beginTransaction();
 
         try {
+            $correoVal = (trim($correo ?? '') !== '') ? trim($correo) : null;
+            $tagVal    = (trim($tagRfid ?? '') !== '' && trim($tagRfid) !== '0') ? trim($tagRfid) : null;
+
             // Actualizar tabla usuarios
             if ($passwordHash !== null) {
                 $sqlU = "UPDATE usuarios
@@ -180,7 +205,11 @@ class AprendizModelo
             $stmtU = $db->prepare($sqlU);
             $stmtU->bindParam(':nombre',  $nombre);
             $stmtU->bindParam(':usuario', $usuario);
-            $stmtU->bindParam(':correo',  $correo);
+            if ($correoVal !== null) {
+                $stmtU->bindParam(':correo', $correoVal);
+            } else {
+                $stmtU->bindValue(':correo', null, PDO::PARAM_NULL);
+            }
             if ($passwordHash !== null) {
                 $stmtU->bindParam(':pass', $passwordHash);
             }
@@ -195,7 +224,11 @@ class AprendizModelo
 
             $stmtA = $db->prepare($sqlA);
             $stmtA->bindParam(':id_ficha',   $idFicha,   PDO::PARAM_INT);
-            $stmtA->bindParam(':rfid',       $tagRfid);
+            if ($tagVal !== null) {
+                $stmtA->bindParam(':rfid', $tagVal);
+            } else {
+                $stmtA->bindValue(':rfid', null, PDO::PARAM_NULL);
+            }
             $stmtA->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
             $stmtA->execute();
 

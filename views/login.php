@@ -59,7 +59,7 @@ $tituloPagina = 'Iniciar sesión · SERVIPLUS SENA';
         </div>
 
         <div class="text-muted small pt-3 border-top">
-            © <?= date('Y') ?> SENA · Centro de Biotecnología Agropecuaria · ADSO
+            © <?= date('Y') ?> SENA · Centro de Tecnologias Agroindustriales - CTA · ADSO
         </div>
     </section>
 

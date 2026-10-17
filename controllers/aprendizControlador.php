@@ -43,69 +43,100 @@ class AprendizControlador extends ControladorBase
 
         // Recoger y limpiar campos del formulario
         $idUsuario = (int) ($_POST['id_usuario'] ?? 0);  // 0 = crear, >0 = actualizar
-        $nombre    = Seguridad::sanitizar($_POST['nombre'] ?? '');
-        $usuario   = Seguridad::sanitizar($_POST['usuario'] ?? $_POST['documento'] ?? '');
+        $nombre    = trim(Seguridad::sanitizar($_POST['nombre'] ?? ''));
+        $usuario   = trim(Seguridad::sanitizar($_POST['usuario'] ?? $_POST['documento'] ?? ''));
         $correo    = trim($_POST['correo'] ?? '');
         $password  = $_POST['password'] ?? '';
         $idFicha   = (int) ($_POST['ficha_id'] ?? 0);
-        $tagRfid   = Seguridad::sanitizar($_POST['codigo_rfid'] ?? '');
+        $tagRfid   = trim(Seguridad::sanitizar($_POST['codigo_rfid'] ?? ''));
 
-        // Validaciones de campos requeridos
-        if ($nombre === '' || $usuario === '' || $idFicha === 0 || $tagRfid === '') {
+        // 1. Validaciones de campos obligatorios
+        if ($nombre === '' || $usuario === '' || $idFicha <= 0) {
             Seguridad::alertaYRedirigir(
                 'warning',
                 'Campos incompletos',
-                'Por favor completa todos los campos obligatorios.',
+                'Por favor completa los campos obligatorios: Nombre completo, Usuario/Documento y Ficha.',
                 $this->urlAccion('aprendices')
             );
+            return;
         }
 
+        // 2. Validación de formato de documento / usuario (4 a 25 caracteres)
+        if (!preg_match('/^[a-zA-Z0-9\-_]{4,25}$/', $usuario)) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Documento no válido',
+                'El número de documento o usuario debe contener entre 4 y 25 caracteres alfanuméricos sin espacios.',
+                $this->urlAccion('aprendices')
+            );
+            return;
+        }
+
+        // 3. Validación de formato de TAG RFID si fue proporcionado
+        if ($tagRfid !== '' && !preg_match('/^[a-zA-Z0-9\-_]{3,50}$/', $tagRfid)) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'TAG RFID no válido',
+                'El código de TAG RFID debe contener entre 3 y 50 caracteres alfanuméricos sin espacios.',
+                $this->urlAccion('aprendices')
+            );
+            return;
+        }
+
+        // 4. Validación de formato de correo
         if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
             Seguridad::alertaYRedirigir(
                 'warning',
                 'Correo inválido',
-                'El correo electrónico no tiene un formato válido.',
+                'El correo electrónico no tiene un formato válido (ejemplo: usuario@correo.com).',
                 $this->urlAccion('aprendices')
             );
+            return;
         }
 
-        // Al crear, la contraseña es obligatoria
+        // 5. Al crear, la contraseña es obligatoria
         $esNuevo = ($idUsuario === 0);
         if ($esNuevo && $password === '') {
             Seguridad::alertaYRedirigir(
                 'warning',
                 'Contraseña requerida',
-                'Debes asignar una contraseña al crear un aprendiz.',
+                'Debes asignar una contraseña de acceso al registrar un nuevo aprendiz.',
                 $this->urlAccion('aprendices')
             );
+            return;
         }
 
-        // Validar duplicados
+        // 6. Validar duplicados de usuario / documento
         if ($this->modelo->existeUsuario($usuario, $esNuevo ? null : $idUsuario)) {
             Seguridad::alertaYRedirigir(
                 'warning',
-                'Usuario duplicado',
-                'Ya existe un usuario registrado con ese identificador.',
+                'Documento duplicado',
+                "Ya existe un aprendiz registrado con el documento o identificador '{$usuario}'.",
                 $this->urlAccion('aprendices')
             );
+            return;
         }
 
+        // 7. Validar duplicados de correo electrónico
         if ($correo !== '' && $this->modelo->existeCorreo($correo, $esNuevo ? null : $idUsuario)) {
             Seguridad::alertaYRedirigir(
                 'warning',
                 'Correo duplicado',
-                'Ya existe un usuario registrado con ese correo electrónico.',
+                "El correo electrónico '{$correo}' ya está registrado para otro usuario.",
                 $this->urlAccion('aprendices')
             );
+            return;
         }
 
-        if ($this->modelo->existeRfid($tagRfid, $esNuevo ? null : $idUsuario)) {
+        // 8. Validar duplicados de TAG RFID (permite conservar el propio en edición)
+        if ($tagRfid !== '' && $this->modelo->existeRfid($tagRfid, $esNuevo ? null : $idUsuario)) {
             Seguridad::alertaYRedirigir(
                 'warning',
-                'RFID duplicado',
-                'Ese código RFID ya está asignado a otro aprendiz.',
+                'TAG RFID duplicado',
+                "Este TAG RFID ya está asignado a otro aprendiz. Cada aprendiz debe contar con un código único.",
                 $this->urlAccion('aprendices')
             );
+            return;
         }
 
         // Hash de la contraseña (solo si se proporcionó una nueva)
@@ -121,13 +152,13 @@ class AprendizControlador extends ControladorBase
                     $correo,
                     $passwordHash,
                     $idFicha,
-                    $tagRfid
+                    $tagRfid !== '' ? $tagRfid : null
                 );
 
                 Seguridad::alertaYRedirigir(
                     'success',
                     '¡Aprendiz registrado!',
-                    'El aprendiz fue creado exitosamente.',
+                    'El aprendiz fue registrado exitosamente.',
                     $this->urlAccion('aprendices')
                 );
             } else {
@@ -140,6 +171,7 @@ class AprendizControlador extends ControladorBase
                         'No se encontró el aprendiz que intentas editar.',
                         $this->urlAccion('aprendices')
                     );
+                    return;
                 }
 
                 $this->modelo->actualizar(
@@ -149,7 +181,7 @@ class AprendizControlador extends ControladorBase
                     $correo,
                     $passwordHash,
                     $idFicha,
-                    $tagRfid
+                    $tagRfid !== '' ? $tagRfid : null
                 );
 
                 Seguridad::alertaYRedirigir(
@@ -161,10 +193,14 @@ class AprendizControlador extends ControladorBase
             }
         } catch (PDOException $e) {
             error_log('Error al guardar aprendiz: ' . $e->getMessage());
+            $errorMsg = ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry'))
+                ? 'No fue posible guardar: ya existe un registro con ese documento, correo o TAG RFID.'
+                : 'Ocurrió un error al guardar los datos del aprendiz. Intenta de nuevo.';
+
             Seguridad::alertaYRedirigir(
                 'error',
-                'Error de base de datos',
-                'Ocurrió un error al guardar. Intenta de nuevo.',
+                'Error al guardar',
+                $errorMsg,
                 $this->urlAccion('aprendices')
             );
         }

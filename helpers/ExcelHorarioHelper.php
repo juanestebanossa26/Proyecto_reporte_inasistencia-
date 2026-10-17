@@ -11,6 +11,7 @@ class ExcelHorarioHelper
     private HorarioModelo $modelo;
     private array $fichasCache = [];
     private array $instructoresCache = [];
+    private ?string $ultimoErrorEstructura = null;
 
     public function __construct(HorarioModelo $modelo)
     {
@@ -33,20 +34,26 @@ class ExcelHorarioHelper
         $nombreOriginal = $archivo['name'] ?? '';
         $ext = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
         if (!in_array($ext, ['xlsx', 'xls'], true)) {
-            return ['valido' => false, 'error' => 'Formato no permitido. Solo se aceptan archivos de Excel (.xlsx, .xls).'];
+            return ['valido' => false, 'error' => 'Formato no válido. Solo se permiten archivos Excel (.xlsx, .xls).'];
         }
 
-        // Validación de tamaño (máx. 15MB)
-        if (($archivo['size'] ?? 0) > 15 * 1024 * 1024) {
-            return ['valido' => false, 'error' => 'El archivo supera el tamaño máximo permitido (15MB).'];
-        }
-
-        // Validación de tipo MIME real
-        $rutaTemp = $archivo['tmp_name'];
-        if (!is_uploaded_file($rutaTemp)) {
+        $rutaTemp = $archivo['tmp_name'] ?? '';
+        if ((PHP_SAPI !== 'cli' && !is_uploaded_file($rutaTemp)) || !file_exists($rutaTemp)) {
             return ['valido' => false, 'error' => 'El archivo recibido no es una carga válida.'];
         }
 
+        // Validación de archivo vacío (0 bytes)
+        $tamano = (int) ($archivo['size'] ?? 0);
+        if ($tamano === 0 || filesize($rutaTemp) === 0) {
+            return ['valido' => false, 'error' => 'El archivo seleccionado está vacío (0 bytes). Selecciona un archivo con datos.'];
+        }
+
+        // Validación de tamaño máximo (15MB)
+        if ($tamano > 15 * 1024 * 1024) {
+            return ['valido' => false, 'error' => 'El archivo supera el tamaño máximo permitido (15MB).'];
+        }
+
+        // Validación de tipo MIME real en el servidor
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $rutaTemp);
         finfo_close($finfo);
@@ -60,7 +67,15 @@ class ExcelHorarioHelper
         ];
 
         if (!in_array($mime, $mimesPermitidos, true)) {
-            return ['valido' => false, 'error' => 'El contenido del archivo no corresponde a una hoja de cálculo de Excel válida.'];
+            return ['valido' => false, 'error' => 'Formato no válido. El contenido del archivo no corresponde a una hoja de cálculo Excel.'];
+        }
+
+        // Comprobar que el archivo no esté corrupto o protegido verificando lectura con PhpSpreadsheet
+        try {
+            $reader = IOFactory::createReaderForFile($rutaTemp);
+            $reader->setReadDataOnly(true);
+        } catch (\Throwable $e) {
+            return ['valido' => false, 'error' => 'El archivo Excel está dañado, corrupto o protegido de una forma que impide su lectura.'];
         }
 
         return ['valido' => true, 'error' => null];
@@ -71,6 +86,8 @@ class ExcelHorarioHelper
      */
     public function importar(string $rutaArchivo): array
     {
+        $this->ultimoErrorEstructura = null;
+
         $resultado = [
             'exito'                => false,
             'mensaje'              => '',
@@ -84,18 +101,28 @@ class ExcelHorarioHelper
         ];
 
         try {
-            $spreadsheet = IOFactory::load($rutaArchivo);
+            $reader = IOFactory::createReaderForFile($rutaArchivo);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($rutaArchivo);
             $sheet = $spreadsheet->getActiveSheet();
         } catch (\Throwable $e) {
-            $resultado['mensaje'] = 'No se pudo leer el archivo Excel: ' . $e->getMessage();
+            $resultado['mensaje'] = 'El archivo Excel no se pudo leer. Puede estar dañado, corrupto o protegido: ' . $e->getMessage();
             return $resultado;
         }
 
-        // 1. Extraer los registros ya estructurados (soporta formato matriz SENA y formato tabular)
+        // Comprobar que el archivo no esté vacío de filas
+        $maxRow = $sheet->getHighestRow();
+        if ($maxRow < 2) {
+            $resultado['mensaje'] = 'El archivo seleccionado no contiene información para procesar.';
+            return $resultado;
+        }
+
+        // 1. Extraer los registros estructurados (soporta formato matriz SENA y formato tabular)
         $registros = $this->extraerRegistros($sheet);
 
         if (empty($registros)) {
-            $resultado['mensaje'] = 'No se encontraron horarios válidos en el archivo Excel. Verifica el formato de la plantilla.';
+            $resultado['mensaje'] = $this->ultimoErrorEstructura 
+                ?? 'El archivo no tiene las columnas necesarias para realizar la importación. Se requieren al menos: Número de ficha, Fecha, Hora de entrada y Hora de salida (o el formato oficial de Matriz de Horarios SENA).';
             return $resultado;
         }
 
@@ -108,7 +135,7 @@ class ExcelHorarioHelper
             $this->instructoresCache[$nomNorm] = (int)$inst['id_usuario'];
         }
 
-        // Iniciar transacción de base de datos
+        // Iniciar transacción de base de datos para garantizar atomicidad e integridad
         $this->modelo->iniciarTransaccion();
 
         try {
@@ -122,14 +149,19 @@ class ExcelHorarioHelper
                 $instructor  = trim((string)($reg['instructor'] ?? ''));
                 $area        = trim((string)($reg['area'] ?? ''));
 
-                // Validaciones de datos obligatorios
+                // Validaciones de datos obligatorios por fila
                 if ($numeroFicha === '') {
                     $resultado['errores'][] = "Fila {$fila}: Número de ficha vacío.";
                     continue;
                 }
 
+                if (!preg_match('/^[a-zA-Z0-9\-_]{3,20}$/', $numeroFicha)) {
+                    $resultado['errores'][] = "Fila {$fila}: Formato de ficha inválido ('{$numeroFicha}'). Debe contener entre 3 y 20 caracteres alfanuméricos.";
+                    continue;
+                }
+
                 if (!$this->esFechaValida($fecha)) {
-                    $resultado['errores'][] = "Fila {$fila}: Fecha inválida ({$fecha}).";
+                    $resultado['errores'][] = "Fila {$fila}: Fecha inválida ('{$fecha}'). Se requiere formato AAAA-MM-DD.";
                     continue;
                 }
 
@@ -154,14 +186,14 @@ class ExcelHorarioHelper
                         $idFicha = $idFichaExistente;
                     } else {
                         // Crear ficha nueva en la base de datos
-                        $idFichaNuevo = $this->modelo->obtenerOCrearFicha($numeroFicha, $programa);
+                        $idFichaNuevo = $this->modelo->crearFicha($numeroFicha, $programa);
                         $this->fichasCache[$numeroFicha] = ['id' => $idFichaNuevo, 'nueva' => true];
                         $resultado['fichas_creadas']++;
                         $idFicha = $idFichaNuevo;
                     }
                 }
 
-                // 3. Comprobar / Obtener Instructor (crearlo automáticamente si no existe)
+                // 3. Comprobar / Obtener Instructor
                 $idInstructor = null;
                 if ($instructor !== '') {
                     $normInstructor = $this->modelo->normalizarTexto($instructor);
@@ -182,10 +214,18 @@ class ExcelHorarioHelper
                     }
                 }
 
-                // 4. Comprobar si el horario ya existe para no duplicar
-                if ($this->modelo->existeHorario($idFicha, $horaEntrada, $horaSalida, $fecha)) {
-                    $resultado['duplicados']++;
-                    $resultado['detalles'][] = "Fila {$fila}: Horario ya existía (Ficha {$numeroFicha}, {$fecha} {$horaEntrada}-{$horaSalida}). Omitido.";
+                // 4. Comprobar si el horario ya existe o tiene conflicto de solapamiento
+                $conflicto = $this->modelo->verificarConflictoHorario($idFicha, $fecha, $horaEntrada, $horaSalida);
+                if ($conflicto !== null) {
+                    $hConfIni = substr($conflicto['hora_entrada_programada'], 0, 5);
+                    $hConfFin = substr($conflicto['hora_salida_programada'], 0, 5);
+
+                    if ($conflicto['tipo_conflicto'] === 'identico') {
+                        $resultado['duplicados']++;
+                        $resultado['detalles'][] = "Fila {$fila}: Horario ya existía (Ficha {$numeroFicha}, {$fecha} {$horaEntrada}-{$horaSalida}). Omitido.";
+                    } else {
+                        $resultado['errores'][] = "Fila {$fila}: Conflicto de horario. La ficha {$numeroFicha} ya tiene una clase en {$fecha} ({$hConfIni}-{$hConfFin}) que se solapa con {$horaEntrada}-{$horaSalida}.";
+                    }
                     continue;
                 }
 
@@ -239,11 +279,11 @@ class ExcelHorarioHelper
             foreach ($row as $idx => $cell) {
                 if ($cell === null) continue;
                 $val = mb_strtolower(trim((string)$cell), 'UTF-8');
-                if (preg_match('/(num.*ficha|nro.*ficha|no.*ficha|numero.*ficha|c[oó]digo.*ficha|^ficha$)/iu', $val)) $map['ficha'] = $idx;
+                if (preg_match('/(n[uú]m.*ficha|n[uú]mero.*ficha|nro.*ficha|no.*ficha|c[oó]digo.*ficha|^ficha$)/iu', $val)) $map['ficha'] = $idx;
                 elseif (preg_match('/(programa|formaci[oó]n)/iu', $val)) $map['programa'] = $idx;
                 elseif (preg_match('/(fecha|d[ií]a)/iu', $val)) $map['fecha'] = $idx;
-                elseif (preg_match('/(entrada|hora.*ini|hora_inicio)/iu', $val)) $map['entrada'] = $idx;
-                elseif (preg_match('/(salida|hora.*fin|hora_salida)/iu', $val)) $map['salida'] = $idx;
+                elseif (preg_match('/(entrada|hora.*ini|hora_inicio|h\.\s*ini)/iu', $val)) $map['entrada'] = $idx;
+                elseif (preg_match('/(salida|hora.*fin|hora_salida|h\.\s*fin)/iu', $val)) $map['salida'] = $idx;
                 elseif (preg_match('/(instructor|docente|profesor)/iu', $val)) $map['instructor'] = $idx;
             }
 
@@ -272,6 +312,16 @@ class ExcelHorarioHelper
                     ];
                 }
                 return $registros;
+            } elseif (isset($map['ficha']) || isset($map['fecha']) || isset($map['entrada'])) {
+                // Se detectó una fila de encabezados pero faltan columnas obligatorias
+                $faltantes = [];
+                if (!isset($map['ficha']))   $faltantes[] = 'Número de ficha';
+                if (!isset($map['fecha']))   $faltantes[] = 'Fecha';
+                if (!isset($map['entrada'])) $faltantes[] = 'Hora de entrada';
+                if (!isset($map['salida']))  $faltantes[] = 'Hora de salida';
+                if (!empty($faltantes)) {
+                    $this->ultimoErrorEstructura = "No se encontró la columna obligatoria '" . implode("', '", $faltantes) . "' en el archivo.";
+                }
             }
         }
 

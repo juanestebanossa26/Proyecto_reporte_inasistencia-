@@ -10,6 +10,12 @@ $nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'historial';
 $tituloPagina  = 'Mi historial de asistencia';
 
+// Variables por defecto si el controlador no las ha inyectado (evita warnings y diagnósticos)
+$historial          = $historial          ?? [];
+$total_retardo      = $total_retardo      ?? 0;
+$total_inasistencia = $total_inasistencia ?? 0;
+$total_pendientes   = $total_pendientes   ?? 0;
+
 $etiquetas = [
     'asistencia' => 'Asistencia', 'retardo' => 'Retardo',
     'inasistencia' => 'Inasistencia', 'salida-anticipada' => 'Salida anticipada',
@@ -33,7 +39,9 @@ $etiquetas = [
                     <h1 class="h4 fw-bold mb-0">Mi historial</h1>
                     <p class="text-suave mb-0">Consulta tus retardos, inasistencias y el estado de tus excusas.</p>
                 </div>
-                <button class="btn btn-outline-sena"><i class="bi bi-download me-1"></i> Descargar mi reporte</button>
+                <a href="<?= BASE_URL ?>/index.php?accion=descargarMiReporte" target="_blank" class="btn btn-outline-sena" id="btnDescargarMiReporte">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Descargar mi reporte
+                </a>
             </div>
 
             <div class="row g-3 mb-3 justify-content-center">
