@@ -50,6 +50,15 @@ $(document).ready(function () {
     var btn = $(this);
     $("#reenvio_id_excusa").val(btn.data("id"));
     $("#reenvio_motivo").val(btn.data("motivo"));
+
+    var obs = btn.data("observacion");
+    if (obs && String(obs).trim() !== "") {
+      $("#reenvio_obs_texto").text(obs);
+      $("#reenvio_obs_container").removeClass("d-none");
+    } else {
+      $("#reenvio_obs_container").addClass("d-none");
+    }
+
     if (modalReenviarBs) modalReenviarBs.show();
   });
 });

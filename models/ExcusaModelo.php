@@ -17,17 +17,43 @@ class ExcusaModelo
                     excusas_medicas.archivo_adjunto,
                     asistencias.fecha,
                     excusas_medicas.motivo,
+                    asistencias.id_horario,
+                    horarios.hora_entrada_programada,
+                    horarios.hora_salida_programada,
+                    COALESCE(
+                        u_inst.nombre_completo,
+                        (SELECT u2.nombre_completo FROM fichas_has_usuarios fhu JOIN usuarios u2 ON u2.id_usuario = fhu.id_instructor WHERE fhu.fichas_id_ficha = aprendices.id_ficha LIMIT 1),
+                        'Instructor asignado'
+                    ) AS instructor_nombre,
                     COUNT(revision_excusas.id_revision) AS total_revisiones,
                     SUM(revision_excusas.estado = 'Rechazada') AS rechazadas,
                     SUM(revision_excusas.estado = 'Devuelta') AS devueltas,
-                    SUM(revision_excusas.estado = 'Aprobada') AS aprobadas
+                    SUM(revision_excusas.estado = 'Aprobada') AS aprobadas,
+                    (
+                        SELECT GROUP_CONCAT(
+                            CONCAT(
+                                CASE WHEN u_rev.nombre_completo IS NOT NULL THEN CONCAT(u_rev.nombre_completo, ': ') ELSE '' END,
+                                TRIM(re.observaciones)
+                            )
+                            SEPARATOR ' · '
+                        )
+                        FROM revision_excusas re
+                        LEFT JOIN usuarios u_rev ON u_rev.id_usuario = re.id_instructor
+                        WHERE re.id_excusa = excusas_medicas.id_excusa
+                          AND re.observaciones IS NOT NULL 
+                          AND TRIM(re.observaciones) != ''
+                    ) AS observaciones_instructor
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
+                LEFT JOIN horarios ON horarios.id_horario = asistencias.id_horario
+                LEFT JOIN usuarios u_inst ON u_inst.id_usuario = horarios.id_instructor
                 LEFT JOIN revision_excusas ON revision_excusas.id_excusa = excusas_medicas.id_excusa
                 WHERE aprendices.id_usuario = :id_usuario
                 GROUP BY excusas_medicas.id_excusa, excusas_medicas.archivo_adjunto,
-                         asistencias.fecha, excusas_medicas.motivo
+                         asistencias.fecha, excusas_medicas.motivo, asistencias.id_horario,
+                         horarios.hora_entrada_programada, horarios.hora_salida_programada,
+                         instructor_nombre
                 ORDER BY excusas_medicas.fecha_creacion DESC";
 
         $stmt = Conexion::obtener()->prepare($sql);
@@ -46,6 +72,10 @@ class ExcusaModelo
             } else {
                 $fila['estado_excusa'] = 'Pendiente';
             }
+
+            $horaIni = !empty($fila['hora_entrada_programada']) ? substr($fila['hora_entrada_programada'], 0, 5) : '';
+            $horaFin = !empty($fila['hora_salida_programada']) ? substr($fila['hora_salida_programada'], 0, 5) : '';
+            $fila['bloque_horario'] = ($horaIni && $horaFin) ? "{$horaIni} - {$horaFin}" : 'Jornada asignada';
         }
         unset($fila);
 
@@ -227,6 +257,7 @@ class ExcusaModelo
                     horarios.hora_salida_programada,
                     excusas_medicas.archivo_adjunto,
                     revision_excusas.estado AS estado_excusa,
+                    revision_excusas.observaciones,
                     revision_excusas.id_revision,
                     excusas_medicas.id_excusa
                 FROM revision_excusas

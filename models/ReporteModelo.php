@@ -56,7 +56,9 @@ class ReporteModelo
     // quede desalineado entre las tres consultas.
     private function construirWhereAcceso(int $idUsuarioActual, string $rolActual): array
     {
-        if ($rolActual === 'Instructor') {
+        $rol = strtolower(trim($rolActual));
+
+        if (in_array($rol, ['instructor', 'docente', 'profesor'], true)) {
             return [
                 ' WHERE (fichas.id_ficha IN (
                      SELECT fhu.fichas_id_ficha
@@ -74,7 +76,7 @@ class ReporteModelo
             ];
         }
 
-        if ($rolActual === 'Administrador') {
+        if (in_array($rol, ['administrador', 'admin'], true)) {
             // El administrador puede generar reportes de cualquier ficha sin importar el área
             return [' WHERE 1=1 ', []];
         }
@@ -107,34 +109,37 @@ class ReporteModelo
     // (excluyendo las que ya tienen excusa médica aprobada), acotado a las
     // fichas que el usuario actual puede ver. Como una ficha puede tener
     // varios instructores, sus nombres se combinan con GROUP_CONCAT.
-    public function obtenerDetalle(array $filtros, int $idUsuarioActual, string $rolActual): array
-    {
-        [$whereSql, $params] = $this->construirWhere($filtros, $idUsuarioActual, $rolActual);
+ public function obtenerDetalle(array $filtros, int $idUsuarioActual, string $rolActual): array
+{
+    [$whereSql, $params] = $this->construirWhere($filtros, $idUsuarioActual, $rolActual);
 
-        $sql = "SELECT
-                    u_aprendiz.nombre_completo,
-                    fichas.numero_ficha,
-                    fichas.nombre_programa,
-                    GROUP_CONCAT(DISTINCT u_instructor.nombre_completo SEPARATOR ', ') AS nombre_instructor,
-                    SUM(asistencias.estado = 'Retardo') AS retardos,
-                    COALESCE(SUM(asistencias.tiempo_retraso), 0) AS min_retardo,
-                    SUM(asistencias.estado = 'Inasistencia' ) AS inasistencias
-                FROM aprendices
-                JOIN usuarios u_aprendiz ON aprendices.id_usuario = u_aprendiz.id_usuario
-                JOIN fichas ON aprendices.id_ficha = fichas.id_ficha
-                LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = fichas.id_ficha
-                LEFT JOIN usuarios u_instructor ON u_instructor.id_usuario = fhu.id_instructor
-                LEFT JOIN asistencias ON asistencias.id_aprendiz = aprendices.id_aprendiz
-                LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-                $whereSql
-                GROUP BY aprendices.id_aprendiz, u_aprendiz.nombre_completo,
-                         fichas.numero_ficha, fichas.nombre_programa";
+    $sql = "SELECT
+                u_aprendiz.nombre_completo,
+                fichas.numero_ficha,
+                fichas.nombre_programa,
+                (
+                    SELECT GROUP_CONCAT(DISTINCT ui.nombre_completo SEPARATOR ', ')
+                    FROM fichas_has_usuarios fhu
+                    JOIN usuarios ui ON ui.id_usuario = fhu.id_instructor
+                    WHERE fhu.fichas_id_ficha = fichas.id_ficha
+                ) AS nombre_instructor,
+                SUM(asistencias.estado = 'Retardo') AS retardos,
+                COALESCE(SUM(asistencias.tiempo_retraso), 0) AS min_retardo,
+                SUM(asistencias.estado = 'Inasistencia') AS inasistencias
+            FROM aprendices
+            JOIN usuarios u_aprendiz ON aprendices.id_usuario = u_aprendiz.id_usuario
+            JOIN fichas ON aprendices.id_ficha = fichas.id_ficha
+            LEFT JOIN asistencias ON asistencias.id_aprendiz = aprendices.id_aprendiz
+            LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
+            $whereSql
+            GROUP BY aprendices.id_aprendiz, u_aprendiz.nombre_completo,
+                     fichas.id_ficha, fichas.numero_ficha, fichas.nombre_programa";
 
-        $stmt = Conexion::obtener()->prepare($sql);
-        $stmt->execute($params);
+    $stmt = Conexion::obtener()->prepare($sql);
+    $stmt->execute($params);
 
-        return $stmt->fetchAll();
-    }
+    return $stmt->fetchAll();
+}
 
     // Tarjetas KPI del encabezado de la vista de reportes, con el mismo
     // alcance por rol que obtenerDetalle().

@@ -174,6 +174,51 @@ class AsistenciaModelo
         }
     }
 
+    /**
+     * Sincroniza las inasistencias de TODOS los aprendices y fichas
+     * cuyos bloques de clase ya hayan finalizado (hora_salida_programada <= CURTIME()).
+     * Ideal para ser ejecutado por un cron job periódico o al terminar cada bloque.
+     * Retorna la cantidad de inasistencias insertadas.
+     */
+    public function sincronizarInasistenciasGlobal(): int
+    {
+        $db = Conexion::obtener();
+
+        $sql = "
+            INSERT INTO asistencias (id_aprendiz, id_horario, fecha, hora_entrada_real, hora_salida_real, tiempo_retraso, estado)
+            SELECT 
+                ap.id_aprendiz,
+                h.id_horario,
+                h.dia_semana,
+                NULL,
+                NULL,
+                0,
+                'inasistencia'
+            FROM horarios h
+            JOIN aprendices ap ON ap.id_ficha = h.id_ficha
+            JOIN usuarios u ON u.id_usuario = ap.id_usuario
+            WHERE LOWER(u.estado) = 'activo'
+              AND (
+                  h.dia_semana < CURDATE()
+                  OR (h.dia_semana = CURDATE() AND h.hora_salida_programada <= CURTIME())
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM asistencias a
+                  WHERE a.id_aprendiz = ap.id_aprendiz
+                    AND (a.id_horario = h.id_horario OR (a.id_horario IS NULL AND a.fecha = h.dia_semana))
+              )
+        ";
+
+        try {
+            $stmt = $db->prepare($sql);
+            $stmt->execute();
+            return $stmt->rowCount();
+        } catch (PDOException $e) {
+            error_log('Error en sincronizarInasistenciasGlobal: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
     // Fechas de inasistencia que todavía no tienen ninguna excusa anexada,
     // con información del horario y el instructor correspondiente.
     public function listarFaltasSinExcusa(int $idUsuario): array
@@ -187,14 +232,19 @@ class AsistenciaModelo
                     a.estado,
                     h.hora_entrada_programada,
                     h.hora_salida_programada,
-                    COALESCE(h.id_instructor, fhu.id_instructor) AS id_instructor,
-                    COALESCE(u_inst.nombre_completo, u_fhu.nombre_completo, 'Instructor') AS instructor_nombre
+                    COALESCE(
+                        h.id_instructor,
+                        (SELECT fhu.id_instructor FROM fichas_has_usuarios fhu WHERE fhu.fichas_id_ficha = ap.id_ficha LIMIT 1)
+                    ) AS id_instructor,
+                    COALESCE(
+                        u_inst.nombre_completo,
+                        (SELECT u2.nombre_completo FROM fichas_has_usuarios fhu2 JOIN usuarios u2 ON u2.id_usuario = fhu2.id_instructor WHERE fhu2.fichas_id_ficha = ap.id_ficha LIMIT 1),
+                        'Instructor'
+                    ) AS instructor_nombre
                 FROM asistencias a
                 JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
                 LEFT JOIN horarios h ON h.id_horario = a.id_horario
-                LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = ap.id_ficha
                 LEFT JOIN usuarios u_inst ON u_inst.id_usuario = h.id_instructor
-                LEFT JOIN usuarios u_fhu ON u_fhu.id_usuario = fhu.id_instructor
                 LEFT JOIN excusas_medicas em ON em.id_asistencia = a.id_asistencia
                 WHERE ap.id_usuario = :id_usuario
                   AND (LOWER(COALESCE(a.estado, '')) IN ('inasistencia', 'falta') OR a.hora_entrada_real IS NULL)
@@ -218,6 +268,8 @@ class AsistenciaModelo
 
         foreach ($filas as $fila) {
             $fecha = $fila['fecha'];
+            $idAsistencia = (int) $fila['id_asistencia'];
+
             if (!isset($agrupadas[$fecha])) {
                 $nombreDia = date('d/m/Y', strtotime($fecha));
                 $agrupadas[$fecha] = [
@@ -233,7 +285,11 @@ class AsistenciaModelo
                 ];
             }
 
-            $idAsistencia = (int) $fila['id_asistencia'];
+            // Evitar duplicar el mismo id_asistencia si se procesa más de una vez
+            if (in_array($idAsistencia, $agrupadas[$fecha]['ids_asistencia'], true)) {
+                continue;
+            }
+
             $agrupadas[$fecha]['ids_asistencia'][] = $idAsistencia;
 
             $nomInst = trim($fila['instructor_nombre'] ?? '');

@@ -29,7 +29,7 @@ class DashboardControlador extends ControladorBase
             return;
         }
 
-        if (in_array($rol, ['instructor', 'docente', 'profesor'], true)) {
+        if (in_array($rol, ['instructor'], true)) {
             $this->mostrarInstructor();
             return;
         }
@@ -52,6 +52,7 @@ class DashboardControlador extends ControladorBase
         $rolActivo      = $_SESSION['rol'] ?? 'Administrador';
 
         try {
+            (new AsistenciaModelo())->sincronizarInasistenciasGlobal();
             $kpis              = $this->modelo->obtenerKpisAdmin($fechaHoy);
             $ingresosRecientes = $this->modelo->obtenerIngresosRecientesAdmin(10);
             $excusasPendientes = $this->modelo->obtenerExcusasRecientesAdmin(6);
@@ -92,6 +93,7 @@ class DashboardControlador extends ControladorBase
         $rolActivo      = $_SESSION['rol'] ?? 'Instructor';
 
         try {
+            (new AsistenciaModelo())->sincronizarInasistenciasGlobal();
             $kpis              = $this->modelo->obtenerKpisInstructor($idInstructor, $fechaHoy);
             $horariosHoy       = $this->modelo->obtenerHorariosHoyInstructor($idInstructor, $fechaHoy);
             $ingresosRecientes = $this->modelo->obtenerIngresosRecientesInstructor($idInstructor, 10);

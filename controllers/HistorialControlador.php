@@ -12,6 +12,7 @@ class HistorialControlador extends ControladorBase
 
         try {
             $asistenciaModelo   = new AsistenciaModelo();
+            $asistenciaModelo->sincronizarInasistenciasGlobal();
             $historial          = $asistenciaModelo->listarPorAprendiz((int) $_SESSION['id']);
             $total_retardo      = $asistenciaModelo->contarPorEstado((int) $_SESSION['id'], 'retardo');
             $total_inasistencia = $asistenciaModelo->contarPorEstado((int) $_SESSION['id'], 'inasistencia');

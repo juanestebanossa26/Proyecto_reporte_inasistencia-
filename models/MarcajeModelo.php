@@ -34,14 +34,19 @@ class MarcajeModelo
     }
 
     // Bloques de horario de una ficha para una fecha puntual, en orden
-    // cronológico (1 fila = todo el día en un solo bloque; 2 filas = el
-    // día se dividió en mañana/tarde, u otro reparto).
+    // cronológico con los datos del instructor asignado a cada bloque.
     public function obtenerBloquesDelDia(int $idFicha, string $fecha): array
     {
-        $sql = "SELECT id_horario, hora_entrada_programada, hora_salida_programada
-                FROM horarios
-                WHERE id_ficha = :id_ficha AND dia_semana = :fecha
-                ORDER BY hora_entrada_programada ASC";
+        $sql = "SELECT 
+                    h.id_horario, 
+                    h.hora_entrada_programada, 
+                    h.hora_salida_programada,
+                    h.id_instructor,
+                    COALESCE(u.nombre_completo, 'Instructor no asignado') AS instructor_nombre
+                FROM horarios h
+                LEFT JOIN usuarios u ON u.id_usuario = h.id_instructor
+                WHERE h.id_ficha = :id_ficha AND h.dia_semana = :fecha
+                ORDER BY h.hora_entrada_programada ASC";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
@@ -56,7 +61,7 @@ class MarcajeModelo
     // tienen entrada/salida marcada y cuáles no.
     public function obtenerAsistenciasDelDia(int $idAprendiz, string $fecha): array
     {
-        $sql = "SELECT id_asistencia, id_horario, hora_entrada_real, hora_salida_real
+        $sql = "SELECT id_asistencia, id_horario, hora_entrada_real, hora_salida_real, estado
                 FROM asistencias
                 WHERE id_aprendiz = :id_aprendiz AND fecha = :fecha";
 
@@ -91,6 +96,24 @@ class MarcajeModelo
         return (int) Conexion::obtener()->lastInsertId();
     }
 
+    // Actualiza una inasistencia previa a entrada con retardo/asistencia si el aprendiz pasa su carné
+    // mientras la clase aún está activa (evita registros duplicados).
+    public function actualizarInasistenciaARetardo(int $idAsistencia, string $horaActual, string $estado, int $minutosRetraso): void
+    {
+        $sql = "UPDATE asistencias 
+                SET hora_entrada_real = :hora,
+                    tiempo_retraso    = :retraso,
+                    estado            = :estado
+                WHERE id_asistencia = :id";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':hora', $horaActual);
+        $stmt->bindParam(':retraso', $minutosRetraso, PDO::PARAM_INT);
+        $stmt->bindParam(':estado', $estado);
+        $stmt->bindParam(':id', $idAsistencia, PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
     // Registra la SALIDA de un bloque que ya tenía entrada marcada.
     public function registrarSalida(int $idAsistencia, string $horaActual): void
     {
@@ -103,11 +126,12 @@ class MarcajeModelo
     }
 
     // Últimos marcajes del día (para el panel "Últimos marcajes de hoy").
-    // $idFicha opcional: si se pasa, lo acota a una sola ficha (vista de
-    // un instructor); si no, trae de todas (vista de administrador).
-    public function listarMarcajesDeHoy(string $fecha, ?int $idFicha = null, int $limite = 10): array
+    // $idFicha opcional: acota a una sola ficha.
+    // $idInstructor opcional: si se especifica, acota a los bloques e imparticiones del instructor.
+    public function listarMarcajesDeHoy(string $fecha, ?int $idFicha = null, int $limite = 10, ?int $idInstructor = null): array
     {
         $whereFicha = $idFicha !== null ? ' AND aprendices.id_ficha = :id_ficha ' : '';
+        $whereInstructor = $idInstructor !== null ? ' AND (horarios.id_instructor = :id_instructor OR fichas.id_ficha IN (SELECT fichas_id_ficha FROM fichas_has_usuarios WHERE id_instructor = :id_instructor2)) ' : '';
 
         $sql = "SELECT
                     usuarios.nombre_completo,
@@ -124,8 +148,10 @@ class MarcajeModelo
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 JOIN usuarios   ON usuarios.id_usuario     = aprendices.id_usuario
                 JOIN fichas     ON fichas.id_ficha          = aprendices.id_ficha
+                LEFT JOIN horarios ON horarios.id_horario = asistencias.id_horario
                 WHERE asistencias.fecha = :fecha
                 $whereFicha
+                $whereInstructor
                 ORDER BY ultima_hora DESC
                 LIMIT :limite";
 
@@ -133,6 +159,10 @@ class MarcajeModelo
         $stmt->bindParam(':fecha', $fecha);
         if ($idFicha !== null) {
             $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
+        }
+        if ($idInstructor !== null) {
+            $stmt->bindParam(':id_instructor', $idInstructor, PDO::PARAM_INT);
+            $stmt->bindParam(':id_instructor2', $idInstructor, PDO::PARAM_INT);
         }
         $stmt->bindParam(':limite', $limite, PDO::PARAM_INT);
         $stmt->execute();

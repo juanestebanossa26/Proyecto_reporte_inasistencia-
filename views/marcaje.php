@@ -45,7 +45,11 @@ foreach ($ultimosMarcajes as $m) {
                 <div>
                     <div class="eyebrow">Biometría & RFID</div>
                     <h1 class="h4 fw-bold mb-0">Terminal de Marcaje RFID</h1>
-                    <p class="text-suave mb-0">Control de asistencia en tiempo real por proximidad o ingreso manual.</p>
+                    <?php if ($rolActivo === 'Instructor'): ?>
+                        <p class="text-suave mb-0">Sesión activa: <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-person-check-fill me-1"></i><?= htmlspecialchars($nombreUsuario) ?></span> &middot; Solo registra asistencia para sus propios bloques de clase.</p>
+                    <?php else: ?>
+                        <p class="text-suave mb-0">Control de asistencia en tiempo real por proximidad o ingreso manual.</p>
+                    <?php endif; ?>
                 </div>
                 <!-- Control de Sonido -->
                 <div class="d-flex align-items-center gap-2">
@@ -382,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function () {
             icono.className = 'bi bi-wifi';
             textoEstado.textContent = 'Esperando lectura...';
             textoAyuda.textContent = 'Acerca tu carné RFID al sensor o digita el código';
-        }, 3200);
+        }, 4500);
     }
 
     // Procesar envío del formulario

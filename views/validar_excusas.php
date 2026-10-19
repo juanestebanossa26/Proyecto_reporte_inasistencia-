@@ -93,6 +93,11 @@ $total_pendientes  = $total_pendientes ?? 0;
                                     };
                                     ?>
                                     <span class="badge rounded-pill <?= $badgeClass ?>"><?= ucfirst($estado) ?></span>
+                                    <?php if (!empty($fila['observaciones'])): ?>
+                                        <div class="small text-muted mt-1 fst-italic" style="font-size: .75rem;" title="Observación registrada">
+                                            <i class="bi bi-chat-quote me-1"></i><?= htmlspecialchars($fila['observaciones']) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-end">
                                     <?php if ($estado === 'pendiente'): ?>

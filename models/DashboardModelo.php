@@ -174,32 +174,33 @@ class DashboardModelo
 
         // Total aprendices en sus fichas
         $sqlAprendices = "SELECT COUNT(DISTINCT ap.id_aprendiz)
-                          FROM aprendices ap
-                          WHERE ap.id_ficha IN (
-                              SELECT fhu.fichas_id_ficha FROM fichas_has_usuarios fhu WHERE fhu.id_instructor = :i1
-                              UNION
-                              SELECT h.id_ficha FROM horarios h WHERE h.id_instructor = :i2
-                          )";
+                          FROM fichas f
+                          JOIN aprendices ap ON ap.id_ficha = f.id_ficha
+                          LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = f.id_ficha
+                          LEFT JOIN horarios h ON h.id_ficha = f.id_ficha
+                          WHERE fhu.id_instructor = :i1 OR h.id_instructor = :i2";
         $stmtAprendices = $this->db->prepare($sqlAprendices);
         $stmtAprendices->execute([':i1' => $idInstructor, ':i2' => $idInstructor]);
         $totalAprendices = (int) $stmtAprendices->fetchColumn();
 
-        // Clases programadas hoy para este instructor
-        $sqlClases = "SELECT COUNT(*)
+        // Clases programadas hoy para este instructor (DISTINCT para evitar producto cartesiano)
+        $sqlClases = "SELECT COUNT(DISTINCT h.id_horario)
                       FROM horarios h
-                      WHERE (h.id_instructor = :i1 OR h.id_ficha IN (
+                      JOIN fichas f ON f.id_ficha = h.id_ficha
+                      WHERE (h.id_instructor = :i1 OR (h.id_instructor IS NULL AND f.id_ficha IN (
                           SELECT fhu.fichas_id_ficha FROM fichas_has_usuarios fhu WHERE fhu.id_instructor = :i2
-                      )) AND h.dia_semana = :fecha";
+                      )))
+                        AND h.dia_semana = :fecha";
         $stmtClases = $this->db->prepare($sqlClases);
         $stmtClases->execute([':i1' => $idInstructor, ':i2' => $idInstructor, ':fecha' => $fecha]);
         $clasesHoy = (int) $stmtClases->fetchColumn();
 
         // Asistencias registradas hoy en las fichas del instructor
         $sqlAsistencias = "SELECT 
-                               COUNT(a.id_asistencia) AS total_hoy,
-                               SUM(CASE WHEN LOWER(a.estado) IN ('a tiempo', 'asistencia') THEN 1 ELSE 0 END) AS a_tiempo_hoy,
-                               SUM(CASE WHEN LOWER(a.estado) = 'retardo' THEN 1 ELSE 0 END) AS retardos_hoy,
-                               SUM(CASE WHEN LOWER(a.estado) = 'inasistencia' THEN 1 ELSE 0 END) AS inasistencias_hoy
+                               COUNT(DISTINCT a.id_asistencia) AS total_hoy,
+                               COUNT(DISTINCT CASE WHEN LOWER(a.estado) IN ('a tiempo', 'asistencia') THEN a.id_asistencia END) AS a_tiempo_hoy,
+                               COUNT(DISTINCT CASE WHEN LOWER(a.estado) = 'retardo' THEN a.id_asistencia END) AS retardos_hoy,
+                               COUNT(DISTINCT CASE WHEN LOWER(a.estado) = 'inasistencia' THEN a.id_asistencia END) AS inasistencias_hoy
                            FROM asistencias a
                            JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
                            WHERE a.fecha = :fecha
@@ -250,9 +251,9 @@ class DashboardModelo
                     (SELECT COUNT(*) FROM aprendices ap WHERE ap.id_ficha = f.id_ficha) AS total_aprendices
                 FROM horarios h
                 JOIN fichas f ON f.id_ficha = h.id_ficha
-                WHERE (h.id_instructor = :i1 OR f.id_ficha IN (
+                WHERE (h.id_instructor = :i1 OR (h.id_instructor IS NULL AND f.id_ficha IN (
                     SELECT fhu.fichas_id_ficha FROM fichas_has_usuarios fhu WHERE fhu.id_instructor = :i2
-                )) AND h.dia_semana = :fecha
+                ))) AND h.dia_semana = :fecha
                 ORDER BY h.hora_entrada_programada ASC";
 
         $stmt = $this->db->prepare($sql);

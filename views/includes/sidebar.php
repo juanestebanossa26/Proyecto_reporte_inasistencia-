@@ -57,6 +57,7 @@ if (!function_exists('navLink')) {
                  <div class="sidebar-section-label">General</div>
             <?php navLink(BASE_URL . '/index.php?accion=dashboard', 'bi-grid-1x2-fill', 'Panel principal', 'dashboard', $paginaActiva); ?>
                 <div class="sidebar-section-label">Académico</div>
+                <?php navLink(BASE_URL . '/index.php?accion=marcaje', 'bi-wifi', 'Marcaje RFID', 'marcaje', $paginaActiva); ?>
                 <?php navLink(BASE_URL . '/index.php?accion=fichas', 'bi-journal-bookmark-fill', 'Fichas', 'fichas', $paginaActiva); ?>
                 <?php navLink(BASE_URL . '/index.php?accion=horarios', 'bi-calendar3', 'Horarios', 'horarios', $paginaActiva); ?>
                 <?php navLink(BASE_URL . '/index.php?accion=validarExcusas', 'bi-file-earmark-medical-fill', 'Validar excusas', 'validar_excusas', $paginaActiva); ?>

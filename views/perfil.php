@@ -59,7 +59,7 @@ if ($iniciales === '') $iniciales = 'US';
                         </div>
                         <div class="text-white text-opacity-75 small mb-2">
                             <i class="bi bi-shield-lock-fill text-success me-1"></i>
-                            Rol: <strong class="text-white"><?= htmlspecialchars($rolActivo) ?></strong> · <?= htmlspecialchars($areaUsuario) ?>
+                            Rol: <strong class="text-white"><?= htmlspecialchars($rolActivo) ?></strong> 
                         </div>
                         <div class="d-flex flex-wrap gap-3 text-white text-opacity-75 small">
                             <span><i class="bi bi-person-badge me-1 text-sena"></i> Usuario: <strong><?= htmlspecialchars($usuarioLogin) ?></strong></span>

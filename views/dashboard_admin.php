@@ -206,9 +206,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Administrador')[
                                 <h2 class="h6 fw-bold mb-0"><i class="bi bi-clock-history me-1 text-sena"></i> Ingresos Recientes al Centro</h2>
                                 <small class="text-suave">Últimos registros de marcajes en tiempo real</small>
                             </div>
-                            <a href="<?= BASE_URL ?>/index.php?accion=marcaje" class="btn btn-sm btn-outline-sena">
-                                <i class="bi bi-wifi me-1"></i> Ir al Marcaje
-                            </a>
+                           
                         </div>
                         <div class="table-responsive">
                             <table class="table table-app align-middle mb-0">
@@ -357,53 +355,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Administrador')[
                         </a>
                     </div>
 
-                    <!-- Excusas Médicas en el Sistema -->
-                    <div class="card p-3 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h2 class="h6 fw-bold mb-0">
-                                <i class="bi bi-file-earmark-medical-fill me-1 text-danger"></i> Excusas Médicas
-                            </h2>
-                            <?php if (!empty($kpis['excusas_pendientes'])): ?>
-                                <span class="badge bg-danger rounded-pill"><?= $kpis['excusas_pendientes'] ?> pendientes</span>
-                            <?php endif; ?>
-                        </div>
-
-                        <?php if (empty($excusasPendientes)): ?>
-                            <div class="text-center text-muted py-4">
-                                <i class="bi bi-check2-circle fs-3 text-sena d-block mb-1"></i>
-                                No hay excusas médicas registradas recientemente.
-                            </div>
-                        <?php else: ?>
-                            <div class="list-group list-group-flush mb-3">
-                                <?php foreach ($excusasPendientes as $excusa): 
-                                    $estRev = $excusa['estado_revision'] ?? 'Pendiente';
-                                ?>
-                                <div class="list-group-item px-0 py-2 border-bottom">
-                                    <div class="d-flex justify-content-between align-items-start gap-2">
-                                        <div>
-                                            <div class="fw-semibold text-truncate" style="font-size:.85rem; max-width:180px;">
-                                                <?= htmlspecialchars($excusa['aprendiz_nombre']) ?>
-                                            </div>
-                                            <small class="text-suave d-block">
-                                                Ficha: <?= htmlspecialchars($excusa['numero_ficha'] ?: 'S/F') ?> · Inasist.: <?= date('d/m/Y', strtotime($excusa['fecha_inasistencia'])) ?>
-                                            </small>
-                                            <small class="text-muted d-block text-truncate" style="max-width:200px;">
-                                                <?= htmlspecialchars($excusa['motivo']) ?>
-                                            </small>
-                                        </div>
-                                        <span class="badge-estado <?= getBadgeClassDashboard($estRev) ?>">
-                                            <?= htmlspecialchars($estRev) ?>
-                                        </span>
-                                    </div>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-
-                        <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="btn btn-sm btn-outline-sena w-100">
-                            Ver módulo de excusas
-                        </a>
-                    </div>
+                   
 
                     <!-- Estado y Enlaces de Interés -->
                     <div class="card p-3">

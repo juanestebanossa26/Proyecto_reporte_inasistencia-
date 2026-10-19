@@ -114,6 +114,7 @@ $tituloPagina  = 'Excusas médicas';
                                 <thead>
                                     <tr>
                                         <th>Fecha</th>
+                                        <th>Bloque / Clase</th>
                                         <th>Motivo</th>
                                         <th>Estado</th>
                                         <th class="text-end" data-orderable="false">Acción</th>
@@ -146,14 +147,37 @@ $tituloPagina  = 'Excusas médicas';
                                     // Solo se puede editar/reenviar si algún instructor la
                                     // rechazó o la devolvió para corrección.
                                     $sePuedeReenviar = in_array($estado, ['rechazada', 'devuelta'], true);
+                                    $tieneObservacion = in_array($estado, ['rechazada', 'devuelta'], true) && !empty($fila['observaciones_instructor']);
                                 ?>
                                     <tr>
-                                        <td><?= htmlspecialchars($fila['fecha']) ?></td>
+                                        <td>
+                                            <span class="fw-semibold"><?= htmlspecialchars($fila['fecha']) ?></span>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <span class="badge bg-light text-dark border">
+                                                    <i class="bi bi-clock me-1 text-primary"></i><?= htmlspecialchars($fila['bloque_horario']) ?>
+                                                </span>
+                                            </div>
+                                            <small class="text-muted d-block mt-1">
+                                                <i class="bi bi-person me-1"></i><?= htmlspecialchars($fila['instructor_nombre']) ?>
+                                            </small>
+                                        </td>
                                         <td><?= htmlspecialchars($fila['motivo']) ?></td>
                                         <td>
-                                            <span class="badge <?= $claseColor ?>">
-                                                <?= ucfirst($estado) ?>
-                                            </span>
+                                            <div>
+                                                <span class="badge <?= $claseColor ?>">
+                                                    <?= ucfirst($estado) ?>
+                                                </span>
+                                            </div>
+                                            <?php if ($tieneObservacion): ?>
+                                                <div class="mt-2 p-2 rounded small bg-light border border-<?= $estado === 'rechazada' ? 'danger' : 'info' ?>" style="font-size: 0.78rem;">
+                                                    <strong class="d-block text-<?= $estado === 'rechazada' ? 'danger' : 'primary' ?> mb-1">
+                                                        <i class="bi bi-chat-left-dots me-1"></i>Motivo del instructor:
+                                                    </strong>
+                                                    <span><?= nl2br(htmlspecialchars($fila['observaciones_instructor'])) ?></span>
+                                                </div>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-end">
                                             <?php if ($sePuedeReenviar): ?>
@@ -161,7 +185,10 @@ $tituloPagina  = 'Excusas médicas';
                                                         class="btn btn-sm btn-outline-secondary border-0 btn-reenviar-excusa"
                                                         title="Editar y reenviar"
                                                         data-id="<?= $fila['id_excusa'] ?>"
-                                                        data-motivo="<?= htmlspecialchars($fila['motivo'], ENT_QUOTES, 'UTF-8') ?>">
+                                                        data-motivo="<?= htmlspecialchars($fila['motivo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-observacion="<?= htmlspecialchars($fila['observaciones_instructor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-bloque="<?= htmlspecialchars($fila['bloque_horario'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                        data-instructor="<?= htmlspecialchars($fila['instructor_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                                     <i class="bi bi-arrow-repeat"></i> Editar y reenviar
                                                 </button>
                                             <?php endif; ?>
@@ -196,6 +223,14 @@ $tituloPagina  = 'Excusas médicas';
                 Corrige el motivo y/o adjunta un nuevo soporte. Se reenviará como la misma
                 excusa, no se crea un envío aparte.
             </p>
+
+            <div id="reenvio_obs_container" class="alert alert-warning py-2 px-3 small mb-3 d-none">
+                <div class="fw-bold mb-1">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Observación del instructor:
+                </div>
+                <div id="reenvio_obs_texto" class="fst-italic text-dark"></div>
+            </div>
+
             <div class="mb-3">
                 <label class="form-label">Motivo</label>
                 <textarea class="form-control" name="motivo" id="reenvio_motivo" rows="3" required></textarea>
