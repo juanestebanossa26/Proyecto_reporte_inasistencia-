@@ -69,6 +69,10 @@ if (!isset($iniciales)) {
                     </p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
+                    <a href="<?= BASE_URL ?>/index.php?accion=exportarHorariosExcel" class="btn btn-outline-secondary d-flex align-items-center gap-2" title="Exportar reporte de horarios en Excel">
+                        <i class="bi bi-file-earmark-spreadsheet"></i>
+                        <span>Exportar Excel</span>
+                    </a>
                     <?php if ($rolActivo === 'Administrador'): ?>
                         <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalImportarExcel">
                             <i class="bi bi-file-earmark-excel"></i>
@@ -597,6 +601,12 @@ if (!isset($iniciales)) {
               <li>Aparecen reflejados inmediatamente en este calendario.</li>
             </ul>
           </div>
+
+          <div class="mt-3 text-end">
+            <a href="<?= BASE_URL ?>/index.php?accion=descargarPlantillaHorarios" class="text-decoration-none small text-success fw-semibold">
+              <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar plantilla Excel oficial de ejemplo
+            </a>
+          </div>
         </div>
         <div class="modal-footer border-0 px-4 pb-4 pt-0">
           <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
@@ -616,6 +626,7 @@ if (!isset($iniciales)) {
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content border-0 shadow-lg text-center p-3" style="border-radius: 14px;">
       <form action="<?= BASE_URL ?>/index.php?accion=eliminarHorario" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= Seguridad::tokenCsrf() ?>">
         <input type="hidden" name="horario_id" id="eliminar_horario_id">
         <div class="my-3 text-danger">
           <i class="bi bi-trash3" style="font-size: 2.8rem;"></i>

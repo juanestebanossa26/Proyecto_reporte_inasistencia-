@@ -7,7 +7,7 @@ $nombreUsuario = $_SESSION['nombre'] ?? '';
 $paginaActiva  = 'fichas';
 $tituloPagina  = 'Fichas de Formación';
 
-// Las fichas e instructores son suministrados por HorarioControlador::mostrarFichas()
+// Las fichas e instructores son suministrados por FichaControlador::mostrarFichas()
 $fichas       = $fichas ?? [];
 $instructores = $instructores ?? [];
 ?>
@@ -106,6 +106,17 @@ $instructores = $instructores ?? [];
                                                 data-instructor="<?= (int)($f['id_instructor'] ?? 0) ?>">
                                             <i class="bi bi-pencil-square"></i>
                                         </button>
+                                        <!-- Botón Eliminar Ficha -->
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-danger border-0 btn-eliminar-ficha" 
+                                                title="Eliminar Ficha y registros asociados"
+                                                data-id="<?= $f['id_ficha'] ?>"
+                                                data-numero="<?= htmlspecialchars($f['numero_ficha'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-programa="<?= htmlspecialchars($f['nombre_programa'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-aprendices="<?= (int)($f['total_aprendices'] ?? 0) ?>"
+                                                data-horarios="<?= (int)($f['total_horarios'] ?? 0) ?>">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -164,6 +175,12 @@ $instructores = $instructores ?? [];
   </div>
 </div>
 
+<!-- Formulario Oculto para Eliminar Ficha con CSRF -->
+<form id="formEliminarFichaOculto" action="<?= BASE_URL ?>/index.php?accion=eliminarFicha" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="<?= Seguridad::tokenCsrf() ?>">
+    <input type="hidden" name="id_ficha" id="inputEliminarFichaId" value="0">
+</form>
+
 <?php include 'includes/scripts.php'; ?>
 
 <!-- DataTables Scripts -->
@@ -209,6 +226,56 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalTituloFicha').innerHTML = '<i class="bi bi-pencil-square text-success me-2"></i>Editar Ficha';
         document.getElementById('btnGuardarFicha').textContent = 'Actualizar Ficha';
         modalBs.show();
+    });
+
+    // Delegación para eliminar ficha con confirmación detallada SweetAlert2
+    $(document).on('click', '.btn-eliminar-ficha', function() {
+        const id = $(this).data('id');
+        const numero = $(this).data('numero');
+        const programa = $(this).data('programa');
+        const aprendices = parseInt($(this).data('aprendices') || 0);
+        const horarios = parseInt($(this).data('horarios') || 0);
+
+        let mensajeHtml = `<p class="mb-3 text-secondary" style="font-size: 0.95rem; line-height: 1.5;">Esta acción eliminará la ficha seleccionada, sus aprendices vinculados y los horarios asociados. La información eliminada no podrá recuperarse desde el sistema. ¿Deseas continuar?</p>`;
+        
+        mensajeHtml += `<div class="p-3 bg-light rounded-3 text-start small border mb-2">`;
+        mensajeHtml += `<div class="mb-1"><strong class="text-secondary">Ficha:</strong> <span class="badge bg-white text-dark border px-2 py-1 fw-bold fs-6">${numero}</span></div>`;
+        mensajeHtml += `<div class="mb-1"><strong class="text-secondary">Programa:</strong> <span class="text-dark fw-semibold">${programa}</span></div>`;
+        
+        if (aprendices > 0 || horarios > 0) {
+            mensajeHtml += `<div class="mt-2 pt-2 border-top text-danger">`;
+            mensajeHtml += `<i class="bi bi-exclamation-triangle-fill me-1"></i> `;
+            let partes = [];
+            if (aprendices > 0) partes.push(`<strong>${aprendices}</strong> aprendiz(ces)`);
+            if (horarios > 0) partes.push(`<strong>${horarios}</strong> horario(s) programado(s)`);
+            mensajeHtml += `Se eliminarán permanentemente ` + partes.join(' y ') + `.`;
+            mensajeHtml += `</div>`;
+        }
+        mensajeHtml += `</div>`;
+
+        Swal.fire({
+            title: '¿Eliminar esta ficha?',
+            html: mensajeHtml,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Sí, eliminar ficha',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true,
+            focusCancel: true,
+            customClass: {
+                popup: 'rounded-4 shadow-lg text-center',
+                confirmButton: 'btn btn-danger rounded-pill px-4',
+                cancelButton: 'btn btn-light rounded-pill px-4'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('formEliminarFichaOculto');
+                document.getElementById('inputEliminarFichaId').value = id;
+                form.submit();
+            }
+        });
     });
 
     // Validación del formulario en frontend antes de enviar

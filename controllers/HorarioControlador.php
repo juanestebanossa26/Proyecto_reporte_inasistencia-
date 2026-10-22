@@ -1,14 +1,19 @@
 <?php
 
+require_once __DIR__ . '/../models/FichaModelo.php';
+require_once __DIR__ . '/FichaControlador.php';
+
 class HorarioControlador extends ControladorBase
 {
-
     private HorarioModelo $modelo;
+    private FichaModelo $fichaModelo;
 
     public function __construct()
     {
         $this->modelo = new HorarioModelo();
+        $this->fichaModelo = new FichaModelo();
     }
+
 
     // accion=horarios -> Vista dedicada exclusivamente al calendario y programación de horarios
     public function mostrarHorarios(): void
@@ -22,7 +27,7 @@ class HorarioControlador extends ControladorBase
         try {
             $horarios     = $this->modelo->listarHorarios($idInstructorSesion);
             $instructores = $this->modelo->listarInstructores();
-            $fichas       = $this->modelo->listarFichasDetalladas($idInstructorSesion);
+            $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion);
 
             // Paleta de colores con contraste óptimo para texto blanco
             $paletaGoogle = [
@@ -62,9 +67,13 @@ class HorarioControlador extends ControladorBase
                 $duracionMinutos = ($tSalida > $tEntrada) ? (int) (($tSalida - $tEntrada) / 60) : 0;
                 $duracionHoras   = round($duracionMinutos / 60, 1);
 
+                $progLimpio = html_entity_decode((string)$h['nombre_programa'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $instLimpio = html_entity_decode((string)($h['instructor_nombre'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $areaLimpia = html_entity_decode((string)($h['instructor_area'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
                 $eventosCalendario[] = [
                     'id'              => (string) $h['id_horario'],
-                    'title'           => $h['numero_ficha'] . ' · ' . $h['nombre_programa'],
+                    'title'           => $h['numero_ficha'] . ' · ' . $progLimpio,
                     'start'           => $h['fecha'] . 'T' . $horaEntrada . ':00',
                     'end'             => $h['fecha'] . 'T' . $horaSalida . ':00',
                     'backgroundColor' => $colorEvento,
@@ -73,10 +82,10 @@ class HorarioControlador extends ControladorBase
                     'extendedProps'   => [
                         'id_ficha'       => $idFicha,
                         'ficha'          => $h['numero_ficha'],
-                        'programa'       => $h['nombre_programa'],
-                        'instructor'     => trim($h['instructor_nombre'] ?? '') !== '' ? $h['instructor_nombre'] : 'Sin asignar',
+                        'programa'       => $progLimpio,
+                        'instructor'     => trim($instLimpio) !== '' ? $instLimpio : 'Sin asignar',
                         'id_instructor'  => (int) ($h['id_instructor'] ?? 0),
-                        'area'           => trim($h['instructor_area'] ?? ''),
+                        'area'           => trim($areaLimpia),
                         'entrada'        => $horaEntrada,
                         'salida'         => $horaSalida,
                         'duracion_min'   => $duracionMinutos,
@@ -84,6 +93,43 @@ class HorarioControlador extends ControladorBase
                         'aprendices'     => (int) ($h['total_aprendices'] ?? 0),
                         'fecha'          => $h['fecha'],
                         'color'          => $colorEvento,
+                    ]
+                ];
+            }
+
+            // Integración de Días Festivos al Calendario (Marcador visual diferenciado)
+            $festivos = $this->modelo->listarFestivos();
+            foreach ($festivos as $fest) {
+                $hIni = substr($fest['hora_inicio'] ?? '06:00:00', 0, 5);
+                $hFin = substr($fest['hora_fin'] ?? '22:00:00', 0, 5);
+                $esDiaCompleto = (int)($fest['es_dia_completo'] ?? 1);
+                $colorFestivo = '#607d8b'; // Gris azulado / pizarra neutro diferenciado
+                $numFichaFest = !empty($fest['numero_ficha']) ? $fest['numero_ficha'] : 'General';
+
+                $eventosCalendario[] = [
+                    'id'              => 'festivo_' . $fest['id_festivo'],
+                    'title'           => 'FESTIVO',
+                    'start'           => $fest['fecha'] . 'T' . $hIni . ':00',
+                    'end'             => $fest['fecha'] . 'T' . $hFin . ':00',
+                    'backgroundColor' => $colorFestivo,
+                    'borderColor'     => '#455a64',
+                    'textColor'       => '#ffffff',
+                    'extendedProps'   => [
+                        'es_festivo'     => true,
+                        'es_dia_completo'=> $esDiaCompleto,
+                        'id_ficha'       => (int)($fest['id_ficha'] ?? 0),
+                        'ficha'          => $numFichaFest,
+                        'programa'       => 'Día Festivo Institucional',
+                        'instructor'     => 'FESTIVO',
+                        'id_instructor'  => 0,
+                        'area'           => 'Calendario Oficial SENA',
+                        'entrada'        => $hIni,
+                        'salida'         => $hFin,
+                        'duracion_min'   => 0,
+                        'duracion_horas' => 0,
+                        'aprendices'     => 0,
+                        'fecha'          => $fest['fecha'],
+                        'color'          => $colorFestivo,
                     ]
                 ];
             }
@@ -147,26 +193,23 @@ class HorarioControlador extends ControladorBase
         require BASE_PATH . '/views/horarios.php';
     }
 
-    // accion=fichas -> Vista dedicada exclusivamente al listado y gestión de fichas
+    // =========================================================================
+    // Delegación al Módulo de Fichas (FichaControlador) para retrocompatibilidad
+    // =========================================================================
+
     public function mostrarFichas(): void
     {
-        $this->exigirSesion(['Administrador', 'Instructor']);
+        (new FichaControlador())->mostrarFichas();
+    }
 
-        $rolSesion          = $_SESSION['rol'] ?? 'Administrador';
-        $esInstructor       = (strtolower($rolSesion) === 'instructor');
-        $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
+    public function guardarFicha(): void
+    {
+        (new FichaControlador())->guardarFicha();
+    }
 
-        try {
-            $fichas       = $this->modelo->listarFichasDetalladas($idInstructorSesion);
-            $instructores = $this->modelo->listarInstructores();
-        } catch (PDOException $e) {
-            error_log('Error al listar fichas: ' . $e->getMessage());
-            $fichas       = [];
-            $instructores = [];
-            $_SESSION['mensaje_error'] = 'No se pudieron cargar las fichas.';
-        }
-
-        require BASE_PATH . '/views/fichas.php';
+    public function eliminarFicha(): void
+    {
+        (new FichaControlador())->eliminarFicha();
     }
 
     // Alias para compatibilidad
@@ -180,114 +223,6 @@ class HorarioControlador extends ControladorBase
         $this->mostrarHorarios();
     }
 
-    // accion=guardarFicha (POST)
-    public function guardarFicha(): void
-    {
-        $this->exigirSesion(['Administrador', 'admin']);
-
-        // Validación de CSRF
-        if (!Seguridad::validarCsrf($_POST['csrf_token'] ?? '')) {
-            Seguridad::alertaYRedirigir(
-                'error',
-                'Sesión inválida',
-                'El token de seguridad ha caducado. Intenta de nuevo.',
-                $this->urlAccion('fichas')
-            );
-            return;
-        }
-
-        $idFicha      = (int) ($_POST['id_ficha'] ?? 0);
-        $numeroFicha  = trim(Seguridad::sanitizar($_POST['numero_ficha'] ?? ''));
-        $programa     = trim(Seguridad::sanitizar($_POST['nombre_programa'] ?? ''));
-        $idInstructor = (int) ($_POST['id_instructor'] ?? 0);
-
-        // 1. Validación de campos obligatorios
-        if ($numeroFicha === '' || $programa === '') {
-            Seguridad::alertaYRedirigir(
-                'warning',
-                'Campos obligatorios',
-                'Por favor ingresa tanto el número de ficha como el nombre del programa.',
-                $this->urlAccion('fichas')
-            );
-            return;
-        }
-
-        // 2. Validación de formato de número de ficha (3 a 20 caracteres alfanuméricos)
-        if (!preg_match('/^[a-zA-Z0-9\-_]{3,20}$/', $numeroFicha)) {
-            Seguridad::alertaYRedirigir(
-                'warning',
-                'Formato no válido',
-                'El número de ficha debe contener entre 3 y 20 caracteres alfanuméricos (letras, números o guiones) sin espacios ni símbolos especiales.',
-                $this->urlAccion('fichas')
-            );
-            return;
-        }
-
-        if (mb_strlen($programa) < 3) {
-            Seguridad::alertaYRedirigir(
-                'warning',
-                'Programa no válido',
-                'El nombre del programa de formación debe tener al menos 3 caracteres.',
-                $this->urlAccion('fichas')
-            );
-            return;
-        }
-
-        // 3. Validación de duplicados en la base de datos
-        $esEdicion = ($idFicha > 0);
-        if ($this->modelo->existeNumeroFicha($numeroFicha, $esEdicion ? $idFicha : null)) {
-            $msgDuplicado = $esEdicion
-                ? "Ya existe otra ficha registrada con el número '{$numeroFicha}'. Por favor verifica el número ingresado."
-                : "Ya existe una ficha registrada con este número ({$numeroFicha}). No se permiten números de ficha duplicados.";
-
-            Seguridad::alertaYRedirigir(
-                'warning',
-                'Ficha duplicada',
-                $msgDuplicado,
-                $this->urlAccion('fichas')
-            );
-            return;
-        }
-
-        try {
-            if ($esEdicion) {
-                // Actualizar ficha existente conservando su identidad si corresponde
-                $this->modelo->actualizarFicha($idFicha, $numeroFicha, $programa);
-                if ($idInstructor > 0) {
-                    $this->modelo->asociarInstructor($idFicha, $idInstructor);
-                }
-                $titulo = '¡Ficha actualizada!';
-                $texto  = 'La información de la ficha fue guardada exitosamente.';
-            } else {
-                // Crear nueva ficha verificada
-                $idNueva = $this->modelo->crearFicha($numeroFicha, $programa);
-                if ($idInstructor > 0) {
-                    $this->modelo->asociarInstructor($idNueva, $idInstructor);
-                }
-                $titulo = '¡Ficha creada!';
-                $texto  = 'La ficha fue registrada exitosamente.';
-            }
-
-            Seguridad::alertaYRedirigir(
-                'success',
-                $titulo,
-                $texto,
-                $this->urlAccion('fichas')
-            );
-        } catch (PDOException $e) {
-            error_log('Error al guardar ficha: ' . $e->getMessage());
-            $errorMsg = ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry'))
-                ? "Ya existe una ficha registrada con el número '{$numeroFicha}'."
-                : 'Ocurrió un error al guardar la ficha. Intenta de nuevo.';
-
-            Seguridad::alertaYRedirigir(
-                'error',
-                'Error al guardar',
-                $errorMsg,
-                $this->urlAccion('fichas')
-            );
-        }
-    }
 
     // accion=guardarHorario (POST)
     public function guardar(): void
@@ -295,16 +230,76 @@ class HorarioControlador extends ControladorBase
         // Solo el Administrador puede registrar horarios
         $this->exigirSesion(['Administrador', 'admin']);
 
+        // Validación de CSRF
+        if (!Seguridad::validarCsrf($_POST['csrf_token'] ?? '')) {
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Sesión inválida',
+                'El token de seguridad ha caducado o es inválido. Por favor intenta de nuevo.',
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
         // Recoger y limpiar campos del formulario
         $idHorario    = (int) ($_POST['horario_id'] ?? 0);
-        $numeroFicha  = trim(Seguridad::sanitizar($_POST['numero_ficha'] ?? ''));
-        $programa     = trim(Seguridad::sanitizar($_POST['programa'] ?? ''));
-        $fecha        = trim(Seguridad::sanitizar($_POST['fecha'] ?? ''));
-        $horaEntrada  = trim(Seguridad::sanitizar($_POST['hora_entrada'] ?? ''));
-        $horaSalida   = trim(Seguridad::sanitizar($_POST['hora_salida'] ?? ''));
+        $numeroFicha  = trim(strip_tags((string)($_POST['numero_ficha'] ?? '')));
+        $programa     = trim(html_entity_decode(strip_tags((string)($_POST['programa'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $fecha        = trim(strip_tags((string)($_POST['fecha'] ?? '')));
+        $horaEntrada  = trim(strip_tags((string)($_POST['hora_entrada'] ?? '')));
+        $horaSalida   = trim(strip_tags((string)($_POST['hora_salida'] ?? '')));
         $idInstructor = (int) ($_POST['instructor'] ?? 0);
 
-        // 1. Validaciones de campos requeridos
+        // 1. Si es modo edición (horario_id > 0), validar que el horario exista y no sea pasado ni en curso
+        if ($idHorario > 0) {
+            $horarioExistente = $this->modelo->obtenerHorarioPorId($idHorario);
+            if (!$horarioExistente) {
+                Seguridad::alertaYRedirigir(
+                    'error',
+                    'Horario no encontrado',
+                    'El horario que intentas editar no existe o ya no está disponible en la programación.',
+                    $this->urlAccion('horarios'),
+                    'Entendido'
+                );
+                return;
+            }
+
+            $evaluacion = $this->modelo->evaluarEstadoTemporal($horarioExistente);
+            if ($evaluacion['estado'] === 'pasado') {
+                Seguridad::alertaYRedirigir(
+                    'warning',
+                    'No se puede editar este horario.',
+                    'Esta clase ya finalizó y forma parte del historial de programación. Por seguridad, no se permite modificar horarios pasados.',
+                    $this->urlAccion('horarios'),
+                    'Entendido'
+                );
+                return;
+            }
+
+            if ($evaluacion['estado'] === 'en_curso') {
+                Seguridad::alertaYRedirigir(
+                    'info',
+                    'Horario en curso.',
+                    'Esta clase se está desarrollando actualmente. No es posible modificarla mientras esté en curso.',
+                    $this->urlAccion('horarios'),
+                    'Entendido'
+                );
+                return;
+            }
+
+            if (!$evaluacion['eliminable']) {
+                Seguridad::alertaYRedirigir(
+                    'warning',
+                    'No se puede editar este horario.',
+                    $evaluacion['motivo'],
+                    $this->urlAccion('horarios'),
+                    'Entendido'
+                );
+                return;
+            }
+        }
+
+        // 2. Validaciones de campos requeridos
         if ($numeroFicha === '' || $fecha === '' || $horaEntrada === '' || $horaSalida === '') {
             Seguridad::alertaYRedirigir(
                 'warning',
@@ -315,7 +310,7 @@ class HorarioControlador extends ControladorBase
             return;
         }
 
-        // 2. Validación de formato de fecha (YYYY-MM-DD)
+        // 3. Validación de formato de fecha (YYYY-MM-DD)
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) || !strtotime($fecha)) {
             Seguridad::alertaYRedirigir(
                 'warning',
@@ -338,7 +333,7 @@ class HorarioControlador extends ControladorBase
         }
 
         // 4. Comprobar que el número de ficha asociado exista y sea válido
-        $fichaExistente = $this->modelo->buscarFichaPorNumero($numeroFicha);
+        $fichaExistente = $this->fichaModelo->buscarFichaPorNumero($numeroFicha);
         if (!$fichaExistente) {
             Seguridad::alertaYRedirigir(
                 'warning',
@@ -350,25 +345,30 @@ class HorarioControlador extends ControladorBase
         }
         $idFicha = (int) $fichaExistente['id_ficha'];
 
-        // 5. Evitar horarios duplicados o con solapamiento para la misma ficha
+        // 5. Evitar horarios duplicados o con solapamiento para la misma ficha o instructor
         $conflicto = $this->modelo->verificarConflictoHorario(
             $idFicha,
             $fecha,
             $horaEntrada,
             $horaSalida,
-            $idHorario > 0 ? $idHorario : null
+            $idHorario > 0 ? $idHorario : null,
+            $idInstructor > 0 ? $idInstructor : null
         );
 
         if ($conflicto !== null) {
             $hConfIni = substr($conflicto['hora_entrada_programada'], 0, 5);
             $hConfFin = substr($conflicto['hora_salida_programada'], 0, 5);
+            $docenteExistente = $conflicto['instructor_nombre'] ?? 'Sin asignar';
 
             if ($conflicto['tipo_conflicto'] === 'identico') {
-                $mensajeConflicto = "Ya existe un horario idéntico registrado para la ficha {$numeroFicha} el día {$fecha} de {$hConfIni} a {$hConfFin}. No es posible registrar horarios duplicados.";
+                $mensajeConflicto = "Ya existe un horario idéntico registrado para la ficha {$numeroFicha} el día {$fecha} de {$hConfIni} a {$hConfFin} (Docente: {$docenteExistente}). No es posible registrar horarios duplicados.";
                 $tituloConflicto  = 'Horario duplicado';
+            } elseif ($conflicto['tipo_conflicto'] === 'instructor_ocupado') {
+                $mensajeConflicto = "El instructor seleccionado ya tiene una clase programada el día {$fecha} de {$hConfIni} a {$hConfFin} con la ficha {$conflicto['numero_ficha']}.";
+                $tituloConflicto  = 'Instructor no disponible';
             } else {
-                $mensajeConflicto = "La ficha {$numeroFicha} ya tiene una clase programada el día {$fecha} de {$hConfIni} a {$hConfFin}, la cual se solapa con el horario ingresado ({$horaEntrada} - {$horaSalida}). Por favor selecciona otro rango de horas o fecha.";
-                $tituloConflicto  = 'Conflicto de horario';
+                $mensajeConflicto = "La ficha {$numeroFicha} ya tiene una clase programada el día {$fecha} de {$hConfIni} a {$hConfFin} (Docente: {$docenteExistente}), la cual se superpone con el horario ingresado ({$horaEntrada} - {$horaSalida}). Una misma ficha no puede tener dos clases simultáneas.";
+                $tituloConflicto  = 'Conflicto de horario superpuesto';
             }
 
             Seguridad::alertaYRedirigir(
@@ -404,6 +404,14 @@ class HorarioControlador extends ControladorBase
                 $mensajeTexto,
                 $this->urlAccion('horarios')
             );
+        } catch (\DomainException $e) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'No se puede editar este horario.',
+                $e->getMessage(),
+                $this->urlAccion('horarios'),
+                'Entendido'
+            );
         } catch (PDOException $e) {
             error_log('Error al guardar horario: ' . $e->getMessage());
             $errorMsg = ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry'))
@@ -419,22 +427,85 @@ class HorarioControlador extends ControladorBase
         }
     }
 
-    // accion=eliminarHorario
+    // accion=eliminarHorario (POST)
     public function eliminar(): void
     {
         $this->exigirSesion(['Administrador', 'admin']);
-        $idHorario = (int) ($_POST['horario_id'] ?? $_GET['id'] ?? 0);
 
-        if ($idHorario > 0) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirigirAccion('horarios');
+            return;
+        }
+
+        if (!Seguridad::validarCsrf($_POST['csrf_token'] ?? '')) {
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Sesión inválida',
+                'El token de seguridad ha caducado o es inválido.',
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
+        $idHorario = (int) ($_POST['horario_id'] ?? 0);
+
+        if ($idHorario <= 0) {
+            $this->redirigirAccion('horarios');
+            return;
+        }
+
+        // 1. Obtener la información del horario para validar su existencia y temporalidad
+        $horario = $this->modelo->obtenerHorarioPorId($idHorario);
+        if (!$horario) {
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Horario no encontrado',
+                'El horario que intentas eliminar no existe o ya fue retirado de la programación.',
+                $this->urlAccion('horarios'),
+                'Entendido'
+            );
+            return;
+        }
+
+        // 2. Validación estricta en el servidor: Proteger el historial contra eliminación de horarios pasados o en curso
+        $evaluacion = $this->modelo->evaluarEstadoTemporal($horario);
+        if (!$evaluacion['eliminable']) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'No se puede eliminar este horario',
+                $evaluacion['motivo'],
+                $this->urlAccion('horarios'),
+                'Entendido'
+            );
+            return;
+        }
+
+        // 3. Proceso seguro de eliminación para horarios futuros válidos
+        try {
+            $asistenciasVinculadas = $this->modelo->contarAsistenciasHorario($idHorario);
             $this->modelo->eliminarHorario($idHorario);
+
+            $textoExito = 'El horario fue eliminado exitosamente de la programación futura.';
+            if ($asistenciasVinculadas > 0) {
+                $textoExito .= " Se desvincularon de forma segura {$asistenciasVinculadas} registro(s) de asistencia histórica, preservando sus datos intactos.";
+            }
+
             Seguridad::alertaYRedirigir(
                 'success',
                 '¡Horario eliminado!',
-                'El horario fue eliminado exitosamente.',
-                $this->urlAccion('horarios')
+                $textoExito,
+                $this->urlAccion('horarios'),
+                'Continuar'
             );
-        } else {
-            $this->redirigirAccion('horarios');
+        } catch (\Throwable $e) {
+            error_log('Error al eliminar horario ID ' . $idHorario . ': ' . $e->getMessage());
+            Seguridad::alertaYRedirigir(
+                'error',
+                'No se pudo eliminar el horario',
+                'Ocurrió un error al procesar la eliminación del horario. Los registros de asistencia están protegidos.',
+                $this->urlAccion('horarios'),
+                'Entendido'
+            );
         }
     }
 
@@ -474,23 +545,42 @@ class HorarioControlador extends ControladorBase
         $resultado = $helper->importar($_FILES['archivo_excel']['tmp_name']);
 
         if (!$resultado['exito']) {
-            Seguridad::alertaYRedirigir(
+            $htmlErr = '<div style="text-align: left; font-size: 0.9rem; line-height: 1.5;">';
+            $htmlErr .= '<p style="margin-bottom: 8px;">' . htmlspecialchars($resultado['mensaje']) . '</p>';
+            if (!empty($resultado['errores'])) {
+                $htmlErr .= '<div style="background-color: #ffebee; border-left: 4px solid #f44336; padding: 8px 12px; margin-top: 10px; border-radius: 4px;">';
+                $htmlErr .= '<strong style="color: #c62828;">Conflictos de horario detectados (' . count($resultado['errores']) . '):</strong>';
+                $htmlErr .= '<ul style="margin: 6px 0 0 16px; padding: 0; font-size: 0.85rem; max-height: 180px; overflow-y: auto;">';
+                foreach (array_slice($resultado['errores'], 0, 15) as $err) {
+                    $htmlErr .= '<li>' . htmlspecialchars($err) . '</li>';
+                }
+                if (count($resultado['errores']) > 15) {
+                    $htmlErr .= '<li><em>... y ' . (count($resultado['errores']) - 15) . ' conflictos más.</em></li>';
+                }
+                $htmlErr .= '</ul></div>';
+            }
+            $htmlErr .= '</div>';
+
+            Seguridad::alertaHtmlYRedirigir(
                 'error',
-                'Error en la importación',
-                $resultado['mensaje'],
+                'Importación rechazada por conflicto',
+                $htmlErr,
                 $this->urlAccion('horarios')
             );
             return;
         }
 
         // Construir reporte detallado para el usuario con SweetAlert2
-        $icono = ($resultado['guardados'] > 0) ? 'success' : 'info';
-        $titulo = ($resultado['guardados'] > 0) ? '¡Importación exitosa!' : 'Importación finalizada';
+        $icono = ($resultado['guardados'] > 0 || $resultado['festivos_registrados'] > 0) ? 'success' : 'info';
+        $titulo = ($resultado['guardados'] > 0 || $resultado['festivos_registrados'] > 0) ? '¡Importación exitosa!' : 'Importación finalizada';
 
         $html = '<div style="text-align: left; font-size: 0.95rem; line-height: 1.6;">';
-        $html .= '<p style="margin-bottom: 10px;">Se procesaron <strong>' . $resultado['total_procesados'] . '</strong> bloques de horario del archivo Excel:</p>';
+        $html .= '<p style="margin-bottom: 10px;">Se procesó el archivo Excel oficial con los siguientes resultados:</p>';
         $html .= '<ul style="list-style: none; padding-left: 0; margin-bottom: 12px;">';
         $html .= '<li style="color: #2e7d32; margin-bottom: 4px;">✅ <strong>Horarios registrados:</strong> ' . $resultado['guardados'] . '</li>';
+        if ($resultado['festivos_registrados'] > 0) {
+            $html .= '<li style="color: #546e7a; margin-bottom: 4px;">📅 <strong>Días festivos identificados:</strong> ' . $resultado['festivos_registrados'] . ' (sin crear instructores)</li>';
+        }
         $html .= '<li style="color: #0277bd; margin-bottom: 4px;">ℹ️ <strong>Horarios ya existentes (omitidos):</strong> ' . $resultado['duplicados'] . '</li>';
         $html .= '<li style="color: #555; margin-bottom: 4px;">📋 <strong>Fichas nuevas creadas:</strong> ' . $resultado['fichas_creadas'] . '</li>';
         $html .= '<li style="color: #555; margin-bottom: 4px;">👨‍🏫 <strong>Instructores nuevos creados:</strong> ' . $resultado['instructores_creados'] . '</li>';
@@ -518,6 +608,70 @@ class HorarioControlador extends ControladorBase
             $html,
             $this->urlAccion('horarios')
         );
+    }
+
+    // accion=exportarHorariosExcel (GET o POST) - Exportación en formato oficial SENA
+    public function exportarExcel(): void
+    {
+        $this->exigirSesion(['Administrador', 'admin', 'Instructor']);
+
+        $rolSesion = $_SESSION['rol'] ?? 'Administrador';
+        $esInstructor = (strtolower($rolSesion) === 'instructor');
+        $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
+
+        $idFichaFiltro = !empty($_GET['id_ficha']) ? (int)$_GET['id_ficha'] : null;
+
+        // Si no se pasó id_ficha específico, seleccionar la primera ficha disponible con programación
+        if ($idFichaFiltro === null || $idFichaFiltro <= 0) {
+            $fichas = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion);
+            if (!empty($fichas)) {
+                $idFichaFiltro = (int)$fichas[0]['id_ficha'];
+            }
+        }
+
+        if ($idFichaFiltro === null || $idFichaFiltro <= 0) {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Sin ficha seleccionada',
+                'No hay ninguna ficha de formación registrada o disponible para exportar.',
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
+        try {
+            require_once BASE_PATH . '/helpers/ExcelHorarioHelper.php';
+            $helper = new ExcelHorarioHelper($this->modelo);
+            $helper->exportarOficial($idFichaFiltro, $idInstructorSesion);
+        } catch (\Throwable $e) {
+            error_log('Error al exportar horarios con formato oficial SENA: ' . $e->getMessage());
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Error al exportar',
+                'Ocurrió un error al generar el archivo Excel oficial: ' . $e->getMessage(),
+                $this->urlAccion('horarios')
+            );
+        }
+    }
+
+    // accion=descargarPlantillaHorarios (GET) - Descarga de la plantilla oficial SENA
+    public function descargarPlantilla(): void
+    {
+        $this->exigirSesion(['Administrador', 'admin']);
+
+        try {
+            require_once BASE_PATH . '/helpers/ExcelHorarioHelper.php';
+            $helper = new ExcelHorarioHelper($this->modelo);
+            $helper->descargarPlantilla();
+        } catch (\Throwable $e) {
+            error_log('Error al descargar plantilla oficial: ' . $e->getMessage());
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Error al generar plantilla',
+                $e->getMessage(),
+                $this->urlAccion('horarios')
+            );
+        }
     }
 }
 

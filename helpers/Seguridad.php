@@ -87,13 +87,14 @@ class Seguridad
 
     // Muestra una alerta de SweetAlert2 y redirige al terminar. Reutilizado
     // por los controladores de instructores y excusas.
-    public static function alertaYRedirigir(string $icono, string $titulo, string $texto, string $ruta): void
+    public static function alertaYRedirigir(string $icono, string $titulo, string $texto, string $ruta, string $textoBoton = 'Continuar'): void
     {
         self::imprimirEncabezadoAnimacion();
-        $iconoJs   = json_encode($icono);
-        $tituloJs  = json_encode($titulo);
-        $textoJs   = json_encode($texto);
-        $rutaJs    = json_encode($ruta);
+        $iconoJs      = json_encode($icono);
+        $tituloJs     = json_encode($titulo);
+        $textoJs      = json_encode($texto);
+        $rutaJs       = json_encode($ruta);
+        $textoBotonJs = json_encode($textoBoton);
         echo "<script>
             Swal.fire({
                 icon: {$iconoJs},
@@ -102,7 +103,7 @@ class Seguridad
                 showClass: { popup: 'animate__animated animate__zoomInDown' },
                 hideClass: { popup: 'animate__animated animate__fadeOutUp' },
                 confirmButtonColor: '#39a900',
-                confirmButtonText: 'Continuar'
+                confirmButtonText: {$textoBotonJs}
             }).then(() => {
                 window.location.href = {$rutaJs};
             });
@@ -111,13 +112,14 @@ class Seguridad
     }
 
     // Muestra una alerta de SweetAlert2 con contenido HTML y redirige al terminar.
-    public static function alertaHtmlYRedirigir(string $icono, string $titulo, string $html, string $ruta): void
+    public static function alertaHtmlYRedirigir(string $icono, string $titulo, string $html, string $ruta, string $textoBoton = 'Continuar'): void
     {
         self::imprimirEncabezadoAnimacion();
-        $iconoJs   = json_encode($icono);
-        $tituloJs  = json_encode($titulo);
-        $htmlJs    = json_encode($html);
-        $rutaJs    = json_encode($ruta);
+        $iconoJs      = json_encode($icono);
+        $tituloJs     = json_encode($titulo);
+        $htmlJs       = json_encode($html);
+        $rutaJs       = json_encode($ruta);
+        $textoBotonJs = json_encode($textoBoton);
         echo "<script>
             Swal.fire({
                 icon: {$iconoJs},
@@ -126,7 +128,7 @@ class Seguridad
                 showClass: { popup: 'animate__animated animate__zoomInDown' },
                 hideClass: { popup: 'animate__animated animate__fadeOutUp' },
                 confirmButtonColor: '#39a900',
-                confirmButtonText: 'Continuar'
+                confirmButtonText: {$textoBotonJs}
             }).then(() => {
                 window.location.href = {$rutaJs};
             });

@@ -61,6 +61,7 @@ require_once BASE_PATH . '/models/AsistenciaModelo.php';
 require_once BASE_PATH . '/models/ExcusaModelo.php';
 require_once BASE_PATH . '/models/ReporteModelo.php';
 require_once BASE_PATH . '/models/AprendicesModelo.php';
+require_once BASE_PATH . '/models/FichaModelo.php';
 require_once BASE_PATH . '/models/HorarioModelo.php';
 require_once BASE_PATH . '/models/MarcajeModelo.php';
 require_once BASE_PATH . '/models/DashboardModelo.php';
@@ -71,6 +72,7 @@ require_once BASE_PATH . '/controllers/AuthControlador.php';
 require_once BASE_PATH . '/controllers/PaginaControlador.php';
 require_once BASE_PATH . '/controllers/InstructorControlador.php';
 require_once BASE_PATH . '/controllers/ExcusaControlador.php';
+require_once BASE_PATH . '/controllers/FichaControlador.php';
 require_once BASE_PATH . '/controllers/HorarioControlador.php'; 
 require_once BASE_PATH . '/controllers/MarcajeControlador.php';
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
@@ -102,6 +104,7 @@ $historial   = new HistorialControlador();
 $excusa      = new ExcusaControlador();
 $aprendiz    = new AprendizControlador();
 $instructor  = new InstructorControlador();
+$ficha       = new FichaControlador();
 $horario     = new HorarioControlador();
 $marcaje     = new MarcajeControlador();
 $reporte     = new ReporteControlador();
@@ -140,14 +143,19 @@ match ($accion) {
     'validarexcusas'   => $excusa->listarPendientes(),
     'procesarExcusa'   => $excusa->procesar(),
 
-    // --- Fichas y Horarios ---
-    'fichas'                => $horario->mostrarFichas(),
-    'guardarFicha'          => $horario->guardarFicha(),
-    'horarios'              => $horario->mostrarHorarios(),
-    'guardarHorario'        => $horario->guardar(),
-    'eliminarHorario'       => $horario->eliminar(),
-    'importarHorariosExcel' => $horario->importarExcel(),
-    'importarExcel'         => $horario->importarExcel(),
+    // --- Fichas ---
+    'fichas'        => $ficha->mostrarFichas(),
+    'guardarFicha'  => $ficha->guardarFicha(),
+    'eliminarFicha' => $ficha->eliminarFicha(),
+
+    // --- Horarios ---
+    'horarios'                   => $horario->mostrarHorarios(),
+    'guardarHorario'             => $horario->guardar(),
+    'eliminarHorario'            => $horario->eliminar(),
+    'importarHorariosExcel'      => $horario->importarExcel(),
+    'importarExcel'              => $horario->importarExcel(),
+    'exportarHorariosExcel'      => $horario->exportarExcel(),
+    'descargarPlantillaHorarios' => $horario->descargarPlantilla(),
 
     // --- Historial y Reportes ---
     'historial'                => $historial->mostrar(),

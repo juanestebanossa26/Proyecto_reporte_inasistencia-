@@ -31,14 +31,54 @@ let proximaClaseInfo = null;
         coloresFicha = window.horariosData.coloresFicha || {};
         proximaClaseInfo = window.horariosData.proximaClaseInfo || null;
     }
+
+    // Deduplicación estricta en memoria por ID de horario
+    const idsVistos = new Set();
+    todosLosEventos = todosLosEventos.filter(ev => {
+        if (!ev) return false;
+        const clave = ev.id || `${ev.extendedProps?.id_ficha}_${ev.start}_${ev.end}`;
+        if (idsVistos.has(clave)) return false;
+        idsVistos.add(clave);
+        return true;
+    });
 })();
+
+// Decodificador seguro de entidades HTML para textos dinámicos
+function decodificarTexto(texto) {
+    if (!texto || typeof texto !== 'string') return '';
+    const txtArea = document.createElement('textarea');
+    txtArea.innerHTML = texto;
+    return txtArea.value;
+}
 
 // Modales Bootstrap e Instancias
 let modalFichaBs, modalDetalleBs, modalEliminarBs, modalProxBs;
 let calendar;
 let eventoActual = null;
 
+// Reemplazar fuentes de eventos en FullCalendar de forma segura evitando duplicaciones
+function actualizarEventosCalendario(eventos) {
+    if (!calendar) return;
+    try {
+        const fuentesActuales = calendar.getEventSources();
+        fuentesActuales.forEach(fuente => fuente.remove());
+        calendar.addEventSource(eventos);
+    } catch (e) {
+        console.error('Error al actualizar eventos del calendario:', e);
+    }
+}
+
 function inicializarHorarios() {
+    // Si ya existe una instancia previa del calendario, destruirla para evitar acumulaciones
+    if (calendar) {
+        try {
+            calendar.destroy();
+        } catch (e) {
+            console.warn('Destruyendo calendario anterior:', e);
+        }
+        calendar = null;
+    }
+
     // Inicializar modales Bootstrap de forma segura
     const modalFichaEl = document.getElementById('modalFicha');
     if (modalFichaEl && window.bootstrap) modalFichaBs = new bootstrap.Modal(modalFichaEl);
@@ -125,7 +165,19 @@ function inicializarHorarios() {
             const duracionMin = (arg.event.end - arg.event.start) / (1000 * 60);
 
             const div = document.createElement('div');
-            div.className = 'fc-event-main-frame';
+            // Si el evento es un FESTIVO oficial
+            if (props.es_festivo) {
+                html = `
+                    <div class="fc-event-festivo-frame text-center py-1">
+                        <span class="badge bg-dark bg-opacity-25 text-white fw-bold px-2 py-1 text-uppercase" style="letter-spacing: 0.08em; font-size: 0.78rem;">
+                            <i class="bi bi-calendar-event me-1"></i> FESTIVO
+                        </span>
+                        <div class="small text-white-50 mt-1">${props.es_dia_completo ? 'Día no laboral' : `${entrada} – ${salida}`}</div>
+                    </div>
+                `;
+                div.innerHTML = html;
+                return { domNodes: [div] };
+            }
 
             let html = '';
             if (duracionMin <= 45) {
@@ -168,6 +220,10 @@ function inicializarHorarios() {
         // Tooltip nativo al posar el cursor sobre cualquier bloque
         eventDidMount: function(info) {
             const p = info.event.extendedProps || {};
+            if (p.es_festivo) {
+                info.el.setAttribute('title', `DÍA FESTIVO SENA: ${p.fecha} (${p.entrada} - ${p.salida})\nCalendario Oficial - No hay clases programadas`);
+                return;
+            }
             const horario = `${p.entrada || ''} - ${p.salida || ''}`;
             const inst = p.instructor || 'Sin asignar';
             info.el.setAttribute('title', `Ficha: ${p.ficha}\nPrograma: ${p.programa}\nHorario: ${horario}\nInstructor: ${inst}\nAprendices: ${p.aprendices || 0}`);
@@ -230,13 +286,12 @@ function inicializarHorarios() {
 
             // Filtrar eventos directamente en la cuadrícula de FullCalendar
             if (query !== '') {
-                calendar.removeAllEvents();
                 const filtrados = todosLosEventos.filter(ev => {
                     const p = ev.extendedProps || {};
                     const cadena = `${p.ficha} ${p.programa} ${p.instructor} ${p.area || ''}`.toLowerCase();
                     return cadena.includes(query);
                 });
-                calendar.addEventSource(filtrados);
+                actualizarEventosCalendario(filtrados);
             } else {
                 filtrarFichas();
             }
@@ -256,7 +311,56 @@ function inicializarHorarios() {
     // Botones de acción en el modal de detalles
     const btnEditar = document.getElementById('btnEditarDesdeDetalle');
     if (btnEditar) {
-        btnEditar.addEventListener('click', function() {
+        btnEditar.addEventListener('click', function(e) {
+            const estadoTemporal = this.getAttribute('data-estado-temporal') || 'futuro';
+
+            if (estadoTemporal === 'pasado') {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No se puede editar este horario.',
+                        text: 'Esta clase ya finalizó y forma parte del historial de programación. Por seguridad, no se permite modificar horarios pasados.',
+                        confirmButtonColor: '#39a900',
+                        confirmButtonText: 'Entendido'
+                    });
+                } else {
+                    alert('Esta clase ya finalizó y forma parte del historial de programación. Por seguridad, no se permite modificar horarios pasados.');
+                }
+                return;
+            }
+
+            if (estadoTemporal === 'en_curso') {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Horario en curso.',
+                        text: 'Esta clase se está desarrollando actualmente. No es posible modificarla mientras esté en curso.',
+                        confirmButtonColor: '#39a900',
+                        confirmButtonText: 'Entendido'
+                    });
+                } else {
+                    alert('Esta clase se está desarrollando actualmente. No es posible modificarla mientras esté en curso.');
+                }
+                return;
+            }
+
+            if (estadoTemporal === 'indeterminado') {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No se puede editar este horario.',
+                        text: 'No fue posible verificar con precisión la programación de este horario. Por seguridad, no se permite su modificación.',
+                        confirmButtonColor: '#39a900',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+                return;
+            }
+
+            // Horario futuro permitido: abrir modal de edición
             if (modalDetalleBs) modalDetalleBs.hide();
             if (eventoActual) abrirModalEditar(eventoActual);
         });
@@ -264,7 +368,56 @@ function inicializarHorarios() {
 
     const btnEliminar = document.getElementById('btnEliminarDesdeDetalle');
     if (btnEliminar) {
-        btnEliminar.addEventListener('click', function() {
+        btnEliminar.addEventListener('click', function(e) {
+            const estadoTemporal = this.getAttribute('data-estado-temporal') || 'futuro';
+
+            if (estadoTemporal === 'pasado') {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No se puede eliminar este horario',
+                        text: 'Este horario ya finalizó y forma parte del historial de programación. Por seguridad, no se permite eliminar horarios pasados.',
+                        confirmButtonColor: '#39a900',
+                        confirmButtonText: 'Entendido'
+                    });
+                } else {
+                    alert('Este horario ya finalizó y forma parte del historial de programación. Por seguridad, no se permite eliminar horarios pasados.');
+                }
+                return;
+            }
+
+            if (estadoTemporal === 'en_curso') {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No se puede eliminar este horario',
+                        text: 'Esta clase se encuentra actualmente en curso. Por seguridad y consistencia operativa, no se permite eliminar horarios activos.',
+                        confirmButtonColor: '#39a900',
+                        confirmButtonText: 'Entendido'
+                    });
+                } else {
+                    alert('Esta clase se encuentra actualmente en curso. Por seguridad y consistencia operativa, no se permite eliminar horarios activos.');
+                }
+                return;
+            }
+
+            if (estadoTemporal === 'indeterminado') {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No se puede eliminar este horario',
+                        text: 'No fue posible verificar con precisión la programación de este horario. Por seguridad, no se permite su eliminación.',
+                        confirmButtonColor: '#39a900',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+                return;
+            }
+
+            // Horario futuro permitido: abrir confirmación modal existente
             if (modalDetalleBs) modalDetalleBs.hide();
             if (eventoActual) {
                 const idInput = document.getElementById('eliminar_horario_id');
@@ -557,13 +710,27 @@ function filtrarFichas() {
     const badge = document.getElementById('badgeFichasActivas');
     if (badge) badge.innerText = checksActivos.length;
 
+    // Actualizar dinámicamente el enlace de exportación para la ficha seleccionada
+    const btnExport = document.querySelector('a[href*="accion=exportarHorariosExcel"]');
+    if (btnExport) {
+        const baseUrl = btnExport.href.split('?')[0];
+        if (checksActivos.length === 1) {
+            btnExport.href = `${baseUrl}?accion=exportarHorariosExcel&id_ficha=${checksActivos[0]}`;
+        } else {
+            btnExport.href = `${baseUrl}?accion=exportarHorariosExcel`;
+        }
+    }
+
     // Filtrar eventos en el calendario
-    calendar.removeAllEvents();
     const eventosFiltrados = todosLosEventos.filter(ev => {
         const idFicha = ev.extendedProps?.id_ficha;
+        // Si el evento es festivo global (id_ficha === 0), mantenerlo visible
+        if (ev.extendedProps?.es_festivo && (!idFicha || idFicha === 0)) {
+            return true;
+        }
         return checksActivos.includes(idFicha);
     });
-    calendar.addEventSource(eventosFiltrados);
+    actualizarEventosCalendario(eventosFiltrados);
 }
 
 // ==========================================================================
@@ -618,20 +785,102 @@ function abrirDetalleHorario(evento) {
     const elAprendices = document.getElementById('modalDetalleAprendices');
     if (elAprendices) elAprendices.innerText = `${p.aprendices || 0} aprendices matriculados`;
 
-    // Estado de la sesión (Finalizada, En curso, Programada)
+    // Estado de la sesión (Finalizada, En curso, Programada) y control de eliminación
     const badgeEstado = document.getElementById('modalDetalleEstadoBadge');
-    if (badgeEstado && evento.start && evento.end) {
-        const ahora = new Date();
+    const btnEliminar = document.getElementById('btnEliminarDesdeDetalle');
+    const ahora = new Date();
+
+    let estadoSesion = 'futuro';
+    let motivoBloqueo = '';
+
+    if (!evento.start || !evento.end || isNaN(evento.start.getTime()) || isNaN(evento.end.getTime())) {
+        estadoSesion = 'indeterminado';
+        motivoBloqueo = 'No fue posible verificar la programación temporal de este horario.';
+    } else if (ahora >= evento.end) {
+        estadoSesion = 'pasado';
+        motivoBloqueo = 'No puedes eliminar un horario que ya finalizó';
+    } else if (ahora >= evento.start && ahora < evento.end) {
+        estadoSesion = 'en_curso';
+        motivoBloqueo = 'No puedes eliminar una clase que se encuentra actualmente en curso';
+    }
+
+    if (badgeEstado) {
         badgeEstado.className = 'badge-estado-sesion border';
-        if (ahora > evento.end) {
+        if (estadoSesion === 'pasado') {
             badgeEstado.innerText = 'Finalizada';
             badgeEstado.classList.add('bg-secondary', 'text-white');
-        } else if (ahora >= evento.start && ahora <= evento.end) {
+        } else if (estadoSesion === 'en_curso') {
             badgeEstado.innerText = 'En curso';
             badgeEstado.classList.add('bg-success', 'text-white');
         } else {
             badgeEstado.innerText = 'Programada';
             badgeEstado.classList.add('bg-primary-subtle', 'text-primary');
+        }
+    }
+
+    // Configurar estado del botón de eliminar según la temporalidad
+    if (btnEliminar) {
+        btnEliminar.setAttribute('data-estado-temporal', estadoSesion);
+        btnEliminar.setAttribute('data-motivo-bloqueo', motivoBloqueo);
+
+        if (estadoSesion === 'pasado' || estadoSesion === 'en_curso' || estadoSesion === 'indeterminado') {
+            btnEliminar.classList.add('opacity-50');
+            btnEliminar.style.cursor = 'not-allowed';
+            btnEliminar.setAttribute('title', motivoBloqueo);
+        } else {
+            btnEliminar.classList.remove('opacity-50');
+            btnEliminar.style.cursor = 'pointer';
+            btnEliminar.setAttribute('title', 'Eliminar este horario de la programación');
+        }
+    }
+
+    // Configurar estado del botón de editar según la temporalidad
+    const btnEditar = document.getElementById('btnEditarDesdeDetalle');
+    if (btnEditar) {
+        btnEditar.setAttribute('data-estado-temporal', estadoSesion);
+
+        if (estadoSesion === 'pasado') {
+            btnEditar.classList.add('opacity-50');
+            btnEditar.style.cursor = 'not-allowed';
+            btnEditar.setAttribute('title', 'No puedes editar una clase que ya finalizó');
+        } else if (estadoSesion === 'en_curso') {
+            btnEditar.classList.add('opacity-50');
+            btnEditar.style.cursor = 'not-allowed';
+            btnEditar.setAttribute('title', 'No puedes editar una clase que se encuentra actualmente en curso');
+        } else if (estadoSesion === 'indeterminado') {
+            btnEditar.classList.add('opacity-50');
+            btnEditar.style.cursor = 'not-allowed';
+            btnEditar.setAttribute('title', 'No puedes editar un horario con fecha no verificable');
+        } else {
+            btnEditar.classList.remove('opacity-50');
+            btnEditar.style.cursor = 'pointer';
+            btnEditar.setAttribute('title', 'Editar este horario de la programación');
+        }
+    }
+
+    // Adaptación visual exclusiva si el evento es un día FESTIVO
+    if (p.es_festivo) {
+        if (elFicha) elFicha.innerText = 'Día Festivo';
+        if (elProg) elProg.innerText = 'Calendario Institucional SENA';
+        if (elInst) elInst.innerText = 'No aplica (Día Feriado Oficial)';
+        if (elAprendices) elAprendices.innerText = 'Día no laboral - Sin aprendices citados';
+        if (rowArea) rowArea.style.display = 'none';
+        if (badgeEstado) {
+            badgeEstado.className = 'badge-estado-sesion border bg-secondary text-white';
+            badgeEstado.innerText = 'FESTIVO';
+        }
+        if (btnEliminar) {
+            btnEliminar.classList.add('opacity-50');
+            btnEliminar.style.cursor = 'not-allowed';
+            btnEliminar.setAttribute('data-estado-temporal', 'pasado');
+            btnEliminar.setAttribute('data-motivo-bloqueo', 'Los festivos son marcadores oficiales del calendario y no clases regulares.');
+            btnEliminar.setAttribute('title', 'Marcador de festivo');
+        }
+        if (btnEditar) {
+            btnEditar.classList.add('opacity-50');
+            btnEditar.style.cursor = 'not-allowed';
+            btnEditar.setAttribute('data-estado-temporal', 'pasado');
+            btnEditar.setAttribute('title', 'Los festivos son marcadores oficiales del calendario.');
         }
     }
 
@@ -672,6 +921,34 @@ function abrirModalCrear(fecha = '', horaEntrada = '07:00', horaSalida = '13:00'
 }
 
 function abrirModalEditar(evento) {
+    if (evento && evento.start && evento.end) {
+        const ahora = new Date();
+        if (ahora >= evento.end) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No se puede editar este horario.',
+                    text: 'Esta clase ya finalizó y forma parte del historial de programación. Por seguridad, no se permite modificar horarios pasados.',
+                    confirmButtonColor: '#39a900',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+            return;
+        }
+        if (ahora >= evento.start && ahora < evento.end) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Horario en curso.',
+                    text: 'Esta clase se está desarrollando actualmente. No es posible modificarla mientras esté en curso.',
+                    confirmButtonColor: '#39a900',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+            return;
+        }
+    }
+
     const p = evento.extendedProps || {};
     const titModal = document.getElementById('modalTitulo');
     if (titModal) titModal.innerText = 'Editar horario';
