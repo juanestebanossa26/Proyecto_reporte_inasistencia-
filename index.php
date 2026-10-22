@@ -150,6 +150,7 @@ match ($accion) {
 
     // --- Horarios ---
     'horarios'                   => $horario->mostrarHorarios(),
+    'obtenerEventosJson'         => $horario->obtenerEventosJson(),
     'guardarHorario'             => $horario->guardar(),
     'eliminarHorario'            => $horario->eliminar(),
     'importarHorariosExcel'      => $horario->importarExcel(),

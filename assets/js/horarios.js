@@ -96,7 +96,7 @@ function inicializarHorarios() {
     if (!calendarEl || !window.FullCalendar) return;
 
     calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
+        initialView: 'dayGridMonth',
         locale: 'es',
         firstDay: 0, // Domingo
         headerToolbar: false, // Barra propia y limpia arriba
@@ -109,9 +109,32 @@ function inicializarHorarios() {
         nowIndicator: true, // Línea roja con punto para hora actual
         events: todosLosEventos,
         eventDisplay: 'block',
-        dayMaxEvents: false,
+        navLinks: true, // Clic en día navega a la vista de día
+        navLinkDayClick: function(date, jsEvent) {
+            if (calendar) {
+                calendar.gotoDate(date);
+                cambiarVista('timeGridDay');
+            }
+        },
         editable: false,
         selectable: esAdmin,
+
+        views: {
+            dayGridMonth: {
+                dayHeaders: false,
+                dayMaxEvents: 4
+            },
+            timeGridWeek: {
+                dayHeaders: true,
+                slotEventOverlap: false,
+                dayHeaderFormat: { weekday: 'short', day: 'numeric' }
+            },
+            timeGridDay: {
+                dayHeaders: true,
+                slotEventOverlap: false,
+                dayHeaderFormat: { weekday: 'long', day: 'numeric', month: 'long' }
+            }
+        },
 
         // ======================================================================
         // SOLUCIÓN CLAVE A LA SUPERPOSICIÓN:
@@ -131,22 +154,48 @@ function inicializarHorarios() {
             return `${hour} ${meridiem}`;
         },
 
-        // Encabezados de días con nombre y número circular
+        // Encabezados adaptativos según la vista activa (Semana, Día)
         dayHeaderContent: function(arg) {
             const fecha = arg.date;
+            const viewType = arg.view ? arg.view.type : 'dayGridMonth';
             const hoy = new Date();
             const esHoy = fecha.getFullYear() === hoy.getFullYear() &&
                           fecha.getMonth() === hoy.getMonth() &&
                           fecha.getDate() === hoy.getDate();
-            const diasSemana = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
-            const diaNombre = diasSemana[fecha.getDay()];
-            const diaNumero = fecha.getDate();
 
+            const diasSemanaCortos = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+            const diasSemanaLargos = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const mesesLargos = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+            // 1. Vista Mes: No mostrar encabezados de columnas de días
+            if (viewType === 'dayGridMonth') {
+                return false;
+            }
+
+            // 2. Vista Semana: nombres de los días y fechas correspondientes a la semana
+            if (viewType === 'timeGridWeek') {
+                const diaNombre = diasSemanaCortos[fecha.getDay()];
+                const diaNumero = fecha.getDate();
+                return {
+                    html: `
+                        <div class="cal-header-day ${esHoy ? 'is-today' : ''}">
+                            <div class="cal-header-dayname">${diaNombre}</div>
+                            <div class="cal-header-daynum">${diaNumero}</div>
+                        </div>
+                    `
+                };
+            }
+
+            // 3. Vista Día: únicamente la información del día seleccionado
+            const diaNombreCompleto = diasSemanaLargos[fecha.getDay()];
+            const diaNumero = fecha.getDate();
+            const mesNombre = mesesLargos[fecha.getMonth()];
             return {
                 html: `
-                    <div class="cal-header-day ${esHoy ? 'is-today' : ''}">
-                        <div class="cal-header-dayname">${diaNombre}</div>
-                        <div class="cal-header-daynum">${diaNumero}</div>
+                    <div class="cal-header-day cal-header-day-single ${esHoy ? 'is-today' : ''}">
+                        <div class="cal-header-dayname">
+                            ${diaNombreCompleto}, ${diaNumero} de ${mesNombre}
+                        </div>
                     </div>
                 `
             };
@@ -160,12 +209,40 @@ function inicializarHorarios() {
             const entrada = props.entrada || '';
             const salida = props.salida || '';
             const instructor = props.instructor || '';
+            const viewType = arg.view ? arg.view.type : 'dayGridMonth';
 
-            // Duración en minutos
-            const duracionMin = (arg.event.end - arg.event.start) / (1000 * 60);
+            // Cálculo seguro de duración en minutos evitando errores de fecha
+            let duracionMin = 60;
+            if (arg.event.start && arg.event.end) {
+                duracionMin = Math.round((arg.event.end.getTime() - arg.event.start.getTime()) / 60000);
+            }
 
             const div = document.createElement('div');
-            // Si el evento es un FESTIVO oficial
+            let html = '';
+
+            // Adaptación exclusiva para cuadrícula de Vista Mes (dayGridMonth)
+            if (viewType === 'dayGridMonth') {
+                if (props.es_festivo) {
+                    div.className = 'fc-event-festivo-month text-truncate';
+                    div.innerHTML = `
+                        <span class="badge bg-dark bg-opacity-50 text-white fw-bold me-1" style="font-size:0.65rem;">FESTIVO</span>
+                        <span class="text-white small fw-medium">${props.es_dia_completo ? 'Día no laboral' : entrada}</span>
+                    `;
+                    return { domNodes: [div] };
+                }
+
+                div.className = 'fc-event-month-item text-truncate';
+                div.innerHTML = `
+                    <div class="fc-event-title-line text-truncate d-flex align-items-center gap-1" style="line-height:1.2;">
+                        <span class="fc-event-time-short text-white-50 fw-normal" style="font-size:0.68rem;">${entrada}</span>
+                        <span class="fc-event-num fw-bold text-white" style="font-size:0.72rem;">${ficha}</span>
+                        ${programa ? `<span class="fc-event-prog-short text-white-50 text-truncate" style="font-size:0.68rem;">· ${programa}</span>` : ''}
+                    </div>
+                `;
+                return { domNodes: [div] };
+            }
+
+            // Si el evento es un FESTIVO oficial en vistas de tiempo (Semana y Día)
             if (props.es_festivo) {
                 html = `
                     <div class="fc-event-festivo-frame text-center py-1">
@@ -179,7 +256,6 @@ function inicializarHorarios() {
                 return { domNodes: [div] };
             }
 
-            let html = '';
             if (duracionMin <= 45) {
                 // Evento corto: 1 línea compacta
                 html = `
@@ -245,13 +321,15 @@ function inicializarHorarios() {
             }
         },
 
-        // Actualizar título dinámico de periodo
+        // Actualizar título dinámico de periodo y sincronizar botones
         datesSet: function(info) {
             actualizarTituloPeriodo();
+            sincronizarBotonesVista(info.view.type);
         }
     });
 
     calendar.render();
+    filtrarFichas();
 
     // Controles de navegación superior
     const btnToday = document.getElementById('btnToday');
@@ -262,6 +340,16 @@ function inicializarHorarios() {
 
     const btnNext = document.getElementById('btnNext');
     if (btnNext) btnNext.addEventListener('click', () => { if (calendar) calendar.next(); });
+
+    // Selectores de vista Día, Semana y Mes
+    const btnViewDay = document.getElementById('btnViewDay');
+    if (btnViewDay) btnViewDay.addEventListener('click', () => cambiarVista('timeGridDay'));
+
+    const btnViewWeek = document.getElementById('btnViewWeek');
+    if (btnViewWeek) btnViewWeek.addEventListener('click', () => cambiarVista('timeGridWeek'));
+
+    const btnViewMonth = document.getElementById('btnViewMonth');
+    if (btnViewMonth) btnViewMonth.addEventListener('click', () => cambiarVista('dayGridMonth'));
 
     // Toggle de visualización de panel de filtros
     const btnToggleFiltros = document.getElementById('btnToggleFiltros');
@@ -639,11 +727,7 @@ function actualizarTituloPeriodo() {
     }
 }
 
-function cambiarVista(vistaNombre) {
-    if (!calendar) return;
-    calendar.changeView(vistaNombre);
-    
-    // Actualizar botones de vista
+function sincronizarBotonesVista(vistaNombre) {
     document.querySelectorAll('.cal-view-group .btn').forEach(b => b.classList.remove('active'));
     const btnDay = document.getElementById('btnViewDay');
     const btnWeek = document.getElementById('btnViewWeek');
@@ -652,6 +736,42 @@ function cambiarVista(vistaNombre) {
     if (vistaNombre === 'timeGridDay' && btnDay) btnDay.classList.add('active');
     if (vistaNombre === 'timeGridWeek' && btnWeek) btnWeek.classList.add('active');
     if (vistaNombre === 'dayGridMonth' && btnMonth) btnMonth.classList.add('active');
+}
+
+function cambiarVista(vistaNombre) {
+    if (!calendar) return;
+    try {
+        calendar.changeView(vistaNombre);
+        sincronizarBotonesVista(vistaNombre);
+        actualizarTituloPeriodo();
+    } catch (e) {
+        console.error('Error al cambiar de vista en el calendario:', e);
+    }
+}
+
+async function recargarEventosServidor() {
+    try {
+        const resp = await fetch('index.php?accion=obtenerEventosJson');
+        if (!resp.ok) throw new Error('Error HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data && data.exito && Array.isArray(data.eventos)) {
+            todosLosEventos = data.eventos;
+            // Deduplicación estricta en memoria
+            const idsVistos = new Set();
+            todosLosEventos = todosLosEventos.filter(ev => {
+                if (!ev) return false;
+                const clave = ev.id || `${ev.extendedProps?.id_ficha}_${ev.start}_${ev.end}`;
+                if (idsVistos.has(clave)) return false;
+                idsVistos.add(clave);
+                return true;
+            });
+            filtrarFichas();
+            return true;
+        }
+    } catch (e) {
+        console.error('Error al recargar eventos desde el servidor:', e);
+    }
+    return false;
 }
 
 function toggleOcultarFiltros() {
@@ -709,17 +829,6 @@ function filtrarFichas() {
     // Actualizar badge
     const badge = document.getElementById('badgeFichasActivas');
     if (badge) badge.innerText = checksActivos.length;
-
-    // Actualizar dinámicamente el enlace de exportación para la ficha seleccionada
-    const btnExport = document.querySelector('a[href*="accion=exportarHorariosExcel"]');
-    if (btnExport) {
-        const baseUrl = btnExport.href.split('?')[0];
-        if (checksActivos.length === 1) {
-            btnExport.href = `${baseUrl}?accion=exportarHorariosExcel&id_ficha=${checksActivos[0]}`;
-        } else {
-            btnExport.href = `${baseUrl}?accion=exportarHorariosExcel`;
-        }
-    }
 
     // Filtrar eventos en el calendario
     const eventosFiltrados = todosLosEventos.filter(ev => {
@@ -1097,3 +1206,5 @@ window.abrirModalEditar = abrirModalEditar;
 window.habilitarCampos = habilitarCampos;
 window.abrirDetalleProximaClase = abrirDetalleProximaClase;
 window.ubicarProximaClaseEnCalendario = ubicarProximaClaseEnCalendario;
+window.sincronizarBotonesVista = sincronizarBotonesVista;
+window.recargarEventosServidor = recargarEventosServidor;

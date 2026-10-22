@@ -69,10 +69,6 @@ if (!isset($iniciales)) {
                     </p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <a href="<?= BASE_URL ?>/index.php?accion=exportarHorariosExcel" class="btn btn-outline-secondary d-flex align-items-center gap-2" title="Exportar reporte de horarios en Excel">
-                        <i class="bi bi-file-earmark-spreadsheet"></i>
-                        <span>Exportar Excel</span>
-                    </a>
                     <?php if ($rolActivo === 'Administrador'): ?>
                         <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalImportarExcel">
                             <i class="bi bi-file-earmark-excel"></i>
@@ -260,8 +256,8 @@ if (!isset($iniciales)) {
 
                         <div class="btn-group cal-view-group" role="group">
                             <button type="button" class="btn btn-sm" id="btnViewDay" onclick="cambiarVista('timeGridDay')">Día</button>
-                            <button type="button" class="btn btn-sm active" id="btnViewWeek" onclick="cambiarVista('timeGridWeek')">Semana</button>
-                            <button type="button" class="btn btn-sm" id="btnViewMonth" onclick="cambiarVista('dayGridMonth')">Mes</button>
+                            <button type="button" class="btn btn-sm" id="btnViewWeek" onclick="cambiarVista('timeGridWeek')">Semana</button>
+                            <button type="button" class="btn btn-sm active" id="btnViewMonth" onclick="cambiarVista('dayGridMonth')">Mes</button>
                         </div>
                     </div>
                 </div>

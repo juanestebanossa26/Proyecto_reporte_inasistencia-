@@ -288,6 +288,56 @@
     box-shadow: 0 2px 6px rgba(57, 169, 0, 0.28);
 }
 
+/* En vista mensual se oculta exclusivamente la fila de cabecera de columnas (sin afectar semana ni día) */
+.fc-dayGridMonth-view .fc-col-header {
+    display: none !important;
+}
+
+/* Cabecera adaptativa para vista Mes */
+.cal-header-month {
+    padding: 2px 0 4px 0;
+}
+
+.cal-header-month .cal-header-dayname {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--cal-texto-suave);
+    letter-spacing: 0.06em;
+    margin-bottom: 0;
+}
+
+/* Cabecera adaptativa para vista Día */
+.cal-header-day-single {
+    padding: 4px 12px;
+}
+
+.cal-header-day-single .cal-header-dayname {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--cal-texto-fuerte);
+    text-transform: none;
+    letter-spacing: normal;
+    margin-bottom: 0;
+}
+
+.cal-header-day-single.is-today .cal-header-dayname {
+    color: var(--cal-verde-sena);
+}
+
+/* Estilos de eventos compactos en cuadrícula de vista Mes */
+.fc-event-month-item {
+    font-size: 0.72rem;
+    line-height: 1.25;
+    padding: 1px 2px;
+    overflow: hidden;
+}
+
+.fc-event-festivo-month {
+    font-size: 0.70rem;
+    line-height: 1.2;
+    padding: 1px 2px;
+}
+
 /* Sin tinte en la columna de hoy */
 .fc .fc-day-today,
 .fc-theme-standard .fc-timegrid-col.fc-day-today {

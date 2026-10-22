@@ -52,87 +52,11 @@ class HorarioControlador extends ControladorBase
                 $coloresFicha[$idF] = $paletaGoogle[$idx % count($paletaGoogle)];
             }
 
-            // Transformación a formato de eventos FullCalendar
-            $eventosCalendario = [];
-            foreach ($horarios as $h) {
-                $idFicha = (int) $h['id_ficha'];
-                $colorEvento = $coloresFicha[$idFicha] ?? '#039be5';
-
-                $horaEntrada = substr($h['hora_entrada_programada'], 0, 5);
-                $horaSalida  = substr($h['hora_salida_programada'], 0, 5);
-
-                // Duración en minutos y horas
-                $tEntrada = strtotime($h['hora_entrada_programada']);
-                $tSalida  = strtotime($h['hora_salida_programada']);
-                $duracionMinutos = ($tSalida > $tEntrada) ? (int) (($tSalida - $tEntrada) / 60) : 0;
-                $duracionHoras   = round($duracionMinutos / 60, 1);
-
-                $progLimpio = html_entity_decode((string)$h['nombre_programa'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                $instLimpio = html_entity_decode((string)($h['instructor_nombre'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                $areaLimpia = html_entity_decode((string)($h['instructor_area'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-                $eventosCalendario[] = [
-                    'id'              => (string) $h['id_horario'],
-                    'title'           => $h['numero_ficha'] . ' · ' . $progLimpio,
-                    'start'           => $h['fecha'] . 'T' . $horaEntrada . ':00',
-                    'end'             => $h['fecha'] . 'T' . $horaSalida . ':00',
-                    'backgroundColor' => $colorEvento,
-                    'borderColor'     => $colorEvento,
-                    'textColor'       => '#ffffff',
-                    'extendedProps'   => [
-                        'id_ficha'       => $idFicha,
-                        'ficha'          => $h['numero_ficha'],
-                        'programa'       => $progLimpio,
-                        'instructor'     => trim($instLimpio) !== '' ? $instLimpio : 'Sin asignar',
-                        'id_instructor'  => (int) ($h['id_instructor'] ?? 0),
-                        'area'           => trim($areaLimpia),
-                        'entrada'        => $horaEntrada,
-                        'salida'         => $horaSalida,
-                        'duracion_min'   => $duracionMinutos,
-                        'duracion_horas' => $duracionHoras,
-                        'aprendices'     => (int) ($h['total_aprendices'] ?? 0),
-                        'fecha'          => $h['fecha'],
-                        'color'          => $colorEvento,
-                    ]
-                ];
-            }
-
-            // Integración de Días Festivos al Calendario (Marcador visual diferenciado)
+            // Integración de Días Festivos al Calendario
             $festivos = $this->modelo->listarFestivos();
-            foreach ($festivos as $fest) {
-                $hIni = substr($fest['hora_inicio'] ?? '06:00:00', 0, 5);
-                $hFin = substr($fest['hora_fin'] ?? '22:00:00', 0, 5);
-                $esDiaCompleto = (int)($fest['es_dia_completo'] ?? 1);
-                $colorFestivo = '#607d8b'; // Gris azulado / pizarra neutro diferenciado
-                $numFichaFest = !empty($fest['numero_ficha']) ? $fest['numero_ficha'] : 'General';
 
-                $eventosCalendario[] = [
-                    'id'              => 'festivo_' . $fest['id_festivo'],
-                    'title'           => 'FESTIVO',
-                    'start'           => $fest['fecha'] . 'T' . $hIni . ':00',
-                    'end'             => $fest['fecha'] . 'T' . $hFin . ':00',
-                    'backgroundColor' => $colorFestivo,
-                    'borderColor'     => '#455a64',
-                    'textColor'       => '#ffffff',
-                    'extendedProps'   => [
-                        'es_festivo'     => true,
-                        'es_dia_completo'=> $esDiaCompleto,
-                        'id_ficha'       => (int)($fest['id_ficha'] ?? 0),
-                        'ficha'          => $numFichaFest,
-                        'programa'       => 'Día Festivo Institucional',
-                        'instructor'     => 'FESTIVO',
-                        'id_instructor'  => 0,
-                        'area'           => 'Calendario Oficial SENA',
-                        'entrada'        => $hIni,
-                        'salida'         => $hFin,
-                        'duracion_min'   => 0,
-                        'duracion_horas' => 0,
-                        'aprendices'     => 0,
-                        'fecha'          => $fest['fecha'],
-                        'color'          => $colorFestivo,
-                    ]
-                ];
-            }
+            // Transformación a formato de eventos FullCalendar
+            $eventosCalendario = $this->formatearEventos($horarios, $festivos, $coloresFicha);
 
             // Resumen de la Jornada para el instructor
             $fechaHoy     = date('Y-m-d');
@@ -672,6 +596,135 @@ class HorarioControlador extends ControladorBase
                 $this->urlAccion('horarios')
             );
         }
+    }
+
+    // accion=obtenerEventosJson (GET) - Endpoint AJAX para recarga segura de eventos
+    public function obtenerEventosJson(): void
+    {
+        $this->exigirSesion(['Administrador', 'Instructor']);
+
+        header('Content-Type: application/json; charset=utf-8');
+
+        $rolActivo          = $_SESSION['rol'] ?? 'Administrador';
+        $esInstructor       = (strtolower($rolActivo) === 'instructor');
+        $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
+
+        try {
+            $horarios     = $this->modelo->listarHorarios($idInstructorSesion);
+            $festivos     = $this->modelo->listarFestivos();
+            $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion);
+
+            $paletaGoogle = [
+                '#1976d2', '#2e7d32', '#7b1fa2', '#c2185b', '#d97706',
+                '#e65100', '#303f9f', '#00796b', '#d32f2f', '#455a64',
+                '#00838f', '#4e342e'
+            ];
+
+            $coloresFicha = [];
+            foreach ($fichas as $idx => $f) {
+                $idF = (int) $f['id_ficha'];
+                $coloresFicha[$idF] = $paletaGoogle[$idx % count($paletaGoogle)];
+            }
+
+            $eventos = $this->formatearEventos($horarios, $festivos, $coloresFicha);
+
+            echo json_encode([
+                'exito'   => true,
+                'eventos' => $eventos
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            http_response_code(500);
+            echo json_encode([
+                'exito'   => false,
+                'mensaje' => 'Error al obtener los eventos: ' . $e->getMessage()
+            ], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
+
+    // Formateo uniforme de horarios y festivos a la especificación de FullCalendar
+    private function formatearEventos(array $horarios, array $festivos, array $coloresFicha): array
+    {
+        $eventosCalendario = [];
+
+        foreach ($horarios as $h) {
+            $idFicha = (int) $h['id_ficha'];
+            $colorEvento = $coloresFicha[$idFicha] ?? '#039be5';
+
+            $horaEntrada = substr($h['hora_entrada_programada'], 0, 5);
+            $horaSalida  = substr($h['hora_salida_programada'], 0, 5);
+
+            $tEntrada = strtotime($h['hora_entrada_programada']);
+            $tSalida  = strtotime($h['hora_salida_programada']);
+            $duracionMinutos = ($tSalida > $tEntrada) ? (int) (($tSalida - $tEntrada) / 60) : 0;
+            $duracionHoras   = round($duracionMinutos / 60, 1);
+
+            $progLimpio = html_entity_decode((string)$h['nombre_programa'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $instLimpio = html_entity_decode((string)($h['instructor_nombre'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $areaLimpia = html_entity_decode((string)($h['instructor_area'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+            $eventosCalendario[] = [
+                'id'              => (string) $h['id_horario'],
+                'title'           => $h['numero_ficha'] . ' · ' . $progLimpio,
+                'start'           => $h['fecha'] . 'T' . $horaEntrada . ':00',
+                'end'             => $h['fecha'] . 'T' . $horaSalida . ':00',
+                'backgroundColor' => $colorEvento,
+                'borderColor'     => $colorEvento,
+                'textColor'       => '#ffffff',
+                'extendedProps'   => [
+                    'id_ficha'       => $idFicha,
+                    'ficha'          => $h['numero_ficha'],
+                    'programa'       => $progLimpio,
+                    'instructor'     => trim($instLimpio) !== '' ? $instLimpio : 'Sin asignar',
+                    'id_instructor'  => (int) ($h['id_instructor'] ?? 0),
+                    'area'           => trim($areaLimpia),
+                    'entrada'        => $horaEntrada,
+                    'salida'         => $horaSalida,
+                    'duracion_min'   => $duracionMinutos,
+                    'duracion_horas' => $duracionHoras,
+                    'aprendices'     => (int) ($h['total_aprendices'] ?? 0),
+                    'fecha'          => $h['fecha'],
+                    'color'          => $colorEvento,
+                ]
+            ];
+        }
+
+        foreach ($festivos as $fest) {
+            $hIni = substr($fest['hora_inicio'] ?? '06:00:00', 0, 5);
+            $hFin = substr($fest['hora_fin'] ?? '22:00:00', 0, 5);
+            $esDiaCompleto = (int)($fest['es_dia_completo'] ?? 1);
+            $colorFestivo = '#607d8b';
+            $numFichaFest = !empty($fest['numero_ficha']) ? $fest['numero_ficha'] : 'General';
+
+            $eventosCalendario[] = [
+                'id'              => 'festivo_' . $fest['id_festivo'],
+                'title'           => 'FESTIVO',
+                'start'           => $fest['fecha'] . 'T' . $hIni . ':00',
+                'end'             => $fest['fecha'] . 'T' . $hFin . ':00',
+                'backgroundColor' => $colorFestivo,
+                'borderColor'     => '#455a64',
+                'textColor'       => '#ffffff',
+                'extendedProps'   => [
+                    'es_festivo'     => true,
+                    'es_dia_completo'=> $esDiaCompleto,
+                    'id_ficha'       => (int)($fest['id_ficha'] ?? 0),
+                    'ficha'          => $numFichaFest,
+                    'programa'       => 'Día Festivo Institucional',
+                    'instructor'     => 'FESTIVO',
+                    'id_instructor'  => 0,
+                    'area'           => 'Calendario Oficial SENA',
+                    'entrada'        => $hIni,
+                    'salida'         => $hFin,
+                    'duracion_min'   => 0,
+                    'duracion_horas' => 0,
+                    'aprendices'     => 0,
+                    'fecha'          => $fest['fecha'],
+                    'color'          => $colorFestivo,
+                ]
+            ];
+        }
+
+        return $eventosCalendario;
     }
 }
 
