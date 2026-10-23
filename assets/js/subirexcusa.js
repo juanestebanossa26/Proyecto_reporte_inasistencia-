@@ -1,46 +1,85 @@
 $(document).ready(function () {
   $("#tablaExcusas").DataTable({
-    language: {
-      decimal: "",
-      emptyTable: "No hay datos disponibles en la tabla",
-      info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-      infoEmpty: "Mostrando 0 a 0 de 0 registros",
-      infoFiltered: "(filtrado de _MAX_ registros totales)",
-      infoPostFix: "",
-      thousands: ",",
-      lengthMenu: "Mostrar _MENU_ registros",
-      loadingRecords: "Cargando...",
-      processing: "Procesando...",
-      search: "Buscar:",
-      zeroRecords: "No se encontraron resultados",
-      paginate: {
-        first: "Primero",
-        last: "Último",
-        next: "Siguiente",
-        previous: "Anterior",
-      },
-      aria: {
-        sortAscending: ": activar para ordenar la columna de manera ascendente",
-        sortDescending:
-          ": activar para ordenar la columna de manera descendente",
-      },
-    },
+    language: typeof DATATABLES_ESPANOL !== "undefined" ? DATATABLES_ESPANOL : {},
     pageLength: 5,
     lengthMenu: [5, 10, 25, 50],
     ordering: true,
   });
 
-  // "Marcar todas" las fechas, para no tener que dar clic una por una
-  // cuando el mismo soporte cubre varios días.
+  // "Marcar todas" las fechas
   $("#btnSeleccionarTodas").on("click", function () {
     var checks = $(".fecha-excusa-check");
     var faltanPorMarcar = checks.filter(":not(:checked)").length > 0;
     checks.prop("checked", faltanPorMarcar);
+    checks.each(function () {
+      $(this).closest(".fecha-item-card").toggleClass("is-selected", faltanPorMarcar);
+    });
     $(this).text(faltanPorMarcar ? "Desmarcar todas" : "Marcar todas");
   });
 
+  // Resaltar tarjeta al marcar checkbox individual
+  $(document).on("change", ".fecha-excusa-check", function () {
+    $(this).closest(".fecha-item-card").toggleClass("is-selected", this.checked);
+  });
+
+  // Manejo del Dropzone Minimalista
+  var archivoInput = document.getElementById("archivoInput");
+  var dropzonePrompt = document.getElementById("dropzonePrompt");
+  var dropzonePreview = document.getElementById("dropzonePreview");
+  var fileNamePreview = document.getElementById("fileNamePreview");
+  var btnQuitarArchivo = document.getElementById("btnQuitarArchivo");
+
+  if (archivoInput) {
+    archivoInput.addEventListener("change", function () {
+      if (this.files && this.files.length > 0) {
+        var file = this.files[0];
+        if (fileNamePreview) fileNamePreview.textContent = file.name;
+        if (dropzonePrompt) {
+          dropzonePrompt.classList.add("d-none");
+          dropzonePrompt.classList.remove("d-flex");
+        }
+        if (dropzonePreview) {
+          dropzonePreview.classList.remove("d-none");
+          dropzonePreview.classList.add("d-flex");
+        }
+      }
+    });
+
+    if (btnQuitarArchivo) {
+      btnQuitarArchivo.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        archivoInput.value = "";
+        if (dropzonePreview) {
+          dropzonePreview.classList.add("d-none");
+          dropzonePreview.classList.remove("d-flex");
+        }
+        if (dropzonePrompt) {
+          dropzonePrompt.classList.remove("d-none");
+          dropzonePrompt.classList.add("d-flex");
+        }
+      });
+    }
+  }
+
+  // Drag and drop visual feedback
+  var dropzoneBox = document.getElementById("dropzoneBox");
+  if (dropzoneBox) {
+    ["dragenter", "dragover"].forEach(function (eventName) {
+      dropzoneBox.addEventListener(eventName, function (e) {
+        e.preventDefault();
+        dropzoneBox.classList.add("drag-over");
+      });
+    });
+    ["dragleave", "drop"].forEach(function (eventName) {
+      dropzoneBox.addEventListener(eventName, function (e) {
+        e.preventDefault();
+        dropzoneBox.classList.remove("drag-over");
+      });
+    });
+  }
+
   // Botón "Editar y reenviar": precarga el modal con el motivo actual
-  // y el id_excusa correcto, para que el reenvío sea sobre la misma excusa.
   var modalReenviarEl = document.getElementById("modalReenviarExcusa");
   var modalReenviarBs = modalReenviarEl
     ? new bootstrap.Modal(modalReenviarEl)

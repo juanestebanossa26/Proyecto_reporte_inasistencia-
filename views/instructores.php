@@ -1,9 +1,9 @@
 <?php
 $rolActivo     = $_SESSION['rol'] ?? 'Administrador';
-$nombreUsuario =$_SESSION['nombre'] ?? '';
-$paginaActiva = 'instructores'; 
-$tituloPagina = 'Instructores';
-$instructores = $instructores ?? [];
+$nombreUsuario = $_SESSION['nombre'] ?? '';
+$paginaActiva  = 'instructores'; 
+$tituloPagina  = 'Instructores';
+$instructores  = $instructores ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -34,26 +34,40 @@ $instructores = $instructores ?? [];
                     <table id="tablaInstructores" class="table table-app align-middle mb-0" style="width:100%">
                         <thead>
                             <tr>
-                                <th>Instructor</th>
-                                <th>Usuario</th>
-                                <th>Área</th>
-                                <th>Correo</th>
-                                <th>Estado</th>
-                                <th class="text-end" data-orderable="false">Acciones</th>
+                                <th style="width: 32%;">Instructor</th>
+                                <th style="width: 24%;">Usuario</th>
+                                <th style="width: 26%;">Área</th>
+                                <th style="width: 10%;">Estado</th>
+                                <th style="width: 8%;" class="text-end" data-orderable="false">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                         <?php foreach ($instructores as $fila) { 
-                            $estado = strtolower(trim($fila['estado']));
+                            $estado  = strtolower(trim($fila['estado']));
+                            $nombre  = htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8');
+                            $usuario = htmlspecialchars($fila['usuario'] ?? '', ENT_QUOTES, 'UTF-8');
+                            $area    = htmlspecialchars($fila['area'] ?? '', ENT_QUOTES, 'UTF-8');
+                            $correo  = htmlspecialchars($fila['correo_electronico'] ?? '', ENT_QUOTES, 'UTF-8');
                         ?>
                             <tr>
-                                <td class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
-                                    <?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>
+                                <td class="text-nowrap">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="avatar-circ flex-shrink-0"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
+                                        <span class="fw-semibold text-truncate" style="max-width: 260px;" title="<?= $nombre ?>">
+                                            <?= $nombre ?>
+                                        </span>
+                                    </div>
                                 </td>
-                                <td><?= htmlspecialchars($fila['usuario'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars($fila['area'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= htmlspecialchars($fila['correo_electronico'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                <td class="text-nowrap">
+                                    <span class="text-truncate d-inline-block text-secondary" style="max-width: 190px;" title="<?= $usuario ?>">
+                                        <?= $usuario ?>
+                                    </span>
+                                </td>
+                                <td class="text-nowrap">
+                                    <span class="text-truncate d-inline-block" style="max-width: 240px;" title="<?= $area ?: 'Sin área' ?>">
+                                        <?= $area ?: '<span class="text-muted">Sin área</span>' ?>
+                                    </span>
+                                </td>
                                 <td>
                                     <?php
                                     $badgeClass = match($estado) {
@@ -67,18 +81,18 @@ $instructores = $instructores ?? [];
                                         <?= htmlspecialchars($fila['estado'], ENT_QUOTES, 'UTF-8') ?>
                                     </span>
                                 </td>
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
                                     <div class="d-inline-flex align-items-center gap-1">
                                         <!-- Botón Editar -->
                                         <button type="button" 
                                                 class="btn btn-sm btn-outline-secondary border-0 btn-editar-instructor" 
                                                 title="Editar"
                                                 data-id="<?= $fila['id_usuario'] ?>"
-                                                data-nombre="<?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>"
-                                                data-usuario="<?= htmlspecialchars($fila['usuario'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-documento="<?= htmlspecialchars($fila['usuario'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-area="<?= htmlspecialchars($fila['area'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-correo="<?= htmlspecialchars($fila['correo_electronico'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                                data-nombre="<?= $nombre ?>"
+                                                data-usuario="<?= $usuario ?>"
+                                                data-documento="<?= $usuario ?>"
+                                                data-area="<?= $area ?>"
+                                                data-correo="<?= $correo ?>">
                                             <i class="bi bi-pencil-square"></i>
                                         </button>
 
@@ -87,7 +101,7 @@ $instructores = $instructores ?? [];
                                             <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-estado-instructor" 
                                                     title="Inactivar instructor"
                                                     data-id="<?= $fila['id_usuario'] ?>"
-                                                    data-nombre="<?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-nombre="<?= $nombre ?>"
                                                     data-accion-tipo="desactivar">
                                                 <i class="bi bi-slash-circle"></i>
                                             </button>
@@ -95,7 +109,7 @@ $instructores = $instructores ?? [];
                                             <button type="button" class="btn btn-sm btn-outline-success border-0 btn-estado-instructor" 
                                                     title="Activar instructor"
                                                     data-id="<?= $fila['id_usuario'] ?>"
-                                                    data-nombre="<?= htmlspecialchars($fila['nombre_completo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-nombre="<?= $nombre ?>"
                                                     data-accion-tipo="activar">
                                                 <i class="bi bi-check-circle"></i>
                                             </button>
@@ -177,17 +191,14 @@ $instructores = $instructores ?? [];
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/datatables-es.js"></script>
 
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<!-- Definición de BASE_URL -->
-<script>
-    const BASE_URL = '<?= BASE_URL ?>';
-</script>
 
 <!-- Script para instructores -->
-<script src="<?= BASE_URL ?>/assets/js/instructor.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/instructor.js?v=<?= file_exists(BASE_PATH . '/assets/js/instructor.js') ? filemtime(BASE_PATH . '/assets/js/instructor.js') : '1.0' ?>"></script>
 
 </body>
 </html>

@@ -6,7 +6,7 @@ $(document).ready(function () {
     },
     pageLength: 10,
     responsive: true,
-    columnDefs: [{ orderable: false, targets: 5 }],
+    columnDefs: [{ orderable: false, targets: -1 }],
   });
 
   let modalInstructorEl = document.getElementById("modalInstructor");

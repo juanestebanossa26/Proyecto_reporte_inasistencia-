@@ -9,16 +9,12 @@ class MarcajeControlador extends ControladorBase
     // accion=marcaje -> muestra el lector + los últimos marcajes de hoy.
     public function mostrar(): void
     {
-        $this->exigirSesion(['Instructor', 'Administrador']);
+        $this->exigirSesion(['Instructor']);
 
         $hoy = date('Y-m-d');
 
-        // Un instructor solo ve los marcajes de sus propios bloques/fichas; el
-        // administrador los ve todos.
-        $idInstructorFiltro = null;
-        if (($_SESSION['rol'] ?? '') === 'Instructor') {
-            $idInstructorFiltro = (int) ($_SESSION['id'] ?? 0);
-        }
+        // Un instructor solo ve los marcajes de sus propios bloques/fichas
+        $idInstructorFiltro = (int) ($_SESSION['id'] ?? 0);
 
         try {
             $marcajeModelo   = new MarcajeModelo();
@@ -37,7 +33,7 @@ class MarcajeControlador extends ControladorBase
     // sin recargar la página.
     public function marcar(): void
     {
-        $this->exigirSesion(['Instructor', 'Administrador']);
+        $this->exigirSesion(['Instructor']);
         header('Content-Type: application/json; charset=utf-8');
 
         if (!Seguridad::validarCsrf($_POST['csrf_token'] ?? null)) {

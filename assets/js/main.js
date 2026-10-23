@@ -44,3 +44,78 @@
     new bootstrap.Tooltip(el);
   });
 })();
+
+
+/* ============================================================
+   Paginación interactiva para tablas de Dashboard (ej. Ingresos Recientes)
+   ============================================================ */
+function initDashboardTablePagination(tablaId, controlesId, porPagina = 5) {
+  const tabla = document.getElementById(tablaId);
+  const controles = document.getElementById(controlesId);
+  if (!tabla || !controles) return;
+
+  const filas = Array.from(tabla.querySelectorAll('tbody tr.fila-dashboard'));
+  if (filas.length === 0) {
+    controles.classList.add('d-none');
+    return;
+  }
+
+  let paginaActual = 1;
+  const totalPaginas = Math.ceil(filas.length / porPagina);
+
+  const btnPrev = controles.querySelector('.btn-prev');
+  const btnNext = controles.querySelector('.btn-next');
+  const infoTexto = controles.querySelector('.info-paginacion');
+  const indicador = controles.querySelector('.indicador-pagina');
+
+  function render() {
+    const inicio = (paginaActual - 1) * porPagina;
+    const fin = inicio + porPagina;
+
+    filas.forEach((fila, idx) => {
+      fila.style.display = (idx >= inicio && idx < fin) ? '' : 'none';
+    });
+
+    if (infoTexto) {
+      const hasta = Math.min(fin, filas.length);
+      infoTexto.textContent = `Mostrando ${inicio + 1} - ${hasta} de ${filas.length} registros`;
+    }
+
+    if (indicador) {
+      indicador.textContent = `Pág. ${paginaActual} de ${totalPaginas}`;
+    }
+
+    if (btnPrev) btnPrev.disabled = (paginaActual <= 1);
+    if (btnNext) btnNext.disabled = (paginaActual >= totalPaginas);
+
+    if (totalPaginas <= 1) {
+      if (btnPrev) btnPrev.style.display = 'none';
+      if (btnNext) btnNext.style.display = 'none';
+      if (indicador) indicador.style.display = 'none';
+    } else {
+      if (btnPrev) btnPrev.style.display = '';
+      if (btnNext) btnNext.style.display = '';
+      if (indicador) indicador.style.display = '';
+    }
+  }
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', function () {
+      if (paginaActual > 1) {
+        paginaActual--;
+        render();
+      }
+    });
+  }
+
+  if (btnNext) {
+    btnNext.addEventListener('click', function () {
+      if (paginaActual < totalPaginas) {
+        paginaActual++;
+        render();
+      }
+    });
+  }
+
+  render();
+}

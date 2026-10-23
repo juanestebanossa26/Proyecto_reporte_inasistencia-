@@ -32,47 +32,55 @@ $tituloPagina  = 'Excusas médicas';
             <div class="row g-3">
                 <div class="col-lg-5">
                     <div class="card p-3">
-                        <h2 class="h6 fw-bold mb-3">Anexar nueva excusa</h2>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h2 class="h6 fw-bold mb-0">Anexar nueva excusa</h2>
+                            <span class="badge bg-light text-muted border" style="font-size: .75rem;">Paso a paso</span>
+                        </div>
 
                         <form action="<?= BASE_URL ?>/index.php?accion=guardarExcusa" method="POST" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Seguridad::tokenCsrf()) ?>">
 
-                            <div class="mb-3">
-                                <label class="form-label d-flex justify-content-between align-items-center">
-                                    <span>Fechas que cubre esta excusa</span>
+                            <!-- Selección de Fechas -->
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label small fw-semibold text-muted mb-0">Fechas a excusar</label>
                                     <?php if (!empty($fechas_faltas)): ?>
-                                    <button type="button" class="btn btn-link btn-sm p-0" id="btnSeleccionarTodas">Marcar todas</button>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="btnSeleccionarTodas" style="font-size:.78rem;">Marcar todas</button>
                                     <?php endif; ?>
-                                </label>
+                                </div>
 
                                 <?php if (empty($fechas_faltas)): ?>
-                                    <p class="text-suave mb-0 small">No tienes inasistencias pendientes por excusar.</p>
+                                    <div class="p-3 text-center bg-light rounded-3 border">
+                                        <i class="bi bi-check2-circle text-success fs-3 mb-1 d-block"></i>
+                                        <p class="text-suave mb-0 small">No tienes inasistencias pendientes por excusar.</p>
+                                    </div>
                                 <?php else: ?>
-                                    <div class="border rounded-3 p-2" style="max-height:220px; overflow-y:auto; background: #fafbfa;">
+                                    <div class="border rounded-3 p-2" style="max-height:170px; overflow-y:auto; background: #fafbfa;">
                                         <?php foreach ($fechas_faltas as $fila): ?>
-                                            <div class="p-2 mb-2 bg-white rounded-3 border">
-                                                <div class="form-check">
+                                            <div class="fecha-item-card p-2 mb-2">
+                                                <div class="form-check m-0">
                                                     <input class="form-check-input fecha-excusa-check" type="checkbox"
                                                            name="fecha_excusa[]"
                                                            value="<?= htmlspecialchars($fila['ids_asistencia_str'] ?? $fila['id_asistencia'] ?? '') ?>"
                                                            id="fecha_<?= htmlspecialchars($fila['fecha'] ?? '') ?>">
                                                     <label class="form-check-label w-100" for="fecha_<?= htmlspecialchars($fila['fecha'] ?? '') ?>" style="cursor:pointer;">
                                                         <div class="d-flex justify-content-between align-items-center">
-                                                            <span class="fw-bold text-dark"><i class="bi bi-calendar-event me-1 text-sena"></i><?= htmlspecialchars($fila['fecha_formateada'] ?? $fila['fecha'] ?? '') ?></span>
+                                                            <span class="fw-bold text-dark" style="font-size:.85rem;">
+                                                                <i class="bi bi-calendar-check me-1 text-sena"></i><?= htmlspecialchars($fila['fecha_formateada'] ?? $fila['fecha'] ?? '') ?>
+                                                            </span>
                                                             <?php if (!empty($fila['total_bloques']) && $fila['total_bloques'] > 1): ?>
-                                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: .7rem;">
+                                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: .68rem;">
                                                                     <i class="bi bi-layers me-1"></i><?= $fila['total_bloques'] ?> Bloques
                                                                 </span>
                                                             <?php endif; ?>
                                                         </div>
                                                         <?php if (!empty($fila['instructores_texto'])): ?>
-                                                        <div class="small text-muted mt-1" style="font-size: .78rem;">
-                                                            <i class="bi bi-person-badge text-secondary me-1"></i>
-                                                            <span class="fw-semibold text-dark">Instructor(es):</span> <?= htmlspecialchars($fila['instructores_texto']) ?>
+                                                        <div class="text-truncate text-secondary mt-1" style="font-size: .75rem;" title="<?= htmlspecialchars($fila['instructores_texto']) ?>">
+                                                            <i class="bi bi-person me-1"></i><?= htmlspecialchars($fila['instructores_texto']) ?>
                                                         </div>
                                                         <?php endif; ?>
                                                         <?php if (!empty($fila['bloques_texto'])): ?>
-                                                        <div class="text-suave mt-1" style="font-size: .72rem;">
+                                                        <div class="text-muted mt-0" style="font-size: .72rem;">
                                                             <i class="bi bi-clock me-1"></i><?= htmlspecialchars($fila['bloques_texto']) ?>
                                                         </div>
                                                         <?php endif; ?>
@@ -81,27 +89,49 @@ $tituloPagina  = 'Excusas médicas';
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <small class="text-suave">
-                                        <i class="bi bi-info-circle me-1"></i>
-                                        Elige la fecha de la falta. Si ese día hubo dos o más bloques, quedará vinculada automáticamente a los instructores correspondientes.
+                                    <small class="text-muted d-block mt-1" style="font-size: .73rem;">
+                                        <i class="bi bi-info-circle me-1"></i>Selecciona una o más fechas.
                                     </small>
                                 <?php endif; ?>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Motivo</label>
-                                <textarea class="form-control" name="motivo" rows="3" placeholder="Ej: Cita médica EPS" required></textarea>
+                            <!-- Motivo compacto -->
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted mb-1">Motivo</label>
+                                <textarea class="form-control" name="motivo" rows="2" placeholder="Ej: Cita médica EPS, calamidad doméstica..." required style="resize:none; font-size:.85rem;"></textarea>
                             </div>
+
+                            <!-- Dropzone minimalista -->
                             <div class="mb-3">
-                                <label class="form-label">Soporte (PDF)</label>
-                                <div class="dropzone-excusa">
-                                    <i class="bi bi-cloud-arrow-up text-sena" style="font-size:1.6rem;"></i>
-                                    <p class="mb-1 mt-2 fw-semibold" style="font-size:.9rem;">Arrastra tu archivo aquí</p>
-                                    <p class="text-suave mb-2" style="font-size:.8rem;">o haz clic para seleccionarlo</p>
-                                    <input type="file" name="archivo" class="form-control" accept="application/pdf">
+                                <label class="form-label small fw-semibold text-muted mb-1">Soporte (PDF)</label>
+                                <div class="dropzone-minimal" id="dropzoneBox">
+                                    <input type="file" name="archivo" id="archivoInput" class="dropzone-input" accept="application/pdf" required>
+
+                                    <!-- Prompt inicial en una sola fila minimalista -->
+                                    <div id="dropzonePrompt" class="d-flex align-items-center justify-content-center gap-2 py-2 px-3 text-center" style="min-height:50px;">
+                                        <i class="bi bi-cloud-arrow-up text-sena fs-4"></i>
+                                        <div class="text-start">
+                                            <div class="fw-semibold text-dark" style="font-size:.82rem; line-height:1.2;">Adjuntar documento PDF</div>
+                                            <div class="text-muted" style="font-size:.73rem;">Arrastra aquí o haz clic para examinar</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Vista previa al seleccionar archivo -->
+                                    <div id="dropzonePreview" class="d-none align-items-center justify-content-between w-100 py-2 px-3 bg-light rounded-3" style="min-height:50px;">
+                                        <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                                            <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                                            <span id="fileNamePreview" class="fw-semibold text-dark text-truncate" style="font-size:.82rem;">archivo.pdf</span>
+                                        </div>
+                                        <button type="button" id="btnQuitarArchivo" class="btn btn-sm btn-link text-danger p-0 border-0" title="Quitar archivo" style="z-index: 3;">
+                                            <i class="bi bi-x-circle-fill fs-6"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-sena w-100">Enviar excusa</button>
+
+                            <button type="submit" class="btn btn-sena w-100 py-2 fw-semibold" style="font-size:.88rem;">
+                                <i class="bi bi-send me-1"></i> Enviar excusa
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -255,8 +285,9 @@ $tituloPagina  = 'Excusas médicas';
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/datatables-es.js"></script>
 
 <!-- Inicialización -->
-<script src="<?= BASE_URL ?>/assets/js/subirexcusa.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/subirexcusa.js?v=<?= file_exists(BASE_PATH . '/assets/js/subirexcusa.js') ? filemtime(BASE_PATH . '/assets/js/subirexcusa.js') : '1.0' ?>"></script>
 </body>
 </html>

@@ -1,0 +1,48 @@
+/* ============================================================
+   Estilos exclusivos para los paneles Dashboard (Admin e Instructor)
+   ============================================================ */
+
+.kpi-card {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
+}
+
+.action-pill {
+  font-size: .84rem;
+  font-weight: 600;
+  padding: .45rem .85rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid var(--linea);
+  color: var(--texto-fuerte);
+  transition: all .15s ease;
+}
+
+.action-pill:hover {
+  background: var(--sena-verde);
+  border-color: var(--sena-verde);
+  color: #fff;
+}
+
+.report-banner {
+  background: linear-gradient(135deg, #10241C 0%, #1F7A00 100%);
+  color: #fff;
+  border-radius: var(--radius);
+}
+
+.class-badge-time {
+  background: rgba(57, 169, 0, .1);
+  color: var(--sena-verde-oscuro);
+  font-weight: 700;
+  padding: .35rem .65rem;
+  border-radius: 8px;
+  font-size: .82rem;
+}

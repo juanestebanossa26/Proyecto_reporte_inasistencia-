@@ -23,42 +23,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
 <html lang="es">
 <head>
     <?php include 'includes/head.php'; ?>
-    <style>
-        .kpi-card {
-            transition: transform .15s ease, box-shadow .15s ease;
-        }
-        .kpi-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(0,0,0,.06);
-        }
-        .action-pill {
-            font-size: .84rem;
-            font-weight: 600;
-            padding: .45rem .85rem;
-            border-radius: 999px;
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-            text-decoration: none;
-            background: #fff;
-            border: 1px solid var(--linea);
-            color: var(--texto-fuerte);
-            transition: all .15s ease;
-        }
-        .action-pill:hover {
-            background: var(--sena-verde);
-            border-color: var(--sena-verde);
-            color: #fff;
-        }
-        .class-badge-time {
-            background: rgba(57,169,0,.1);
-            color: var(--sena-verde-oscuro);
-            font-weight: 700;
-            padding: .35rem .65rem;
-            border-radius: 8px;
-            font-size: .82rem;
-        }
-    </style>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/dashboard.css?v=<?= file_exists(BASE_PATH . '/assets/css/dashboard.css') ? filemtime(BASE_PATH . '/assets/css/dashboard.css') : '1.0' ?>">
 </head>
 <body>
 <div class="app-shell">
@@ -114,7 +79,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
             </div>
 
             <!-- KPIs de Fichas y Aprendices a cargo -->
-            <div class="row g-3 mb-3">
+            <div class="row g-3 mb-4">
                 <div class="col-6 col-md-3">
                     <div class="card kpi-card p-3 h-100">
                         <div class="d-flex align-items-center gap-3">
@@ -168,37 +133,6 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                                 <div class="h4 fw-bold mb-0 text-danger"><?= number_format($kpis['excusas_pendientes'] ?? 0) ?></div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- KPIs de Asistencia de Hoy en mis Fichas -->
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 h-100 border-start border-4 border-primary">
-                        <div class="text-suave" style="font-size:.76rem;">Marcajes Hoy en mis Fichas</div>
-                        <div class="h3 fw-bold mb-0 text-primary"><?= number_format($kpis['asistencias_hoy'] ?? 0) ?></div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 h-100 border-start border-4 border-success">
-                        <div class="text-suave" style="font-size:.76rem;">A Tiempo / Asistencias</div>
-                        <div class="h3 fw-bold mb-0 text-sena"><?= number_format($kpis['a_tiempo_hoy'] ?? 0) ?></div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 h-100 border-start border-4 border-warning">
-                        <div class="text-suave" style="font-size:.76rem;">Retardos Hoy</div>
-                        <div class="h3 fw-bold mb-0" style="color:#8a6300;"><?= number_format($kpis['retardos_hoy'] ?? 0) ?></div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-3">
-                    <div class="card kpi-card p-3 h-100 border-start border-4 border-danger">
-                        <div class="text-suave" style="font-size:.76rem;">Inasistencias Hoy</div>
-                        <div class="h3 fw-bold mb-0" style="color:#B4212B;"><?= number_format($kpis['inasistencias_hoy'] ?? 0) ?></div>
                     </div>
                 </div>
             </div>
@@ -268,6 +202,11 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                     </div>
 
                     <!-- Ingresos Recientes de mis Fichas -->
+                    <?php 
+                        $totalIngresos = count($ingresosRecientes);
+                        $porPagina = 5;
+                        $totalPaginas = max(1, (int) ceil($totalIngresos / $porPagina));
+                    ?>
                     <div class="card p-3">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
@@ -281,15 +220,15 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                             </a>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-app align-middle mb-0">
+                            <table class="table table-app table-compact-app align-middle mb-0" id="tablaIngresosInstructor">
                                 <thead>
                                     <tr>
-                                        <th>Aprendiz</th>
-                                        <th>Ficha</th>
-                                        <th>Fecha</th>
-                                        <th>Entrada</th>
-                                        <th>Salida</th>
-                                        <th>Estado</th>
+                                        <th style="width: 28%;">Aprendiz</th>
+                                        <th style="width: 24%;">Ficha</th>
+                                        <th style="width: 14%;">Fecha</th>
+                                        <th style="width: 11%;">Entrada</th>
+                                        <th style="width: 11%;">Salida</th>
+                                        <th style="width: 12%;">Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -301,7 +240,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                                             </td>
                                         </tr>
                                     <?php else: ?>
-                                        <?php foreach ($ingresosRecientes as $ingreso): 
+                                        <?php foreach ($ingresosRecientes as $idx => $ingreso): 
                                             $partes = explode(' ', trim($ingreso['nombre_completo'] ?? 'Aprendiz'));
                                             $iniciales = strtoupper(substr($partes[0] ?? 'A', 0, 1) . substr($partes[1] ?? '', 0, 1));
                                             $nombre = htmlspecialchars($ingreso['nombre_completo'] ?? 'Sin nombre');
@@ -313,27 +252,27 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                                             $horaSalida = !empty($ingreso['hora_salida_real']) ? date('h:i a', strtotime($ingreso['hora_salida_real'])) : '—';
                                             $estado = $ingreso['estado'] ?? 'Asistencia';
                                         ?>
-                                        <tr>
+                                        <tr class="fila-dashboard" data-index="<?= $idx ?>" style="<?= $idx >= $porPagina ? 'display: none;' : '' ?>">
                                             <td>
                                                 <div class="d-flex align-items-center gap-2">
-                                                    <span class="avatar-circ"><?= $iniciales ?></span>
-                                                    <div>
-                                                        <div class="fw-semibold" style="font-size:.88rem;"><?= $nombre ?></div>
-                                                        <small class="text-suave">Doc: <?= $doc ?></small>
+                                                    <span class="avatar-circ-sm"><?= $iniciales ?></span>
+                                                    <div class="overflow-hidden">
+                                                        <div class="fw-semibold text-truncate" style="font-size: .83rem; line-height: 1.25;" title="<?= $nombre ?>"><?= $nombre ?></div>
+                                                        <small class="text-suave d-block" style="font-size: .72rem;">Doc: <?= $doc ?></small>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="fw-semibold text-truncate" style="max-width: 170px; font-size:.84rem;" title="<?= $prog ?>">
+                                                <div class="fw-semibold text-truncate" style="max-width: 170px; font-size: .82rem; line-height: 1.25;" title="<?= $prog ?>">
                                                     <?= $fichaNum ?>
                                                 </div>
-                                                <small class="text-suave d-block text-truncate" style="max-width: 170px;" title="<?= $prog ?>"><?= $prog ?></small>
+                                                <small class="text-suave d-block text-truncate" style="max-width: 170px; font-size: .72rem;" title="<?= $prog ?>"><?= $prog ?></small>
                                             </td>
-                                            <td><small class="fw-semibold"><?= $fechaFmt ?></small></td>
-                                            <td><small class="text-success fw-semibold"><?= $horaEntrada ?></small></td>
-                                            <td><small class="text-secondary"><?= $horaSalida ?></small></td>
+                                            <td><small class="fw-semibold" style="font-size: .78rem;"><?= $fechaFmt ?></small></td>
+                                            <td><small class="text-success fw-semibold" style="font-size: .78rem;"><?= $horaEntrada ?></small></td>
+                                            <td><small class="text-secondary" style="font-size: .78rem;"><?= $horaSalida ?></small></td>
                                             <td>
-                                                <span class="badge-estado <?= getBadgeClassDashboard($estado) ?>">
+                                                <span class="badge-estado badge-estado-sm <?= getBadgeClassDashboard($estado) ?>">
                                                     <?= ucfirst(htmlspecialchars($estado)) ?>
                                                 </span>
                                             </td>
@@ -343,6 +282,22 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                                 </tbody>
                             </table>
                         </div>
+
+                        <?php if ($totalIngresos > 0): ?>
+                        <!-- Paginación de Ingresos Recientes -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-center dashboard-pagination" id="paginacionIngresosInstructor">
+                            <small class="text-suave info-paginacion">Mostrando 1 - <?= min($porPagina, $totalIngresos) ?> de <?= $totalIngresos ?> registros</small>
+                            <div class="d-flex align-items-center gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-prev" disabled style="font-size: .78rem;" title="Página anterior">
+                                    <i class="bi bi-chevron-left me-1"></i> Anterior
+                                </button>
+                                <span class="px-2 small fw-semibold text-secondary indicador-pagina" style="font-size: .78rem;">Pág. 1 de <?= $totalPaginas ?></span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-next" <?= $totalPaginas <= 1 ? 'disabled' : '' ?> style="font-size: .78rem;" title="Página siguiente">
+                                    Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -393,6 +348,11 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                     </div>
 
                     <!-- Mis Fichas Asignadas -->
+                    <?php 
+                        $totalFichas = count($misFichas);
+                        $porPaginaFichas = 3;
+                        $totalPaginasFichas = max(1, (int) ceil($totalFichas / $porPaginaFichas));
+                    ?>
                     <div class="card p-3">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h2 class="h6 fw-bold mb-0">
@@ -404,9 +364,9 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                         <?php if (empty($misFichas)): ?>
                             <p class="text-muted text-center py-3 mb-0 small">No tienes fichas asignadas actualmente.</p>
                         <?php else: ?>
-                            <div class="list-group list-group-flush">
-                                <?php foreach ($misFichas as $f): ?>
-                                <div class="list-group-item px-0 py-2 border-bottom">
+                            <div class="list-group list-group-flush" id="listaMisFichas">
+                                <?php foreach ($misFichas as $idx => $f): ?>
+                                <div class="list-group-item px-0 py-2 border-bottom fila-ficha-dashboard" data-index="<?= $idx ?>" style="<?= $idx >= $porPaginaFichas ? 'display: none;' : '' ?>">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <div class="fw-bold text-sena" style="font-size:.88rem;">
@@ -432,6 +392,22 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                                 </div>
                                 <?php endforeach; ?>
                             </div>
+
+                            <?php if ($totalFichas > 0): ?>
+                            <!-- Paginación de Fichas -->
+                            <div class="d-flex flex-wrap justify-content-between align-items-center dashboard-pagination" id="paginacionFichasInstructor">
+                                <small class="text-suave info-paginacion">Mostrando 1 - <?= min($porPaginaFichas, $totalFichas) ?> de <?= $totalFichas ?> fichas</small>
+                                <div class="d-flex align-items-center gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-prev" disabled style="font-size: .78rem;" title="Página anterior">
+                                        <i class="bi bi-chevron-left me-1"></i> Anterior
+                                    </button>
+                                    <span class="px-2 small fw-semibold text-secondary indicador-pagina" style="font-size: .78rem;">Pág. 1 de <?= $totalPaginasFichas ?></span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-next" <?= $totalPaginasFichas <= 1 ? 'disabled' : '' ?> style="font-size: .78rem;" title="Página siguiente">
+                                        Siguiente <i class="bi bi-chevron-right ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -442,5 +418,6 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
 </div>
 
 <?php include 'includes/scripts.php'; ?>
+<script src="<?= BASE_URL ?>/assets/js/dashboard.js?v=<?= file_exists(BASE_PATH . '/assets/js/dashboard.js') ? filemtime(BASE_PATH . '/assets/js/dashboard.js') : '1.0' ?>"></script>
 </body>
 </html>

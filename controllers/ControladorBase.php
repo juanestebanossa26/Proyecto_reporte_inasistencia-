@@ -10,6 +10,9 @@ abstract class ControladorBase
 {
     protected function redirigir(string $ruta): void
     {
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0');
+        header('Pragma: no-cache');
+        header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
         header('Location: ' . $ruta);
         exit;
     }
@@ -44,12 +47,12 @@ abstract class ControladorBase
         }
 
         // Le decimos al navegador que NUNCA guarde una copia de esta página.
-    // Sin esto, después de "Cerrar sesión" el botón "atrás" puede mostrar
-    // la última versión guardada en caché, sin volver a preguntarle nada
-    // al servidor.
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
-    header('Expires: 0');
+        // Sin esto, después de "Cerrar sesión" el botón "atrás" puede mostrar
+        // la última versión guardada en caché, sin volver a preguntarle nada
+        // al servidor.
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0');
+        header('Pragma: no-cache');
+        header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
     }
     // Valida el token CSRF de una petición POST. Si no es válido, se
     // interrumpe la acción antes de tocar cualquier Modelo.

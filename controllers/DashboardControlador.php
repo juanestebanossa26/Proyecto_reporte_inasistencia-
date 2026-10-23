@@ -53,9 +53,9 @@ class DashboardControlador extends ControladorBase
 
         try {
             $kpis              = $this->modelo->obtenerKpisAdmin($fechaHoy);
-            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesAdmin(10);
+            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesAdmin(20);
             $excusasPendientes = $this->modelo->obtenerExcusasRecientesAdmin(6);
-            $resumenFichas     = $this->modelo->obtenerResumenFichasAdmin(6);
+            $resumenFichas     = $this->modelo->obtenerResumenFichasAdmin(20);
         } catch (PDOException $e) {
             error_log('Error al cargar datos del dashboard de administrador: ' . $e->getMessage());
             $kpis = [
@@ -94,7 +94,7 @@ class DashboardControlador extends ControladorBase
         try {
             $kpis              = $this->modelo->obtenerKpisInstructor($idInstructor, $fechaHoy);
             $horariosHoy       = $this->modelo->obtenerHorariosHoyInstructor($idInstructor, $fechaHoy);
-            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesInstructor($idInstructor, 10);
+            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesInstructor($idInstructor, 20);
             $excusasPendientes = $this->modelo->obtenerExcusasPendientesInstructor($idInstructor, 6);
             $misFichas         = $this->modelo->obtenerMisFichas($idInstructor);
         } catch (PDOException $e) {

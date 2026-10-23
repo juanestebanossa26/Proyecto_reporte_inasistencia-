@@ -123,5 +123,6 @@ $tituloPagina = 'Iniciar sesión · SERVIPLUS SENA';
 </main>
 
 <?php include __DIR__ . '/includes/scripts.php'; ?>
+<script src="<?= BASE_URL ?>/assets/js/login.js?v=<?= file_exists(BASE_PATH . "/assets/js/login.js") ? filemtime(BASE_PATH . "/assets/js/login.js") : "1.0" ?>"></script>
 </body>
 </html>

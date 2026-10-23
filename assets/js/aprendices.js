@@ -1,8 +1,6 @@
 $(document).ready(function() {
     $('#tablaAprendices').DataTable({
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-        },
+        language: typeof DATATABLES_ESPANOL !== 'undefined' ? DATATABLES_ESPANOL : {},
         order: [],
         pageLength: 10,
         responsive: true,

@@ -279,22 +279,74 @@ a{ text-decoration:none; }
 }
 
 /* ---------- Estados / badges ---------- */
-.badge-estado{ font-weight:600; font-size:.74rem; padding:.42em .7em; border-radius:8px; }
-.badge-a-tiempo{ background:rgba(57,169,0,.12); color:#1F7A00; }
-.badge-retardo{ background:rgba(232,164,0,.14); color:#8a6300; }
-.badge-inasistencia{ background:rgba(214,69,80,.12); color:#B4212B; }
-.badge-salida-anticipada{ background:rgba(47,111,237,.12); color:#2F6FED; }
-.badge-pendiente{ background:rgba(232,164,0,.14); color:#8a6300; }
-.badge-aprobada{ background:rgba(57,169,0,.12); color:#1F7A00; }
-.badge-rechazada{ background:rgba(214,69,80,.12); color:#B4212B; }
+.badge-estado {
+  font-weight: 600;
+  font-size: .74rem;
+  padding: .35em .75em;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.badge-a-tiempo,
+.badge-asistencia,
+.badge-presente {
+  background: rgba(57,169,0,.12);
+  color: #1F7A00;
+  border: 1px solid rgba(57,169,0,.22);
+}
+.badge-retardo {
+  background: rgba(232,164,0,.14);
+  color: #8a6300;
+  border: 1px solid rgba(232,164,0,.25);
+}
+.badge-inasistencia {
+  background: rgba(214,69,80,.12);
+  color: #B4212B;
+  border: 1px solid rgba(214,69,80,.22);
+}
+.badge-salida-anticipada {
+  background: rgba(47,111,237,.12);
+  color: #2F6FED;
+  border: 1px solid rgba(47,111,237,.22);
+}
+.badge-pendiente {
+  background: rgba(232,164,0,.14);
+  color: #8a6300;
+  border: 1px solid rgba(232,164,0,.25);
+}
+.badge-aprobada {
+  background: rgba(57,169,0,.12);
+  color: #1F7A00;
+  border: 1px solid rgba(57,169,0,.22);
+}
+.badge-rechazada {
+  background: rgba(214,69,80,.12);
+  color: #B4212B;
+  border: 1px solid rgba(214,69,80,.22);
+}
 
 /* ---------- Tabla ---------- */
-.table-app thead th{
-  font-size:.74rem; text-transform:uppercase; letter-spacing:.05em;
-  color: var(--texto-suave); border-bottom:1.5px solid var(--linea);
-  font-weight:700;
+.table-app thead th {
+  font-size: .74rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--texto-suave);
+  border-bottom: 1.5px solid var(--linea);
+  font-weight: 700;
+  background-color: #fafbfa;
+  padding: .75rem .75rem;
 }
-.table-app td{ vertical-align:middle; border-color:var(--linea); }
+.table-app td {
+  vertical-align: middle;
+  border-color: var(--linea);
+  padding: .65rem .75rem;
+}
+.table-app tbody tr:hover {
+  background-color: rgba(57,169,0,.025) !important;
+}
 .avatar-circ{
   width:34px;height:34px;border-radius:50%;
   background: var(--bg-app); color:var(--sena-verde);
@@ -422,3 +474,84 @@ a{ text-decoration:none; }
   font-style: normal;
 }
 
+
+
+/* ---------- Tabla Compacta para Dashboards ---------- */
+.table-compact-app th,
+.table-compact-app td {
+  padding: 0.42rem 0.65rem !important;
+  vertical-align: middle;
+}
+.table-compact-app thead th {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  background-color: #fafbfb;
+  border-bottom: 1.5px solid var(--linea);
+}
+.avatar-circ-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-app);
+  color: var(--sena-verde);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+.badge-estado-sm {
+  padding: 0.22em 0.55em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 6px;
+  display: inline-block;
+  white-space: nowrap;
+}
+.dashboard-pagination {
+  border-top: 1px solid var(--linea);
+  padding-top: 0.65rem;
+  margin-top: 0.4rem;
+}
+
+
+/* ---------- Estilos Minimalistas para Formulario de Excusas ---------- */
+.dropzone-minimal {
+  border: 1.5px dashed var(--linea);
+  background: #fafbfa;
+  border-radius: var(--radius);
+  transition: all .15s ease;
+  position: relative;
+  min-height: 52px;
+}
+.dropzone-minimal:hover, .dropzone-minimal.drag-over {
+  border-color: var(--sena-verde);
+  background: rgba(57,169,0,.04);
+}
+.dropzone-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+.fecha-item-card {
+  background: #fff;
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  transition: all .15s ease;
+}
+.fecha-item-card:hover {
+  border-color: #cbd5e1;
+}
+.fecha-item-card.is-selected {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+}

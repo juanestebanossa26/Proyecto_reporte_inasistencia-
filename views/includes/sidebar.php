@@ -46,10 +46,6 @@ if (!function_exists('navLink')) {
                 <?php navLink(BASE_URL . '/index.php?accion=fichas', 'bi-journal-bookmark-fill', 'Fichas', 'fichas', $paginaActiva); ?>
                 <?php navLink(BASE_URL . '/index.php?accion=horarios', 'bi-calendar3', 'Horarios', 'horarios', $paginaActiva); ?>
 
-                <div class="sidebar-section-label">Control</div>
-                <?php navLink(BASE_URL . '/index.php?accion=marcaje', 'bi-wifi', 'Marcaje RFID', 'marcaje', $paginaActiva); ?>
-            
-
                 <div class="sidebar-section-label">Reportes</div>
                 <?php navLink(BASE_URL . '/index.php?accion=reportes', 'bi-bar-chart-line-fill', 'Reportes', 'reportes', $paginaActiva); ?>
 

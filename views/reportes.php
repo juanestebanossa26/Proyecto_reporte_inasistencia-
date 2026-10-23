@@ -163,18 +163,8 @@ $ficha_id          = $ficha_id ?? '';
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="<?= BASE_URL ?>/assets/js/datatables-es.js"></script>
 
-<script>
-$(document).ready(function() {
-    $('#tablaReportes').DataTable({
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
-        },
-        order: [],
-        pageLength: 10,
-        responsive: true
-    });
-});
-</script>
+<script src="<?= BASE_URL ?>/assets/js/reportes.js?v=<?= file_exists(BASE_PATH . "/assets/js/reportes.js") ? filemtime(BASE_PATH . "/assets/js/reportes.js") : "1.0" ?>"></script>
 </body>
 </html>

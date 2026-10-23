@@ -41,7 +41,10 @@ class HistorialControlador extends ControladorBase
         $historial = $asistenciaModelo->listarHistorialCompleto($idUsuario);
         $totalRetardo = $asistenciaModelo->contarPorEstado($idUsuario, 'retardo');
         $totalInasistencia = $asistenciaModelo->contarPorEstado($idUsuario, 'inasistencia');
-        $totalAsistencias = $asistenciaModelo->contarPorEstado($idUsuario, 'asistencia');
+        $totalAsistencias = count(array_filter($historial, function($f) {
+            $e = strtolower(trim($f['estado'] ?? ''));
+            return in_array($e, ['asistencia', 'presente', 'a tiempo'], true);
+        }));
         $totalPendientes = $asistenciaModelo->contarExcusasPendientes($idUsuario);
 
         $nombreAprendiz = $info['nombre_completo'] ?? ($_SESSION['nombre'] ?? 'Aprendiz');
@@ -60,7 +63,7 @@ class HistorialControlador extends ControladorBase
                 $this->SetY(4);
                 $this->SetFont('Arial', 'B', 8.5);
                 $this->SetTextColor(255, 255, 255);
-                $this->Cell(0, 5, utf8_decode('SERVICIO NACIONAL DE APRENDIZAJE · SENA — SISTEMA DE CONTROL DE ASISTENCIA RFID'), 0, 1, 'C');
+                $this->Cell(0, 5, utf8_decode('SERVICIO NACIONAL DE APRENDIZAJE - SENA | SISTEMA DE CONTROL DE ASISTENCIA RFID'), 0, 1, 'C');
 
                 $this->SetY(16);
                 $this->SetFont('Arial', 'B', 14);
@@ -78,7 +81,7 @@ class HistorialControlador extends ControladorBase
                 $this->SetY(-14);
                 $this->SetFont('Arial', 'I', 8);
                 $this->SetTextColor(140, 140, 140);
-                $this->Cell(0, 5, utf8_decode('Documento generado automáticamente por el Sistema de Control de Ingreso y Asistencia RFID · Página ') . $this->PageNo() . '/{nb}', 0, 0, 'C');
+                $this->Cell(0, 5, utf8_decode('Documento generado automáticamente por el Sistema de Control de Ingreso y Asistencia RFID - Página ') . $this->PageNo() . '/{nb}', 0, 0, 'C');
             }
         };
 
@@ -131,53 +134,57 @@ class HistorialControlador extends ControladorBase
         $pdf->Ln(14);
 
         // 2. Tarjetas KPI de Resumen
-        $pdf->SetY(66);
         $anchoKpi = 46.5;
         $altoKpi = 15;
+        $yKpi = 66;
 
         // KPI Asistencias
         $pdf->SetFillColor(237, 247, 237);
         $pdf->SetDrawColor(180, 222, 180);
-        $pdf->Rect(12, 66, $anchoKpi, $altoKpi, 'DF');
-        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->Rect(12, $yKpi, $anchoKpi, $altoKpi, 'DF');
         $pdf->SetTextColor(31, 122, 0);
-        $pdf->SetXY(12, 68);
-        $pdf->Cell($anchoKpi, 4, utf8_decode('Asistencias a tiempo'), 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->SetXY(12, $yKpi + 2);
+        $pdf->Cell($anchoKpi, 4, utf8_decode('Asistencias a tiempo'), 0, 0, 'C');
         $pdf->SetFont('Arial', 'B', 12);
+        $pdf->SetXY(12, $yKpi + 7);
         $pdf->Cell($anchoKpi, 6, (string) $totalAsistencias, 0, 0, 'C');
 
         // KPI Retardos
         $pdf->SetFillColor(254, 249, 231);
         $pdf->SetDrawColor(245, 219, 140);
-        $pdf->Rect(60.5, 66, $anchoKpi, $altoKpi, 'DF');
-        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->Rect(60.5, $yKpi, $anchoKpi, $altoKpi, 'DF');
         $pdf->SetTextColor(138, 99, 0);
-        $pdf->SetXY(60.5, 68);
-        $pdf->Cell($anchoKpi, 4, utf8_decode('Retardos acumulados'), 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->SetXY(60.5, $yKpi + 2);
+        $pdf->Cell($anchoKpi, 4, utf8_decode('Retardos acumulados'), 0, 0, 'C');
         $pdf->SetFont('Arial', 'B', 12);
+        $pdf->SetXY(60.5, $yKpi + 7);
         $pdf->Cell($anchoKpi, 6, (string) $totalRetardo, 0, 0, 'C');
 
         // KPI Inasistencias
         $pdf->SetFillColor(254, 242, 242);
         $pdf->SetDrawColor(248, 180, 180);
-        $pdf->Rect(109, 66, $anchoKpi, $altoKpi, 'DF');
-        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->Rect(109, $yKpi, $anchoKpi, $altoKpi, 'DF');
         $pdf->SetTextColor(180, 33, 43);
-        $pdf->SetXY(109, 68);
-        $pdf->Cell($anchoKpi, 4, utf8_decode('Inasistencias'), 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->SetXY(109, $yKpi + 2);
+        $pdf->Cell($anchoKpi, 4, utf8_decode('Inasistencias'), 0, 0, 'C');
         $pdf->SetFont('Arial', 'B', 12);
+        $pdf->SetXY(109, $yKpi + 7);
         $pdf->Cell($anchoKpi, 6, (string) $totalInasistencia, 0, 0, 'C');
 
         // KPI Excusas Pendientes
         $pdf->SetFillColor(239, 246, 255);
         $pdf->SetDrawColor(191, 219, 254);
-        $pdf->Rect(157.5, 66, $anchoKpi, $altoKpi, 'DF');
-        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->Rect(157.5, $yKpi, $anchoKpi, $altoKpi, 'DF');
         $pdf->SetTextColor(47, 111, 237);
-        $pdf->SetXY(157.5, 68);
-        $pdf->Cell($anchoKpi, 4, utf8_decode('Excusas pendientes'), 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 7.5);
+        $pdf->SetXY(157.5, $yKpi + 2);
+        $pdf->Cell($anchoKpi, 4, utf8_decode('Excusas pendientes'), 0, 0, 'C');
         $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell($anchoKpi, 6, (string) $totalPendientes, 0, 1, 'C');
+        $pdf->SetXY(157.5, $yKpi + 7);
+        $pdf->Cell($anchoKpi, 6, (string) $totalPendientes, 0, 0, 'C');
 
         $pdf->Ln(7);
 
@@ -208,19 +215,20 @@ class HistorialControlador extends ControladorBase
             foreach ($historial as $fila) {
                 $pdf->SetFillColor($fill ? 248 : 255, $fill ? 250 : 255, $fill ? 252 : 255);
 
-                $fecha = !empty($fila['fecha']) ? date('d/m/Y', strtotime($fila['fecha'])) : '—';
+                $fecha = !empty($fila['fecha']) ? date('d/m/Y', strtotime($fila['fecha'])) : '-';
                 
                 $hEntProg = !empty($fila['hora_entrada_programada']) ? substr($fila['hora_entrada_programada'], 0, 5) : '';
                 $hSalProg = !empty($fila['hora_salida_programada']) ? substr($fila['hora_salida_programada'], 0, 5) : '';
                 $progTxt  = ($hEntProg && $hSalProg) ? "{$hEntProg} - {$hSalProg}" : 'Jornada asignada';
 
-                $hEntReal = !empty($fila['hora_entrada_real']) ? date('h:i a', strtotime($fila['hora_entrada_real'])) : '—';
-                $hSalReal = !empty($fila['hora_salida_real']) ? date('h:i a', strtotime($fila['hora_salida_real'])) : '—';
+                $hEntReal = !empty($fila['hora_entrada_real']) ? date('h:i a', strtotime($fila['hora_entrada_real'])) : '-';
+                $hSalReal = !empty($fila['hora_salida_real']) ? date('h:i a', strtotime($fila['hora_salida_real'])) : '-';
 
                 $retrasoMin = (int) ($fila['tiempo_retraso'] ?? 0);
                 $retrasoTxt = $retrasoMin > 0 ? "{$retrasoMin} min" : '0 min';
 
-                $estado = ucfirst(strtolower($fila['estado'] ?? 'inasistencia'));
+                $rawEst = strtolower(trim($fila['estado'] ?? 'inasistencia'));
+                $estado = in_array($rawEst, ['asistencia', 'presente', 'a tiempo'], true) ? 'Asistencia' : ucfirst($rawEst);
 
                 $pdf->Cell(28, 6.5, $fecha, 1, 0, 'C', $fill);
                 $pdf->Cell(44, 6.5, utf8_decode($progTxt), 1, 0, 'C', $fill);
