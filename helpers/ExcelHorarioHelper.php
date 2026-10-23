@@ -148,9 +148,13 @@ class ExcelHorarioHelper
         $idFichaGlobal = null;
         if (!empty($fichaDetectada['numero_ficha'])) {
             $numFichaLim = preg_replace('/[\x{00A0}\x{200B}\s]+/u', '', $fichaDetectada['numero_ficha']);
-            $idFichaExistente = $this->modelo->buscarIdFichaPorNumero($numFichaLim);
-            if ($idFichaExistente > 0) {
-                $idFichaGlobal = $idFichaExistente;
+            $fichaExistente = $this->modelo->buscarFichaPorNumero($numFichaLim);
+            if ($fichaExistente) {
+                if (($fichaExistente['estado'] ?? 'Activa') !== 'Activa') {
+                    $resultado['mensaje'] = "La ficha '{$numFichaLim}' identificada en el archivo se encuentra en estado '{$fichaExistente['estado']}'. Por políticas institucionales, no es posible importar horarios para fichas finalizadas o archivadas.";
+                    return $resultado;
+                }
+                $idFichaGlobal = (int)$fichaExistente['id_ficha'];
             } else {
                 $prog = !empty($fichaDetectada['programa']) ? $fichaDetectada['programa'] : 'Formación SENA';
                 $idFichaGlobal = $this->modelo->crearFicha($numFichaLim, $prog);
@@ -165,10 +169,13 @@ class ExcelHorarioHelper
             $hFinFest  = $fest['hora_fin'] ?? '22:00:00';
             $esDiaComp = $fest['es_dia_completo'] ?? 1;
 
-            if (!$this->modelo->existeFestivo($idFichaGlobal, $fechaFest, $hIniFest, $hFinFest)) {
-                $this->modelo->guardarFestivo($idFichaGlobal, $fechaFest, $hIniFest, $hFinFest, $esDiaComp, 'FESTIVO');
+            // Se registra el festivo a nivel institucional (id_ficha = null) para que proteja
+            // a todas las fichas del centro de formación en el calendario académico oficial.
+            if (!$this->modelo->existeFestivo(null, $fechaFest, $hIniFest, $hFinFest) &&
+                !$this->modelo->existeFestivo($idFichaGlobal, $fechaFest, $hIniFest, $hFinFest)) {
+                $this->modelo->guardarFestivo(null, $fechaFest, $hIniFest, $hFinFest, $esDiaComp, 'FESTIVO');
                 $resultado['festivos_registrados']++;
-                $resultado['detalles'][] = "Festivo registrado para el día {$fechaFest} ({$hIniFest} - {$hFinFest}). Marcador de calendario sin crear instructor.";
+                $resultado['detalles'][] = "Festivo oficial institucional registrado para el día {$fechaFest} ({$hIniFest} - {$hFinFest}). Marcador de calendario sin crear instructor.";
             } else {
                 $resultado['duplicados']++;
             }
@@ -307,7 +314,17 @@ class ExcelHorarioHelper
             }
 
             $numFicha = $rItem['numero_ficha'];
-            $idFichaBD = $this->fichasCache[$numFicha]['id'] ?? $this->modelo->buscarIdFichaPorNumero($numFicha);
+            $fichaBD = $this->modelo->buscarFichaPorNumero($numFicha);
+
+            if ($fichaBD !== null) {
+                if (($fichaBD['estado'] ?? 'Activa') !== 'Activa') {
+                    $conflictosBaseDatos[] = "Fila {$rItem['fila']}: La ficha '{$numFicha}' se encuentra en estado '{$fichaBD['estado']}'. No se permite importar horarios para fichas finalizadas o archivadas.";
+                    continue;
+                }
+                $idFichaBD = (int)$fichaBD['id_ficha'];
+            } else {
+                $idFichaBD = $this->fichasCache[$numFicha]['id'] ?? null;
+            }
 
             if ($idFichaBD !== null && $idFichaBD > 0) {
                 $idInstTemp = null;
@@ -721,15 +738,14 @@ class ExcelHorarioHelper
         $resultado = [];
         foreach ($festivoSlots as $fecha => $slots) {
             usort($slots, fn($a, $b) => $a['h_ini'] <=> $b['h_ini']);
-            $minH = $slots[0]['h_ini'];
-            $maxH = end($slots)['h_fin'];
-            $esDiaCompleto = ($minH <= 7 && $maxH >= 21) ? 1 : 0;
-
+            // En el calendario oficial SENA, cuando un día está marcado como FESTIVO,
+            // corresponde a una jornada completa no lectiva (06:00 a 22:00) y es_dia_completo = 1,
+            // garantizando que no se generen inasistencias en ninguna franja horaria de ese día.
             $resultado[] = [
                 'fecha'           => $fecha,
-                'hora_inicio'     => sprintf('%02d:00:00', $minH),
-                'hora_fin'        => sprintf('%02d:00:00', $maxH),
-                'es_dia_completo' => $esDiaCompleto,
+                'hora_inicio'     => '06:00:00',
+                'hora_fin'        => '22:00:00',
+                'es_dia_completo' => 1,
                 'descripcion'     => 'FESTIVO'
             ];
         }

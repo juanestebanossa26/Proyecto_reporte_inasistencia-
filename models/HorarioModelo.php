@@ -17,9 +17,27 @@ class HorarioModelo
     }
 
     // Lista horarios registrados con datos de la ficha, instructor, área y aprendices.
-    // Si se especifica $idInstructor, filtra exclusivamente los horarios de ese instructor.
-    public function listarHorarios(?int $idInstructor = null): array
+    // Soporta filtrado por instructor, intervalo de fechas y separación de horarios operativos vs históricos/cancelados.
+    public function listarHorarios(?int $idInstructor = null, ?string $fechaDesde = null, ?string $fechaHasta = null, bool $incluirCancelados = false): array
     {
+        $params = [];
+        $whereFiltros = "";
+
+        if ($fechaDesde !== null && $fechaDesde !== '') {
+            $whereFiltros .= " AND h.dia_semana >= :desde";
+            $params[':desde'] = $fechaDesde;
+        }
+
+        if ($fechaHasta !== null && $fechaHasta !== '') {
+            $whereFiltros .= " AND h.dia_semana <= :hasta";
+            $params[':hasta'] = $fechaHasta;
+        }
+
+        // En vistas operativas ordinarias, solo se muestran horarios programados de fichas activas
+        if (!$incluirCancelados) {
+            $whereFiltros .= " AND h.estado = 'Programado' AND f.estado = 'Activa'";
+        }
+
         if ($idInstructor !== null && $idInstructor > 0) {
             $sql = "SELECT
                         h.id_horario,
@@ -27,8 +45,12 @@ class HorarioModelo
                         h.hora_entrada_programada,
                         h.hora_salida_programada,
                         h.dia_semana AS fecha,
+                        h.estado AS estado_horario,
+                        h.fecha_cancelacion,
+                        h.motivo_cancelacion,
                         f.numero_ficha,
                         f.nombre_programa,
+                        f.estado AS estado_ficha,
                         COALESCE(h.id_instructor, fhu.id_instructor) AS id_instructor,
                         COALESCE(u_directo.nombre_completo, u_ficha.nombre_completo, '') AS instructor_nombre,
                         COALESCE(u_directo.area, u_ficha.area, '') AS instructor_area,
@@ -42,16 +64,15 @@ class HorarioModelo
                         GROUP BY fichas_id_ficha
                     ) fhu ON fhu.fichas_id_ficha = f.id_ficha
                     LEFT JOIN usuarios u_ficha ON u_ficha.id_usuario = fhu.id_instructor
-                    WHERE h.id_instructor = :id_inst1
-                       OR (h.id_instructor IS NULL AND fhu.id_instructor = :id_inst2)
+                    WHERE (h.id_instructor = :id_inst1 OR (h.id_instructor IS NULL AND fhu.id_instructor = :id_inst2))
+                          {$whereFiltros}
                     ORDER BY h.dia_semana ASC, h.hora_entrada_programada ASC";
 
+            $params[':id_inst1'] = $idInstructor;
+            $params[':id_inst2'] = $idInstructor;
             $stmt = Conexion::obtener()->prepare($sql);
-            $stmt->execute([
-                ':id_inst1' => $idInstructor,
-                ':id_inst2' => $idInstructor,
-            ]);
-            $filas = $stmt->fetchAll();
+            $stmt->execute($params);
+            $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
             $sql = "SELECT
                         h.id_horario,
@@ -59,8 +80,12 @@ class HorarioModelo
                         h.hora_entrada_programada,
                         h.hora_salida_programada,
                         h.dia_semana AS fecha,
+                        h.estado AS estado_horario,
+                        h.fecha_cancelacion,
+                        h.motivo_cancelacion,
                         f.numero_ficha,
                         f.nombre_programa,
+                        f.estado AS estado_ficha,
                         COALESCE(h.id_instructor, fhu.id_instructor) AS id_instructor,
                         COALESCE(u_directo.nombre_completo, u_ficha.nombre_completo, '') AS instructor_nombre,
                         COALESCE(u_directo.area, u_ficha.area, '') AS instructor_area,
@@ -74,14 +99,17 @@ class HorarioModelo
                         GROUP BY fichas_id_ficha
                     ) fhu ON fhu.fichas_id_ficha = f.id_ficha
                     LEFT JOIN usuarios u_ficha ON u_ficha.id_usuario = fhu.id_instructor
+                    WHERE 1=1 {$whereFiltros}
                     ORDER BY h.dia_semana ASC, h.hora_entrada_programada ASC";
 
-            $filas = Conexion::obtener()->query($sql)->fetchAll();
+            $stmt = Conexion::obtener()->prepare($sql);
+            $stmt->execute($params);
+            $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         // Saneamiento de entidades HTML para garantizar salida limpia UTF-8
         foreach ($filas as &$f) {
-            $f['nombre_programa']  = html_entity_decode((string)($f['nombre_programa'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $f['nombre_programa']   = html_entity_decode((string)($f['nombre_programa'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $f['instructor_nombre'] = html_entity_decode((string)($f['instructor_nombre'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $f['instructor_area']   = html_entity_decode((string)($f['instructor_area'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }
@@ -129,11 +157,6 @@ class HorarioModelo
     public function asociarInstructor(int $idFicha, int $idInstructor): void
     {
         $this->fichaModelo->asociarInstructor($idFicha, $idInstructor);
-    }
-
-    public function eliminarFichaCompleta(int $idFicha): array
-    {
-        return $this->fichaModelo->eliminarFichaCompleta($idFicha);
     }
 
     // Manejo de transacciones para la base de datos
@@ -286,39 +309,49 @@ class HorarioModelo
     }
 
     // Registra un nuevo horario asociado a una ficha y opcionalmente a un instructor
+    // Valida en backend que la ficha esté en estado Activa
     public function guardarHorario(int $idFicha, string $horaEntrada, string $horaSalida, string $fecha, ?int $idInstructor = null): void
     {
-        try {
-            $sql = "INSERT INTO horarios (id_ficha, id_instructor, hora_entrada_programada, hora_salida_programada, dia_semana)
-                    VALUES (:id_ficha, :id_inst, :entrada, :salida, :fecha)";
-
-            $stmt = Conexion::obtener()->prepare($sql);
-            $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
-            $stmt->bindValue(':id_inst',  $idInstructor > 0 ? $idInstructor : null, PDO::PARAM_INT);
-            $stmt->bindParam(':entrada',  $horaEntrada);
-            $stmt->bindParam(':salida',   $horaSalida);
-            $stmt->bindParam(':fecha',    $fecha);
-            $stmt->execute();
-        } catch (PDOException $e) {
-            // Fallback si la columna id_instructor no existiera
-            $sql = "INSERT INTO horarios (id_ficha, hora_entrada_programada, hora_salida_programada, dia_semana)
-                    VALUES (:id_ficha, :entrada, :salida, :fecha)";
-
-            $stmt = Conexion::obtener()->prepare($sql);
-            $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
-            $stmt->bindParam(':entrada',  $horaEntrada);
-            $stmt->bindParam(':salida',   $horaSalida);
-            $stmt->bindParam(':fecha',    $fecha);
-            $stmt->execute();
+        $ficha = $this->fichaModelo->buscarFichaPorId($idFicha);
+        if (!$ficha) {
+            throw new InvalidArgumentException("La ficha especificada no existe.");
         }
+
+        if ($ficha['estado'] !== 'Activa') {
+            throw new DomainException("No es posible programar horarios para la ficha {$ficha['numero_ficha']} porque se encuentra en estado '{$ficha['estado']}'. Solo se admiten horarios en fichas activas.");
+        }
+
+        $sql = "INSERT INTO horarios (id_ficha, id_instructor, hora_entrada_programada, hora_salida_programada, dia_semana, estado)
+                VALUES (:id_ficha, :id_inst, :entrada, :salida, :fecha, 'Programado')";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id_ficha', $idFicha, PDO::PARAM_INT);
+        $stmt->bindValue(':id_inst',  $idInstructor > 0 ? $idInstructor : null, PDO::PARAM_INT);
+        $stmt->bindParam(':entrada',  $horaEntrada);
+        $stmt->bindParam(':salida',   $horaSalida);
+        $stmt->bindParam(':fecha',    $fecha);
+        $stmt->execute();
     }
 
     // Actualiza un horario existente incluyendo el instructor asignado
+    // Valida que la ficha esté Activa y que el horario no esté Cancelado ni finalizado
     public function actualizarHorario(int $idHorario, int $idFicha, string $horaEntrada, string $horaSalida, string $fecha, ?int $idInstructor = null): void
     {
-        // Doble verificación estricta en el modelo justo antes de ejecutar la actualización en la BD
+        $ficha = $this->fichaModelo->buscarFichaPorId($idFicha);
+        if (!$ficha) {
+            throw new InvalidArgumentException("La ficha especificada no existe.");
+        }
+
+        if ($ficha['estado'] !== 'Activa') {
+            throw new DomainException("No es posible modificar horarios de la ficha {$ficha['numero_ficha']} porque se encuentra en estado '{$ficha['estado']}'.");
+        }
+
         $existente = $this->obtenerHorarioPorId($idHorario);
         if ($existente) {
+            if (($existente['estado_horario'] ?? '') === 'Cancelado') {
+                throw new DomainException('Este horario se encuentra cancelado. No es posible modificar horarios cancelados.');
+            }
+
             $eval = $this->evaluarEstadoTemporal($existente);
             if ($eval['estado'] === 'pasado') {
                 throw new DomainException('Esta clase ya finalizó y forma parte del historial de programación. Por seguridad, no se permite modificar horarios pasados.');
@@ -331,48 +364,59 @@ class HorarioModelo
             }
         }
 
-        try {
-            $sql = "UPDATE horarios
-                    SET id_ficha = :id_ficha,
-                        id_instructor = :id_inst,
-                        hora_entrada_programada = :entrada,
-                        hora_salida_programada = :salida,
-                        dia_semana = :fecha
-                    WHERE id_horario = :id_horario";
+        $sql = "UPDATE horarios
+                SET id_ficha = :id_ficha,
+                    id_instructor = :id_inst,
+                    hora_entrada_programada = :entrada,
+                    hora_salida_programada = :salida,
+                    dia_semana = :fecha
+                WHERE id_horario = :id_horario AND estado = 'Programado'";
 
-            $stmt = Conexion::obtener()->prepare($sql);
-            $stmt->bindParam(':id_ficha',   $idFicha, PDO::PARAM_INT);
-            $stmt->bindValue(':id_inst',    $idInstructor > 0 ? $idInstructor : null, PDO::PARAM_INT);
-            $stmt->bindParam(':entrada',    $horaEntrada);
-            $stmt->bindParam(':salida',     $horaSalida);
-            $stmt->bindParam(':fecha',      $fecha);
-            $stmt->bindParam(':id_horario', $idHorario, PDO::PARAM_INT);
-            $stmt->execute();
-        } catch (PDOException $e) {
-            $sql = "UPDATE horarios
-                    SET id_ficha = :id_ficha,
-                        hora_entrada_programada = :entrada,
-                        hora_salida_programada = :salida,
-                        dia_semana = :fecha
-                    WHERE id_horario = :id_horario";
-
-            $stmt = Conexion::obtener()->prepare($sql);
-            $stmt->bindParam(':id_ficha',   $idFicha, PDO::PARAM_INT);
-            $stmt->bindParam(':entrada',    $horaEntrada);
-            $stmt->bindParam(':salida',     $horaSalida);
-            $stmt->bindParam(':fecha',      $fecha);
-            $stmt->bindParam(':id_horario', $idHorario, PDO::PARAM_INT);
-            $stmt->execute();
-        }
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id_ficha',   $idFicha, PDO::PARAM_INT);
+        $stmt->bindValue(':id_inst',    $idInstructor > 0 ? $idInstructor : null, PDO::PARAM_INT);
+        $stmt->bindParam(':entrada',    $horaEntrada);
+        $stmt->bindParam(':salida',     $horaSalida);
+        $stmt->bindParam(':fecha',      $fecha);
+        $stmt->bindParam(':id_horario', $idHorario, PDO::PARAM_INT);
+        $stmt->execute();
     }
 
-    // Obtiene la información detallada de un horario específico por su ID
+    // Cancela un horario programado preservando su registro y relación con asistencias históricas
+    public function cancelarHorario(int $idHorario, string $motivo, int $idUsuario = 0): bool
+    {
+        $horario = $this->obtenerHorarioPorId($idHorario);
+        if (!$horario) {
+            throw new InvalidArgumentException("El horario a cancelar no existe.");
+        }
+
+        if (($horario['estado_horario'] ?? '') === 'Cancelado') {
+            return true; // Idempotente
+        }
+
+        $sql = "UPDATE horarios 
+                SET estado = 'Cancelado', 
+                    fecha_cancelacion = NOW(), 
+                    motivo_cancelacion = :motivo 
+                WHERE id_horario = :id";
+        $stmt = Conexion::obtener()->prepare($sql);
+        return $stmt->execute([
+            ':motivo' => trim($motivo) !== '' ? trim($motivo) : 'Cancelación de sesión de clase',
+            ':id'     => $idHorario
+        ]);
+    }
+
+    // Obtiene la información detallada de un horario específico por su ID incluyendo estado y metadatos
     public function obtenerHorarioPorId(int $idHorario): ?array
     {
         $sql = "SELECT h.id_horario, h.id_ficha, h.id_instructor,
                        h.dia_semana AS fecha,
                        h.hora_entrada_programada, h.hora_salida_programada,
+                       h.estado AS estado_horario,
+                       h.fecha_cancelacion,
+                       h.motivo_cancelacion,
                        f.numero_ficha, f.nombre_programa,
+                       f.estado AS estado_ficha,
                        COALESCE(u.nombre_completo, 'Sin asignar') AS instructor_nombre
                 FROM horarios h
                 JOIN fichas f ON f.id_ficha = h.id_ficha
@@ -381,7 +425,7 @@ class HorarioModelo
                 LIMIT 1";
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->execute([':id' => $idHorario]);
-        $fila = $stmt->fetch();
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($fila) {
             $fila['nombre_programa']   = html_entity_decode((string)($fila['nombre_programa'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -401,10 +445,10 @@ class HorarioModelo
     }
 
     /**
-     * Evalúa el estado temporal de un horario programado ('pasado', 'en_curso', 'futuro', 'indeterminado').
-     * Garantiza el cumplimiento de la zona horaria del proyecto (America/Bogota).
+     * Evalúa el estado temporal y operativo de un horario programado.
+     * Posibles estados: 'cancelado', 'pasado', 'en_curso', 'futuro', 'indeterminado'.
      *
-     * @param array|null $horario Datos del horario con 'fecha' (o 'dia_semana'), 'hora_entrada_programada', 'hora_salida_programada'
+     * @param array|null $horario Datos del horario
      * @return array{estado: string, eliminable: bool, motivo: string, ts_inicio: int|null, ts_fin: int|null}
      */
     public function evaluarEstadoTemporal(?array $horario): array
@@ -414,6 +458,18 @@ class HorarioModelo
                 'estado'     => 'indeterminado',
                 'eliminable' => false,
                 'motivo'     => 'El horario no existe o los datos de la consulta están vacíos.',
+                'ts_inicio'  => null,
+                'ts_fin'     => null,
+            ];
+        }
+
+        // Si el horario está explícitamente cancelado
+        $estadoHor = $horario['estado_horario'] ?? $horario['estado'] ?? 'Programado';
+        if ($estadoHor === 'Cancelado') {
+            return [
+                'estado'     => 'cancelado',
+                'eliminable' => false,
+                'motivo'     => 'Este horario ha sido cancelado y no admite modificaciones operativas.',
                 'ts_inicio'  => null,
                 'ts_fin'     => null,
             ];
@@ -825,20 +881,39 @@ class HorarioModelo
     }
 
     // Comprueba si un festivo ya fue registrado para una fecha y ficha
-    public function existeFestivo(?int $idFicha, string $fecha, string $horaInicio = '06:00:00', string $horaFin = '22:00:00'): bool
+    public function existeFestivo(?int $idFicha, string $fecha, ?string $horaInicio = null, ?string $horaFin = null): bool
     {
         $sql = "SELECT id_festivo FROM dias_festivos
                 WHERE fecha = :fecha
-                  AND hora_inicio = :h_ini
-                  AND hora_fin = :h_fin
-                  AND ((:id_ficha IS NULL AND id_ficha IS NULL) OR id_ficha = :id_ficha2)
-                LIMIT 1";
+                  AND (
+                      (:id_ficha IS NULL AND (id_ficha IS NULL OR id_ficha = 0))
+                      OR id_ficha = :id_ficha2
+                      OR id_ficha IS NULL
+                      OR id_ficha = 0
+                  )";
+
+        if ($horaInicio !== null && $horaFin !== null) {
+            $sql .= " AND (
+                es_dia_completo = 1 
+                OR hora_inicio IS NULL 
+                OR hora_fin IS NULL
+                OR (:h_ini < hora_fin AND :h_fin > hora_inicio)
+            )";
+        }
+
+        $sql .= " LIMIT 1";
+
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindValue(':fecha', $fecha);
-        $stmt->bindValue(':h_ini', $horaInicio);
-        $stmt->bindValue(':h_fin', $horaFin);
-        $stmt->bindValue(':id_ficha', $idFicha > 0 ? $idFicha : null, PDO::PARAM_INT);
-        $stmt->bindValue(':id_ficha2', $idFicha > 0 ? $idFicha : null, PDO::PARAM_INT);
+        $idFichaNorm = ($idFicha !== null && $idFicha > 0) ? $idFicha : null;
+        $stmt->bindValue(':id_ficha', $idFichaNorm, PDO::PARAM_INT);
+        $stmt->bindValue(':id_ficha2', $idFichaNorm, PDO::PARAM_INT);
+
+        if ($horaInicio !== null && $horaFin !== null) {
+            $stmt->bindValue(':h_ini', $horaInicio);
+            $stmt->bindValue(':h_fin', $horaFin);
+        }
+
         $stmt->execute();
         return (bool)$stmt->fetchColumn();
     }

@@ -52,11 +52,13 @@ class AprendizModelo
         return $stmt->fetch();
     }
 
-    // Lista todas las fichas disponibles para el <select> del formulario.
-    public function listarFichas(): array
+    // Lista las fichas disponibles para el <select> del formulario (por defecto solo fichas Activas).
+    public function listarFichas(bool $soloActivas = true): array
     {
-        $sql = "SELECT id_ficha, numero_ficha, nombre_programa
+        $where = $soloActivas ? "WHERE estado = 'Activa'" : "";
+        $sql = "SELECT id_ficha, numero_ficha, nombre_programa, estado
                 FROM fichas
+                {$where}
                 ORDER BY numero_ficha ASC";
 
         return Conexion::obtener()->query($sql)->fetchAll();
@@ -133,6 +135,20 @@ class AprendizModelo
     public function crear(string $nombre, string $usuario, ?string $correo, string $passwordHash, int $idFicha, ?string $tagRfid = null): void
     {
         $db = Conexion::obtener();
+
+        // 1. Validar que la ficha exista y se encuentre en estado Activa
+        $stmtChkFicha = $db->prepare("SELECT estado, numero_ficha FROM fichas WHERE id_ficha = :id LIMIT 1");
+        $stmtChkFicha->execute([':id' => $idFicha]);
+        $fichaInfo = $stmtChkFicha->fetch(PDO::FETCH_ASSOC);
+
+        if (!$fichaInfo) {
+            throw new InvalidArgumentException("La ficha seleccionada no existe.");
+        }
+
+        if (($fichaInfo['estado'] ?? 'Activa') !== 'Activa') {
+            throw new DomainException("No es posible matricular aprendices en la ficha {$fichaInfo['numero_ficha']} porque se encuentra en estado '{$fichaInfo['estado']}'. Solo se permiten asignaciones a fichas activas.");
+        }
+
         $db->beginTransaction();
 
         try {
@@ -170,6 +186,18 @@ class AprendizModelo
             }
             $stmtA->execute();
 
+            $idAprendizNuevo = (int) $db->lastInsertId();
+
+            // Registrar vinculación activa en historial de aprendiz_ficha
+            $stmtAf = $db->prepare("
+                INSERT INTO aprendiz_ficha (id_aprendiz, id_ficha, estado, fecha_vinculacion)
+                VALUES (:id_apr, :id_fic, 'Activo', NOW())
+            ");
+            $stmtAf->execute([
+                ':id_apr' => $idAprendizNuevo,
+                ':id_fic' => $idFicha
+            ]);
+
             $db->commit();
         } catch (PDOException $e) {
             $db->rollBack();
@@ -180,6 +208,25 @@ class AprendizModelo
     public function actualizar(int $idUsuario, string $nombre, string $usuario, ?string $correo, ?string $passwordHash, int $idFicha, ?string $tagRfid = null): void
     {
         $db = Conexion::obtener();
+
+        // 1. Validar que la ficha destino exista y se encuentre en estado Activa
+        $stmtChkFicha = $db->prepare("SELECT estado, numero_ficha FROM fichas WHERE id_ficha = :id LIMIT 1");
+        $stmtChkFicha->execute([':id' => $idFicha]);
+        $fichaInfo = $stmtChkFicha->fetch(PDO::FETCH_ASSOC);
+
+        if (!$fichaInfo) {
+            throw new InvalidArgumentException("La ficha seleccionada no existe.");
+        }
+
+        if (($fichaInfo['estado'] ?? 'Activa') !== 'Activa') {
+            throw new DomainException("No es posible asignar la ficha {$fichaInfo['numero_ficha']} porque se encuentra en estado '{$fichaInfo['estado']}'.");
+        }
+
+        // Obtener datos previos del aprendiz
+        $stmtPrev = $db->prepare("SELECT id_aprendiz, id_ficha FROM aprendices WHERE id_usuario = :id LIMIT 1");
+        $stmtPrev->execute([':id' => $idUsuario]);
+        $previo = $stmtPrev->fetch(PDO::FETCH_ASSOC);
+
         $db->beginTransaction();
 
         try {
@@ -231,6 +278,28 @@ class AprendizModelo
             }
             $stmtA->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
             $stmtA->execute();
+
+            // Gestionar historial de vinculación si cambió de ficha
+            if ($previo && (int)$previo['id_ficha'] !== $idFicha) {
+                $idApr = (int)$previo['id_aprendiz'];
+                $idFichaAnterior = (int)$previo['id_ficha'];
+
+                // Marcar vinculación anterior como finalizada
+                $stmtCerrar = $db->prepare("
+                    UPDATE aprendiz_ficha 
+                    SET estado = 'Finalizado', fecha_finalizacion = NOW()
+                    WHERE id_aprendiz = :id_apr AND id_ficha = :id_ant AND estado = 'Activo'
+                ");
+                $stmtCerrar->execute([':id_apr' => $idApr, ':id_ant' => $idFichaAnterior]);
+
+                // Registrar o reactivar la nueva vinculación en aprendiz_ficha
+                $stmtNueva = $db->prepare("
+                    INSERT INTO aprendiz_ficha (id_aprendiz, id_ficha, estado, fecha_vinculacion)
+                    VALUES (:id_apr, :id_fic, 'Activo', NOW())
+                    ON DUPLICATE KEY UPDATE estado = 'Activo', fecha_vinculacion = NOW(), fecha_finalizacion = NULL
+                ");
+                $stmtNueva->execute([':id_apr' => $idApr, ':id_fic' => $idFicha]);
+            }
 
             $db->commit();
         } catch (PDOException $e) {

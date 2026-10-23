@@ -27,7 +27,7 @@ class HorarioControlador extends ControladorBase
         try {
             $horarios     = $this->modelo->listarHorarios($idInstructorSesion);
             $instructores = $this->modelo->listarInstructores();
-            $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion);
+            $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion, 'Activa');
 
             // Paleta de colores con contraste óptimo para texto blanco
             $paletaGoogle = [
@@ -117,26 +117,7 @@ class HorarioControlador extends ControladorBase
         require BASE_PATH . '/views/horarios.php';
     }
 
-    // =========================================================================
-    // Delegación al Módulo de Fichas (FichaControlador) para retrocompatibilidad
-    // =========================================================================
-
-    public function mostrarFichas(): void
-    {
-        (new FichaControlador())->mostrarFichas();
-    }
-
-    public function guardarFicha(): void
-    {
-        (new FichaControlador())->guardarFicha();
-    }
-
-    public function eliminarFicha(): void
-    {
-        (new FichaControlador())->eliminarFicha();
-    }
-
-    // Alias para compatibilidad
+    // Alias para compatibilidad de rutas
     public function mostrar(): void
     {
         $this->mostrarHorarios();
@@ -256,13 +237,23 @@ class HorarioControlador extends ControladorBase
             return;
         }
 
-        // 4. Comprobar que el número de ficha asociado exista y sea válido
+        // 4. Comprobar que el número de ficha asociado exista y esté en estado Activa
         $fichaExistente = $this->fichaModelo->buscarFichaPorNumero($numeroFicha);
         if (!$fichaExistente) {
             Seguridad::alertaYRedirigir(
                 'warning',
                 'Ficha no encontrada',
                 "El número de ficha '{$numeroFicha}' no existe en la base de datos. Debes registrar previamente la ficha en el módulo de Fichas antes de crearle un horario.",
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
+        if (($fichaExistente['estado'] ?? 'Activa') !== 'Activa') {
+            Seguridad::alertaYRedirigir(
+                'warning',
+                'Ficha no operativa',
+                "La ficha '{$numeroFicha}' se encuentra en estado '{$fichaExistente['estado']}'. Por políticas institucionales, no es posible registrar ni modificar horarios en fichas finalizadas o archivadas.",
                 $this->urlAccion('horarios')
             );
             return;
@@ -609,9 +600,26 @@ class HorarioControlador extends ControladorBase
         $esInstructor       = (strtolower($rolActivo) === 'instructor');
         $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
 
+        $fechaInicio = null;
+        $fechaFin    = null;
+
+        if (!empty($_GET['start'])) {
+            $valStart = substr(trim((string)$_GET['start']), 0, 10);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $valStart)) {
+                $fechaInicio = $valStart;
+            }
+        }
+
+        if (!empty($_GET['end'])) {
+            $valEnd = substr(trim((string)$_GET['end']), 0, 10);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $valEnd)) {
+                $fechaFin = $valEnd;
+            }
+        }
+
         try {
-            $horarios     = $this->modelo->listarHorarios($idInstructorSesion);
-            $festivos     = $this->modelo->listarFestivos();
+            $horarios     = $this->modelo->listarHorarios($idInstructorSesion, $fechaInicio, $fechaFin);
+            $festivos     = $this->modelo->listarFestivos(null, $fechaInicio, $fechaFin);
             $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion);
 
             $paletaGoogle = [

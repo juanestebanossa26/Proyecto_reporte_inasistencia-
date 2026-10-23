@@ -749,22 +749,43 @@ function cambiarVista(vistaNombre) {
     }
 }
 
+let ultimaSecuenciaRecarga = 0;
+
 async function recargarEventosServidor() {
+    const secuenciaActual = ++ultimaSecuenciaRecarga;
     try {
-        const resp = await fetch('index.php?accion=obtenerEventosJson');
+        let url = 'index.php?accion=obtenerEventosJson';
+        if (calendar && calendar.view && calendar.view.activeStart && calendar.view.activeEnd) {
+            const startStr = calendar.view.activeStart.toISOString().split('T')[0];
+            const endStr = calendar.view.activeEnd.toISOString().split('T')[0];
+            url += `&start=${startStr}&end=${endStr}`;
+        }
+
+        const resp = await fetch(url);
         if (!resp.ok) throw new Error('Error HTTP ' + resp.status);
         const data = await resp.json();
+
+        // Evitar que una respuesta antigua rezagada sobrescriba una solicitud más reciente
+        if (secuenciaActual !== ultimaSecuenciaRecarga) {
+            return false;
+        }
+
         if (data && data.exito && Array.isArray(data.eventos)) {
-            todosLosEventos = data.eventos;
-            // Deduplicación estricta en memoria
-            const idsVistos = new Set();
-            todosLosEventos = todosLosEventos.filter(ev => {
-                if (!ev) return false;
+            // Fusión segura y deduplicada
+            const mapaEventos = new Map();
+            todosLosEventos.forEach(ev => {
+                if (!ev) return;
                 const clave = ev.id || `${ev.extendedProps?.id_ficha}_${ev.start}_${ev.end}`;
-                if (idsVistos.has(clave)) return false;
-                idsVistos.add(clave);
-                return true;
+                mapaEventos.set(clave, ev);
             });
+
+            data.eventos.forEach(ev => {
+                if (!ev) return;
+                const clave = ev.id || `${ev.extendedProps?.id_ficha}_${ev.start}_${ev.end}`;
+                mapaEventos.set(clave, ev);
+            });
+
+            todosLosEventos = Array.from(mapaEventos.values());
             filtrarFichas();
             return true;
         }

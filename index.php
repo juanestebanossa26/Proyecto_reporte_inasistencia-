@@ -144,9 +144,13 @@ match ($accion) {
     'procesarExcusa'   => $excusa->procesar(),
 
     // --- Fichas ---
-    'fichas'        => $ficha->mostrarFichas(),
-    'guardarFicha'  => $ficha->guardarFicha(),
-    'eliminarFicha' => $ficha->eliminarFicha(),
+    'fichas'                => $ficha->mostrarFichas(),
+    'guardarFicha'          => $ficha->guardarFicha(),
+    'finalizarFicha'        => $ficha->finalizarFicha(),
+    'archivarFicha'         => $ficha->archivarFicha(),
+    'reabrirFicha'          => $ficha->reabrirFicha(),
+    'eliminarFicha'         => $ficha->eliminarFicha(),
+    'obtenerAuditoriaFicha' => $ficha->obtenerAuditoriaFicha(),
 
     // --- Horarios ---
     'horarios'                   => $horario->mostrarHorarios(),

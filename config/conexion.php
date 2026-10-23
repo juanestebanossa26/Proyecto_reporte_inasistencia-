@@ -40,6 +40,9 @@ class Conexion
                 // Mismo ajuste que tenía el proyecto original: nombres de
                 // fecha (día/mes) en español al usar funciones de fecha de MySQL.
                 self::$instancia->exec("SET lc_time_names = 'es_ES'");
+
+                // Sincronización estricta de zona horaria con America/Bogota (UTC-5)
+                self::$instancia->exec("SET time_zone = '-05:00'");
             } catch (PDOException $e) {
                 die('Error de conexión: ' . $e->getMessage());
             }

@@ -1,0 +1,11 @@
+[2026-10-22 09:51:24] [INFO] Sincronización completada con éxito. | Datos: {"nuevas_faltas":0,"duracion_ms":8.95,"modo":"CLI"}
+[2026-10-22 09:51:40] [INFO] Ejecución en modo simulación (dry-run)
+[2026-10-22 09:51:40] [INFO] Sincronización completada con éxito. | Datos: {"nuevas_faltas":0,"duracion_ms":0.24,"modo":"CLI"}
+[2026-10-22 09:52:06] [INFO] Sincronización completada con éxito. | Datos: {"nuevas_faltas":0,"duracion_ms":9.27,"modo":"CLI"}
+[2026-10-22 10:00:40] [INFO] Sincronización completada con éxito. | Datos: {"nuevas_faltas":0,"duracion_ms":4.69,"modo":"CLI"}
+[2026-10-22 10:05:58] [INFO] Sincronización completada con éxito. | Datos: {"nuevas_faltas":0,"duracion_ms":5.62,"modo":"CLI"}
+[2026-10-22 10:06:35] [INFO] Sincronización completada con éxito. | Datos: {"nuevas_faltas":0,"duracion_ms":9.97,"modo":"CLI"}
+[2026-10-22 10:59:19] [INFO] Ejecución en modo simulación (dry-run)
+[2026-10-22 10:59:19] [INFO] Sincronización completada con éxito. | Datos: {"sesiones_evaluadas":0,"nuevas_faltas":0,"omitidos_festivos":0,"omitidos_asistencia_previa":0,"duplicados_evitados":0,"duracion_ms":0.27,"modo":"CLI"}
+[2026-10-22 10:59:31] [INFO] Sincronización completada con éxito. | Datos: {"sesiones_evaluadas":21,"nuevas_faltas":0,"omitidos_festivos":0,"omitidos_asistencia_previa":11,"duplicados_evitados":10,"duracion_ms":13.93,"modo":"CLI"}
+[2026-10-22 10:59:55] [INFO] Sincronización completada con éxito. | Datos: {"sesiones_evaluadas":21,"nuevas_faltas":0,"omitidos_festivos":0,"omitidos_asistencia_previa":11,"duplicados_evitados":10,"duracion_ms":5.8,"modo":"CLI"}
