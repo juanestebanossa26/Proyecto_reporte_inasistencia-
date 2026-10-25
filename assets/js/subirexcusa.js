@@ -4,6 +4,7 @@ $(document).ready(function () {
     pageLength: 5,
     lengthMenu: [5, 10, 25, 50],
     ordering: true,
+    autoWidth: false,
   });
 
   // "Marcar todas" las fechas

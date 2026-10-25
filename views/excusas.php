@@ -139,95 +139,97 @@ $tituloPagina  = 'Excusas médicas';
                 <div class="col-lg-7">
                     <div class="card p-3">
                         <h2 class="h6 fw-bold mb-3">Mis excusas enviadas</h2>
-                        <div class="table-responsive">
-                            <table id="tablaExcusas" class="table table-app align-middle mb-0" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Bloque / Clase</th>
-                                        <th>Motivo</th>
-                                        <th>Estado</th>
-                                        <th class="text-end" data-orderable="false">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                <?php
-                                foreach ($misExcusas as $fila) {
-                                    $estado = strtolower($fila['estado_excusa']);
-                                    $claseColor = '';
+                        <table id="tablaExcusas" class="table table-app align-middle mb-0" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 100px;">Fecha</th>
+                                    <th style="min-width: 140px;">Bloque / Clase</th>
+                                    <th style="min-width: 120px;">Motivo</th>
+                                    <th style="min-width: 100px;">Estado</th>
+                                    <th class="text-end" style="min-width: 110px;" data-orderable="false">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php
+                            foreach ($misExcusas as $fila) {
+                                $estado = strtolower($fila['estado_excusa']);
+                                $claseColor = '';
 
-                                    switch ($estado) {
-                                        case 'aprobada':
-                                            $claseColor = 'bg-success text-white';
-                                            break;
-                                        case 'rechazada':
-                                            $claseColor = 'bg-danger text-white';
-                                            break;
-                                        case 'devuelta':
-                                            $claseColor = 'bg-info text-dark';
-                                            break;
-                                        case 'pendiente':
-                                            $claseColor = 'bg-warning text-dark';
-                                            break;
-                                        default:
-                                            $claseColor = 'bg-secondary text-white';
-                                            break;
-                                    }
+                                switch ($estado) {
+                                    case 'aprobada':
+                                        $claseColor = 'bg-success text-white';
+                                        break;
+                                    case 'rechazada':
+                                        $claseColor = 'bg-danger text-white';
+                                        break;
+                                    case 'devuelta':
+                                        $claseColor = 'bg-info text-dark';
+                                        break;
+                                    case 'pendiente':
+                                        $claseColor = 'bg-warning text-dark';
+                                        break;
+                                    default:
+                                        $claseColor = 'bg-secondary text-white';
+                                        break;
+                                }
 
-                                    // Solo se puede editar/reenviar si algún instructor la
-                                    // rechazó o la devolvió para corrección.
-                                    $sePuedeReenviar = in_array($estado, ['rechazada', 'devuelta'], true);
-                                    $tieneObservacion = in_array($estado, ['rechazada', 'devuelta'], true) && !empty($fila['observaciones_instructor']);
-                                ?>
-                                    <tr>
-                                        <td>
-                                            <span class="fw-semibold"><?= htmlspecialchars($fila['fecha']) ?></span>
-                                        </td>
-                                        <td>
-                                            <div>
-                                                <span class="badge bg-light text-dark border">
-                                                    <i class="bi bi-clock me-1 text-primary"></i><?= htmlspecialchars($fila['bloque_horario']) ?>
-                                                </span>
+                                // Solo se puede editar/reenviar si algún instructor la
+                                // rechazó o la devolvió para corrección.
+                                $sePuedeReenviar = in_array($estado, ['rechazada', 'devuelta'], true);
+                                $tieneObservacion = in_array($estado, ['rechazada', 'devuelta'], true) && !empty($fila['observaciones_instructor']);
+                            ?>
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <span class="fw-semibold"><?= htmlspecialchars($fila['fecha']) ?></span>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="badge bg-light text-dark border">
+                                                <i class="bi bi-clock me-1 text-primary"></i><?= htmlspecialchars($fila['bloque_horario']) ?>
+                                            </span>
+                                        </div>
+                                        <small class="text-muted d-block mt-1 text-truncate" style="max-width: 160px;" title="<?= htmlspecialchars($fila['instructor_nombre']) ?>">
+                                            <i class="bi bi-person me-1"></i><?= htmlspecialchars($fila['instructor_nombre']) ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 140px;" title="<?= htmlspecialchars($fila['motivo']) ?>">
+                                            <?= htmlspecialchars($fila['motivo']) ?>
+                                        </div>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <div>
+                                            <span class="badge <?= $claseColor ?>">
+                                                <?= ucfirst($estado) ?>
+                                            </span>
+                                        </div>
+                                        <?php if ($tieneObservacion): ?>
+                                            <div class="mt-2 p-2 rounded small bg-light border border-<?= $estado === 'rechazada' ? 'danger' : 'info' ?>" style="font-size: 0.78rem;">
+                                                <strong class="d-block text-<?= $estado === 'rechazada' ? 'danger' : 'primary' ?> mb-1">
+                                                    <i class="bi bi-chat-left-dots me-1"></i>Motivo del instructor:
+                                                </strong>
+                                                <span><?= nl2br(htmlspecialchars($fila['observaciones_instructor'])) ?></span>
                                             </div>
-                                            <small class="text-muted d-block mt-1">
-                                                <i class="bi bi-person me-1"></i><?= htmlspecialchars($fila['instructor_nombre']) ?>
-                                            </small>
-                                        </td>
-                                        <td><?= htmlspecialchars($fila['motivo']) ?></td>
-                                        <td>
-                                            <div>
-                                                <span class="badge <?= $claseColor ?>">
-                                                    <?= ucfirst($estado) ?>
-                                                </span>
-                                            </div>
-                                            <?php if ($tieneObservacion): ?>
-                                                <div class="mt-2 p-2 rounded small bg-light border border-<?= $estado === 'rechazada' ? 'danger' : 'info' ?>" style="font-size: 0.78rem;">
-                                                    <strong class="d-block text-<?= $estado === 'rechazada' ? 'danger' : 'primary' ?> mb-1">
-                                                        <i class="bi bi-chat-left-dots me-1"></i>Motivo del instructor:
-                                                    </strong>
-                                                    <span><?= nl2br(htmlspecialchars($fila['observaciones_instructor'])) ?></span>
-                                                </div>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="text-end">
-                                            <?php if ($sePuedeReenviar): ?>
-                                                <button type="button"
-                                                        class="btn btn-sm btn-outline-secondary border-0 btn-reenviar-excusa"
-                                                        title="Editar y reenviar"
-                                                        data-id="<?= $fila['id_excusa'] ?>"
-                                                        data-motivo="<?= htmlspecialchars($fila['motivo'], ENT_QUOTES, 'UTF-8') ?>"
-                                                        data-observacion="<?= htmlspecialchars($fila['observaciones_instructor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                        data-bloque="<?= htmlspecialchars($fila['bloque_horario'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                        data-instructor="<?= htmlspecialchars($fila['instructor_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                                                    <i class="bi bi-arrow-repeat"></i> Editar y reenviar
-                                                </button>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php } ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <?php if ($sePuedeReenviar): ?>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary border-0 btn-reenviar-excusa"
+                                                    title="Editar y reenviar"
+                                                    data-id="<?= $fila['id_excusa'] ?>"
+                                                    data-motivo="<?= htmlspecialchars($fila['motivo'], ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-observacion="<?= htmlspecialchars($fila['observaciones_instructor'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-bloque="<?= htmlspecialchars($fila['bloque_horario'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                    data-instructor="<?= htmlspecialchars($fila['instructor_nombre'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                                <i class="bi bi-arrow-repeat"></i> Reenviar
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php } ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

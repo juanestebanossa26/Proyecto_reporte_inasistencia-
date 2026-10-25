@@ -17,6 +17,7 @@ class MarcajeModelo
                     aprendices.id_ficha,
                     usuarios.id_usuario,
                     usuarios.nombre_completo,
+                    usuarios.correo_electronico,
                     usuarios.estado,
                     fichas.numero_ficha,
                     fichas.nombre_programa

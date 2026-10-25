@@ -10,6 +10,10 @@ $nombreUsuario  = $usuarioActual['nombre_completo'] ?? $_SESSION['nombre'] ?? 'U
 $usuarioLogin   = $usuarioActual['usuario'] ?? $_SESSION['usuario'] ?? $_SESSION['Documento'] ?? 'No registrado';
 $correoUsuario  = $usuarioActual['correo_electronico'] ?? $_SESSION['Correo'] ?? 'Sin correo';
 $areaUsuario    = $usuarioActual['area'] ?? 'General';
+if (strpos($areaUsuario, '-') !== false || strpos($areaUsuario, '–') !== false || strpos($areaUsuario, '—') !== false) {
+    $partesArea = preg_split('/[-–—]/u', $areaUsuario);
+    $areaUsuario = trim($partesArea[0] ?? '');
+}
 $estadoUsuario  = $usuarioActual['estado'] ?? 'Activo';
 
 $paginaActiva   = 'perfil';

@@ -30,5 +30,6 @@ const DATATABLES_ESPANOL = {
 if (typeof jQuery !== "undefined" && typeof jQuery.fn.dataTable !== "undefined") {
   jQuery.extend(true, jQuery.fn.dataTable.defaults, {
     language: DATATABLES_ESPANOL,
+    autoWidth: false,
   });
 }

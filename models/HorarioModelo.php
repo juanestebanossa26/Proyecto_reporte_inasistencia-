@@ -627,6 +627,10 @@ class HorarioModelo
     {
         $nombreCompleto = trim(html_entity_decode($nombreCompletoRaw, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         $area = trim(html_entity_decode($areaRaw, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($area !== '' && (strpos($area, '-') !== false || strpos($area, '–') !== false || strpos($area, '—') !== false)) {
+            $partesArea = preg_split('/[-–—]/u', $area);
+            $area = trim($partesArea[0] ?? '');
+        }
 
         // Ignorar días festivos o recesos que puedan venir en la celda del instructor
         $terminosIgnorar = ['festivo', 'festivos', 'vacaciones', 'receso', 'semana santa', 'feriado', 'sin instructor', 'por definir'];

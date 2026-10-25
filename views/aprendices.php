@@ -49,105 +49,105 @@ $fichas        = $fichas ?? [];
                 </div>
 
                 <div class="card p-3">
-                    <!-- Buscador manual y filtro original -->
-
-
-                    <div class="table-responsive">
-                        <!-- Se agregó el ID "tablaAprendices" a la tabla -->
-                        <table id="tablaAprendices" class="table table-app align-middle mb-0" style="width:100%">
-                            <thead>
+                    <table id="tablaAprendices" class="table table-app align-middle mb-0" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 180px;">Aprendiz</th>
+                                <th style="min-width: 120px;">Usuario</th>
+                                <th style="min-width: 220px;">Ficha</th>
+                                <th style="min-width: 160px;">Código RFID</th>
+                                <th style="min-width: 100px;">Estado</th>
+                                <th class="text-end" style="min-width: 100px;" data-orderable="false">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($aprendices as $a):
+                                $nombreCompleto = trim($a['nombre_completo'] ?? $a['nombre'] ?? '');
+                                $usuario        = $a['usuario'] ?? $a['num_documento'] ?? $a['doc'] ?? '';
+                                $fichaLabel     = $a['ficha_label'] ?? $a['ficha'] ?? '';
+                                $rfid           = $a['tag_rfid'] ?? $a['rfid'] ?? '';
+                                $estado         = strtolower($a['estado'] ?? 'activo');
+                                $idUsuario = (int) ($a['id_usuario'] ?? 0);
+                            ?>
                                 <tr>
-                                    <th>Aprendiz</th>
-                                    <th>Usuario</th>
-                                    <th>Ficha</th>
-                                    <th>Código RFID</th>
-                                    <th>Estado</th>
-                                    <th class="text-end">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($aprendices as $a):
-                                    $nombreCompleto = trim($a['nombre_completo'] ?? $a['nombre'] ?? '');
-                                    $usuario        = $a['usuario'] ?? $a['num_documento'] ?? $a['doc'] ?? '';
-                                    $fichaLabel     = $a['ficha_label'] ?? $a['ficha'] ?? '';
-                                    $rfid           = $a['tag_rfid'] ?? $a['rfid'] ?? '';
-                                    $estado         = strtolower($a['estado'] ?? 'activo');
-                                    $idUsuario = (int) ($a['id_usuario'] ?? 0);
-                                ?>
-                                    <tr>
-                                        <td class="d-flex align-items-center gap-2">
-                                            <span class="avatar-circ"><?= strtoupper(substr($nombreCompleto, 0, 1)) ?></span>
-                                            <?= htmlspecialchars($nombreCompleto) ?>
-                                        </td>
-                                        <td><?= htmlspecialchars($usuario) ?></td>
-                                        <td><?= htmlspecialchars($fichaLabel) ?></td>
-                                        <td>
-                                            <?php
-                                            $rfidVal = trim((string)($rfid ?? ''));
-                                            $tieneRfid = ($rfidVal !== '' && $rfidVal !== '0' && strtolower($rfidVal) !== 'sin tag' && strtolower($rfidVal) !== 'null');
-                                            ?>
-                                            <?php if ($tieneRfid): ?>
-                                                <div class="rfid-tag-container" title="TAG RFID: <?= htmlspecialchars($rfidVal) ?>">
-                                                    <span class="rfid-tag-badge">
-                                                        <i class="bi bi-broadcast rfid-icon"></i>
-                                                        <span class="rfid-code"><?= htmlspecialchars($rfidVal) ?></span>
-                                                    </span>
-                                                    <button type="button" class="btn-copy-tag" title="Copiar código RFID" onclick="copiarTag(event, '<?= htmlspecialchars($rfidVal, ENT_QUOTES) ?>')">
-                                                        <i class="bi bi-clipboard"></i>
-                                                    </button>
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="rfid-tag-empty" title="Aprendiz sin tarjeta o TAG asignado">
-                                                    <i class="bi bi-slash-circle me-1"></i>Sin TAG asignado
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="avatar-circ flex-shrink-0"><?= strtoupper(substr($nombreCompleto, 0, 1)) ?></span>
+                                            <span class="fw-semibold text-truncate" style="max-width: 200px;" title="<?= htmlspecialchars($nombreCompleto) ?>"><?= htmlspecialchars($nombreCompleto) ?></span>
+                                        </div>
+                                    </td>
+                                    <td><?= htmlspecialchars($usuario) ?></td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 240px;" title="<?= htmlspecialchars($fichaLabel) ?>">
+                                            <?= htmlspecialchars($fichaLabel) ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $rfidVal = trim((string)($rfid ?? ''));
+                                        $tieneRfid = ($rfidVal !== '' && $rfidVal !== '0' && strtolower($rfidVal) !== 'sin tag' && strtolower($rfidVal) !== 'null');
+                                        ?>
+                                        <?php if ($tieneRfid): ?>
+                                            <div class="rfid-tag-container" title="TAG RFID: <?= htmlspecialchars($rfidVal) ?>">
+                                                <span class="rfid-tag-badge">
+                                                    <i class="bi bi-broadcast rfid-icon"></i>
+                                                    <span class="rfid-code"><?= htmlspecialchars($rfidVal) ?></span>
                                                 </span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($estado === 'activo'): ?>
-                                                <span class="badge-estado badge-a-tiempo">Activo</span>
-                                            <?php else: ?>
-                                                <span class="badge-estado badge-inasistencia">Inactivo</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-secondary border-0 btn-editar"
-                                                title="Editar"
+                                                <button type="button" class="btn-copy-tag" title="Copiar código RFID" onclick="copiarTag(event, '<?= htmlspecialchars($rfidVal, ENT_QUOTES) ?>')">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="rfid-tag-empty" title="Aprendiz sin tarjeta o TAG asignado">
+                                                <i class="bi bi-slash-circle me-1"></i>Sin TAG asignado
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <?php if ($estado === 'activo'): ?>
+                                            <span class="badge-estado badge-a-tiempo">Activo</span>
+                                        <?php else: ?>
+                                            <span class="badge-estado badge-inasistencia">Inactivo</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <button class="btn btn-sm btn-outline-secondary border-0 btn-editar"
+                                            title="Editar"
+                                            data-id="<?= $idUsuario ?>"
+                                            data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
+                                            data-usuario="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
+                                            data-documento="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
+                                            data-correo="<?= htmlspecialchars($a['correo_electronico'] ?? '', ENT_QUOTES) ?>"
+                                            data-rfid="<?= htmlspecialchars($rfidVal, ENT_QUOTES) ?>"
+                                            data-ficha="<?= (int) ($a['id_ficha'] ?? 0) ?>">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+
+                                        <?php 
+                                          // Si el aprendiz esta activo se muestra desactivar
+                                           if ($estado === 'activo'): ?>
+                                            <button class="btn btn-sm btn-outline-danger border-0 btn-estado" 
+                                                title="Desactivar aprendiz"
                                                 data-id="<?= $idUsuario ?>"
                                                 data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
-                                                data-usuario="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
-                                                data-documento="<?= htmlspecialchars($usuario, ENT_QUOTES) ?>"
-                                                data-correo="<?= htmlspecialchars($a['correo_electronico'] ?? '', ENT_QUOTES) ?>"
-                                                data-rfid="<?= htmlspecialchars($rfidVal, ENT_QUOTES) ?>"
-                                                data-ficha="<?= (int) ($a['id_ficha'] ?? 0) ?>">
-                                                <i class="bi bi-pencil-square"></i>
+                                                data-accion-tipo="desactivar">
+                                                <i class="bi bi-slash-circle"></i>
                                             </button>
-
-                                            <?php 
-                                              // Si el aprendiz esta activo se muestra desactivar
-                                               if ($estado === 'activo'): ?>
-                                                <button class="btn btn-sm btn-outline-danger border-0 btn-estado" 
-                                                    title="Desactivar aprendiz"
-                                                    data-id="<?= $idUsuario ?>"
-                                                    data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
-                                                    data-accion-tipo="desactivar">
-                                                    <i class="bi bi-slash-circle"></i>
-                                                </button>
-                                            <?php else: ?>
-                                                
-                                                <button class="btn btn-sm btn-outline-success border-0 btn-estado" 
-                                                    title="Activar aprendiz"
-                                                    data-id="<?= $idUsuario ?>"
-                                                    data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
-                                                    data-accion-tipo="activar">
-                                                    <i class="bi bi-check-circle"></i>
-                                                </button>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                                        <?php else: ?>
+                                            
+                                            <button class="btn btn-sm btn-outline-success border-0 btn-estado" 
+                                                title="Activar aprendiz"
+                                                data-id="<?= $idUsuario ?>"
+                                                data-nombre="<?= htmlspecialchars($nombreCompleto, ENT_QUOTES) ?>"
+                                                data-accion-tipo="activar">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             </main>
         </div>

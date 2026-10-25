@@ -116,41 +116,44 @@ $ficha_id          = $ficha_id ?? '';
 
             <div class="card p-3">
                 <h2 class="h6 fw-bold mb-3">Detalle por aprendiz</h2>
-                <div class="table-responsive">
-                    <table id="tablaReportes" class="table table-app align-middle mb-0" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Aprendiz</th>
-                                <th>Ficha</th>
-                     
-                                <th class="text-center">Retardos</th>
-                                <th class="text-center">Tiempo Total de Retardo</th>
-                                <th class="text-center">Inasistencias</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($filasReporte as $fila):
-                            $minutos = (int) ($fila['min_retardo'] ?? 0);
-                            $tiempoFormato = $minutos >= 60
-                                ? floor($minutos / 60) . 'h ' . ($minutos % 60) . 'm'
-                                : $minutos . 'm';
-                        ?>
-                            <tr>
-                                <td class="d-flex align-items-center gap-2">
-                                    <span class="avatar-circ"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
-                                    <?= htmlspecialchars($fila['nombre_completo']) ?>
-                                </td>
-                                <td><?= htmlspecialchars($fila['nombre_programa'] . ' · ' . $fila['numero_ficha']) ?></td>
-                                <!-- Corrección: nombre_instructor ya contiene el nombre y apellido combinados desde el SQL -->
-                            
-                                <td class="text-center"><?= $fila['retardos'] ?? 0 ?></td>
-                                <td class="text-center"><?= $tiempoFormato ?></td>
-                                <td class="text-center"><?= $fila['inasistencias'] ?? 0 ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                <table id="tablaReportes" class="table table-app align-middle mb-0" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 180px;">Aprendiz</th>
+                            <th style="min-width: 220px;">Ficha</th>
+                            <th class="text-center" style="min-width: 90px;">Retardos</th>
+                            <th class="text-center" style="min-width: 140px;">Tiempo Total</th>
+                            <th class="text-center" style="min-width: 110px;">Inasistencias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($filasReporte as $fila):
+                        $minutos = (int) ($fila['min_retardo'] ?? 0);
+                        $tiempoFormato = $minutos >= 60
+                            ? floor($minutos / 60) . 'h ' . ($minutos % 60) . 'm'
+                            : $minutos . 'm';
+                    ?>
+                        <tr>
+                            <td class="text-nowrap">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="avatar-circ flex-shrink-0"><?= strtoupper(substr($fila['nombre_completo'], 0, 1)) ?></span>
+                                    <span class="fw-semibold text-truncate" style="max-width: 200px;" title="<?= htmlspecialchars($fila['nombre_completo']) ?>">
+                                        <?= htmlspecialchars($fila['nombre_completo']) ?>
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 250px;" title="<?= htmlspecialchars($fila['nombre_programa'] . ' · ' . $fila['numero_ficha']) ?>">
+                                    <?= htmlspecialchars($fila['nombre_programa'] . ' · ' . $fila['numero_ficha']) ?>
+                                </div>
+                            </td>
+                            <td class="text-center text-nowrap"><?= $fila['retardos'] ?? 0 ?></td>
+                            <td class="text-center text-nowrap"><?= $tiempoFormato ?></td>
+                            <td class="text-center text-nowrap"><?= $fila['inasistencias'] ?? 0 ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
                 <p class="text-suave mt-3 mb-0" style="font-size:.8rem;">
                     * Las inasistencias con excusa médica aprobada ya han sido excluidas de este reporte.
                 </p>

@@ -256,6 +256,10 @@ class ExcelHorarioHelper
             }
 
             $area = trim((string)($reg['area'] ?? ''));
+            if ($area !== '' && (strpos($area, '-') !== false || strpos($area, '–') !== false || strpos($area, '—') !== false)) {
+                $partesArea = preg_split('/[-–—]/u', $area);
+                $area = trim($partesArea[0] ?? '');
+            }
 
             $registrosValidados[] = [
                 'fila'         => $fila,
@@ -650,6 +654,10 @@ class ExcelHorarioHelper
                         $lines = preg_split('/[\r\n]+/', $cellVal);
                         $instructor = trim($lines[0] ?? '');
                         $area = trim($lines[1] ?? '');
+                        if ($area !== '' && (strpos($area, '-') !== false || strpos($area, '–') !== false || strpos($area, '—') !== false)) {
+                            $partesArea = preg_split('/[-–—]/u', $area);
+                            $area = trim($partesArea[0] ?? '');
+                        }
 
                         // Ignorar términos que no sean instructores
                         $ignorar = ['festivo', 'festivos', 'vacaciones', 'receso', 'sin instructor', 'por definir'];

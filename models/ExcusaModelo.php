@@ -130,8 +130,6 @@ class ExcusaModelo
         }
     }
 
-    // Inserta UNA fila de excusas_medicas para una fecha puntual, y crea
-    // su revisión pendiente por cada instructor de la ficha. No maneja su
     // Inserta UNA fila de excusas_medicas para una fecha/bloque puntual, y crea
     // su revisión pendiente para el instructor que tenía clase en ese bloque
     // (o para los instructores de la ficha si no había uno asignado en horarios).
@@ -290,6 +288,32 @@ class ExcusaModelo
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
+    }
+
+    // Obtiene los datos del aprendiz y la sesión para notificar por correo electrónico el resultado de la revisión
+    public function obtenerDetalleRevision(int $idRevision): ?array
+    {
+        $sql = "SELECT
+                    usuarios.nombre_completo,
+                    usuarios.correo_electronico,
+                    asistencias.fecha,
+                    fichas.numero_ficha,
+                    fichas.nombre_programa
+                FROM revision_excusas re
+                JOIN excusas_medicas em ON re.id_excusa = em.id_excusa
+                JOIN asistencias ON em.id_asistencia = asistencias.id_asistencia
+                JOIN aprendices ON em.aprendices_id_aprendiz = aprendices.id_aprendiz
+                JOIN usuarios ON aprendices.id_usuario = usuarios.id_usuario
+                JOIN fichas ON aprendices.id_ficha = fichas.id_ficha
+                WHERE re.id_revision = :id_rev
+                LIMIT 1";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id_rev', $idRevision, PDO::PARAM_INT);
+        $stmt->execute();
+        $res = $stmt->fetch();
+
+        return $res ?: null;
     }
 
     // Procesa la decisión del instructor (Aprobar, Rechazar, Devolver) en un solo método

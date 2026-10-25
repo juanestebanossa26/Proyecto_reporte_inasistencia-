@@ -89,12 +89,11 @@ class ReporteControlador extends ControladorBase
                     $this->SetTextColor(255, 255, 255);
                     $this->SetFont('Arial', 'B', 8);
 
-                    $this->Cell(55, 8, 'Aprendiz', 1, 0, 'L', true);
-                    $this->Cell(60, 8, 'Ficha / Programa', 1, 0, 'L', true);
-                    $this->Cell(50, 8, 'Instructor', 1, 0, 'L', true);
-                    $this->Cell(25, 8, 'Retardos', 1, 0, 'C', true);
-                    $this->Cell(45, 8, 'Retardo Acumulado', 1, 0, 'C', true);
-                    $this->Cell(25, 8, 'Inasistencias', 1, 1, 'C', true);
+                    $this->Cell(70, 8, 'Aprendiz', 1, 0, 'L', true);
+                    $this->Cell(80, 8, 'Ficha / Programa', 1, 0, 'L', true);
+                    $this->Cell(30, 8, 'Retardos', 1, 0, 'C', true);
+                    $this->Cell(50, 8, 'Retardo Acumulado', 1, 0, 'C', true);
+                    $this->Cell(30, 8, 'Inasistencias', 1, 1, 'C', true);
                 }
 
                 function Footer(): void
@@ -118,21 +117,19 @@ class ReporteControlador extends ControladorBase
             foreach ($filas as $fila) {
                 $pdf->SetFillColor(245, 245, 245);
 
-                $aprendiz   = utf8_decode($fila['nombre_completo'] ?? '');
-                $ficha      = utf8_decode($fila['numero_ficha'] . ' - ' . $fila['nombre_programa']);
-                $instructor = utf8_decode($fila['nombre_instructor'] ?: 'Sin instructor');
+                $aprendiz = utf8_decode($fila['nombre_completo'] ?? '');
+                $ficha    = utf8_decode($fila['numero_ficha'] . ' - ' . $fila['nombre_programa']);
                 
-                $minutos    = (int) ($fila['min_retardo'] ?? 0);
-                $tiempo     = $minutos >= 60
+                $minutos  = (int) ($fila['min_retardo'] ?? 0);
+                $tiempo   = $minutos >= 60
                     ? floor($minutos / 60) . 'h ' . ($minutos % 60) . 'm'
                     : $minutos . 'm';
 
-                $pdf->Cell(55, 7, substr($aprendiz, 0, 32), 1, 0, 'L', $fill);
-                $pdf->Cell(60, 7, substr($ficha, 0, 38), 1, 0, 'L', $fill);
-                $pdf->Cell(50, 7, substr($instructor, 0, 28), 1, 0, 'L', $fill);
-                $pdf->Cell(25, 7, $fila['retardos'] ?? 0, 1, 0, 'C', $fill);
-                $pdf->Cell(45, 7, $tiempo, 1, 0, 'C', $fill);
-                $pdf->Cell(25, 7, $fila['inasistencias'] ?? 0, 1, 1, 'C', $fill);
+                $pdf->Cell(70, 7, substr($aprendiz, 0, 42), 1, 0, 'L', $fill);
+                $pdf->Cell(80, 7, substr($ficha, 0, 50), 1, 0, 'L', $fill);
+                $pdf->Cell(30, 7, (string) ($fila['retardos'] ?? 0), 1, 0, 'C', $fill);
+                $pdf->Cell(50, 7, $tiempo, 1, 0, 'C', $fill);
+                $pdf->Cell(30, 7, (string) ($fila['inasistencias'] ?? 0), 1, 1, 'C', $fill);
 
                 $fill = !$fill;
             }
@@ -173,7 +170,6 @@ class ReporteControlador extends ControladorBase
             $datos = [[
                 '<b>Aprendiz</b>',
                 '<b>Ficha</b>',
-                '<b>Instructor</b>',
                 '<center><b>Retardos</b></center>',
                 '<center><b>Minutos Retardo</b></center>',
                 '<center><b>Inasistencias</b></center>',
@@ -183,7 +179,6 @@ class ReporteControlador extends ControladorBase
                 $datos[] = [
                     $fila['nombre_completo'] ?? '',
                     $fila['numero_ficha'] . ' · ' . $fila['nombre_programa'],
-                    $fila['nombre_instructor'] ?: 'Sin instructor',
                     $fila['retardos'] ?? 0,
                     $fila['min_retardo'] ?? 0,
                     $fila['inasistencias'] ?? 0,

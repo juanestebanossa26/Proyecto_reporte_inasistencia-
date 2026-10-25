@@ -670,6 +670,10 @@ class HorarioControlador extends ControladorBase
             $progLimpio = html_entity_decode((string)$h['nombre_programa'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $instLimpio = html_entity_decode((string)($h['instructor_nombre'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $areaLimpia = html_entity_decode((string)($h['instructor_area'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($areaLimpia !== '' && (strpos($areaLimpia, '-') !== false || strpos($areaLimpia, '–') !== false || strpos($areaLimpia, '—') !== false)) {
+                $partesArea = preg_split('/[-–—]/u', $areaLimpia);
+                $areaLimpia = trim($partesArea[0] ?? '');
+            }
 
             $eventosCalendario[] = [
                 'id'              => (string) $h['id_horario'],

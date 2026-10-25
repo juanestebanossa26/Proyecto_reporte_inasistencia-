@@ -3,7 +3,7 @@ $(document).ready(function() {
         language: typeof DATATABLES_ESPANOL !== 'undefined' ? DATATABLES_ESPANOL : {},
         order: [],
         pageLength: 10,
-        responsive: true,
+        autoWidth: false,
         columnDefs: [
             { targets: 5, orderable: false, searchable: false }
         ]

@@ -1,11 +1,9 @@
 $(document).ready(function () {
   // 1. Inicializar DataTables
   $("#tablaInstructores").DataTable({
-    language: {
-      url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json",
-    },
+    language: typeof DATATABLES_ESPANOL !== "undefined" ? DATATABLES_ESPANOL : {},
     pageLength: 10,
-    responsive: true,
+    autoWidth: false,
     columnDefs: [{ orderable: false, targets: -1 }],
   });
 

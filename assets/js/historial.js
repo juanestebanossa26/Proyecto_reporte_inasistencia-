@@ -8,6 +8,6 @@ $(document).ready(function () {
     order: [[0, 'desc']],
     pageLength: 10,
     lengthMenu: [10, 25, 50],
-    responsive: true
+    autoWidth: false,
   });
 });

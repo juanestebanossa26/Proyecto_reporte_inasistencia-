@@ -116,74 +116,72 @@ if (!function_exists('renderBadgeHistorial')) {
                     </span>
                 </div>
 
-                <div class="table-responsive">
-                    <table id="tablaHistorial" class="table table-app table-hover align-middle mb-0" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th style="width: 28%;">Fecha</th>
-                                <th class="text-center" style="width: 24%;">Entrada</th>
-                                <th class="text-center" style="width: 24%;">Salida</th>
-                                <th class="text-center" style="width: 24%;">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($historial as $fila): 
-                            $fechaRaw = $fila['fecha'] ?? '';
-                            $ts = !empty($fechaRaw) ? strtotime($fechaRaw) : false;
-                            $fechaFmt = $ts ? date('d/m/Y', $ts) : '-';
-                            $diaFmt = $ts ? ($diasSemana[(int)date('w', $ts)] ?? '') : '';
+                <table id="tablaHistorial" class="table table-app table-hover align-middle mb-0" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 140px;">Fecha</th>
+                            <th class="text-center" style="min-width: 110px;">Entrada</th>
+                            <th class="text-center" style="min-width: 110px;">Salida</th>
+                            <th class="text-center" style="min-width: 110px;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($historial as $fila): 
+                        $fechaRaw = $fila['fecha'] ?? '';
+                        $ts = !empty($fechaRaw) ? strtotime($fechaRaw) : false;
+                        $fechaFmt = $ts ? date('d/m/Y', $ts) : '-';
+                        $diaFmt = $ts ? ($diasSemana[(int)date('w', $ts)] ?? '') : '';
 
-                            // Formato Entrada
-                            $hEnt = $fila['hora_entrada_real'] ?? null;
-                            if (!empty($hEnt)) {
-                                $hEntFmt = date('h:i:s a', strtotime($hEnt));
-                                $hEntHtml = '<span class="badge bg-light text-dark border px-2 py-1 fw-semibold" style="font-size: .8rem;" title="' . htmlspecialchars($hEnt) . '">
-                                                <i class="bi bi-box-arrow-in-right text-success me-1"></i>' . $hEntFmt . '
-                                             </span>';
-                                $hEntOrder = $hEnt;
-                            } else {
-                                $hEntHtml = '<span class="text-muted fw-semibold opacity-50" style="font-size: 1rem;">&mdash;</span>';
-                                $hEntOrder = '';
-                            }
+                        // Formato Entrada
+                        $hEnt = $fila['hora_entrada_real'] ?? null;
+                        if (!empty($hEnt)) {
+                            $hEntFmt = date('h:i:s a', strtotime($hEnt));
+                            $hEntHtml = '<span class="badge bg-light text-dark border px-2 py-1 fw-semibold text-nowrap" style="font-size: .8rem;" title="' . htmlspecialchars($hEnt) . '">
+                                            <i class="bi bi-box-arrow-in-right text-success me-1"></i>' . $hEntFmt . '
+                                         </span>';
+                            $hEntOrder = $hEnt;
+                        } else {
+                            $hEntHtml = '<span class="text-muted fw-semibold opacity-50" style="font-size: 1rem;">&mdash;</span>';
+                            $hEntOrder = '';
+                        }
 
-                            // Formato Salida
-                            $hSal = $fila['hora_salida_real'] ?? null;
-                            if (!empty($hSal)) {
-                                $hSalFmt = date('h:i:s a', strtotime($hSal));
-                                $hSalHtml = '<span class="badge bg-light text-dark border px-2 py-1 fw-semibold" style="font-size: .8rem;" title="' . htmlspecialchars($hSal) . '">
-                                                <i class="bi bi-box-arrow-right text-secondary me-1"></i>' . $hSalFmt . '
-                                             </span>';
-                                $hSalOrder = $hSal;
-                            } else {
-                                $hSalHtml = '<span class="text-muted fw-semibold opacity-50" style="font-size: 1rem;">&mdash;</span>';
-                                $hSalOrder = '';
-                            }
+                        // Formato Salida
+                        $hSal = $fila['hora_salida_real'] ?? null;
+                        if (!empty($hSal)) {
+                            $hSalFmt = date('h:i:s a', strtotime($hSal));
+                            $hSalHtml = '<span class="badge bg-light text-dark border px-2 py-1 fw-semibold text-nowrap" style="font-size: .8rem;" title="' . htmlspecialchars($hSal) . '">
+                                            <i class="bi bi-box-arrow-right text-secondary me-1"></i>' . $hSalFmt . '
+                                         </span>';
+                            $hSalOrder = $hSal;
+                        } else {
+                            $hSalHtml = '<span class="text-muted fw-semibold opacity-50" style="font-size: 1rem;">&mdash;</span>';
+                            $hSalOrder = '';
+                        }
 
-                            $estadoRaw = $fila['estado'] ?? '';
-                        ?>
-                            <tr>
-                                <td data-order="<?= htmlspecialchars($fechaRaw) ?>">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="d-inline-flex align-items-center justify-content-center bg-light border rounded-3 text-sena" style="width:34px; height:34px; font-size:.95rem; flex-shrink:0;">
-                                            <i class="bi bi-calendar-check"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-dark" style="font-size: .86rem;"><?= $fechaFmt ?></div>
-                                            <small class="text-muted text-capitalize" style="font-size: .72rem;"><?= $diaFmt ?></small>
-                                        </div>
+                        $estadoRaw = $fila['estado'] ?? '';
+                    ?>
+                        <tr>
+                            <td data-order="<?= htmlspecialchars($fechaRaw) ?>" class="text-nowrap">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="d-inline-flex align-items-center justify-content-center bg-light border rounded-3 text-sena" style="width:34px; height:34px; font-size:.95rem; flex-shrink:0;">
+                                        <i class="bi bi-calendar-check"></i>
                                     </div>
-                                </td>
-                            
-                                <td class="text-center" data-order="<?= htmlspecialchars($hEntOrder) ?>"><?= $hEntHtml ?></td>
-                                <td class="text-center" data-order="<?= htmlspecialchars($hSalOrder) ?>"><?= $hSalHtml ?></td>
-                                <td class="text-center" data-order="<?= htmlspecialchars(strtolower($estadoRaw)) ?>">
-                                    <?= renderBadgeHistorial($estadoRaw) ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: .86rem;"><?= $fechaFmt ?></div>
+                                        <small class="text-muted text-capitalize" style="font-size: .72rem;"><?= $diaFmt ?></small>
+                                    </div>
+                                </div>
+                            </td>
+                        
+                            <td class="text-center text-nowrap" data-order="<?= htmlspecialchars($hEntOrder) ?>"><?= $hEntHtml ?></td>
+                            <td class="text-center text-nowrap" data-order="<?= htmlspecialchars($hSalOrder) ?>"><?= $hSalHtml ?></td>
+                            <td class="text-center text-nowrap" data-order="<?= htmlspecialchars(strtolower($estadoRaw)) ?>">
+                                <?= renderBadgeHistorial($estadoRaw) ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </main>
     </div>
@@ -195,6 +193,8 @@ if (!function_exists('renderBadgeHistorial')) {
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="<?= BASE_URL ?>/assets/js/datatables-es.js"></script> 
 
-<script src="<?= BASE_URL ?>/assets/js/historial.js?v=<?= file_exists(BASE_PATH . "/assets/js/historial.js") ? filemtime(BASE_PATH . "/assets/js/historial.js") : "1.0" ?>"></script>
+<!-- Script para Mi Historial -->
+<script src="<?= BASE_URL ?>/assets/js/historial.js?v=<?= file_exists(BASE_PATH . '/assets/js/historial.js') ? filemtime(BASE_PATH . '/assets/js/historial.js') : '1.0' ?>"></script>
+
 </body>
 </html>

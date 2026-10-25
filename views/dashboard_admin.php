@@ -65,9 +65,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Administrador')[
                 <a href="<?= BASE_URL ?>/index.php?accion=horarios" class="action-pill">
                     <i class="bi bi-calendar3 text-info"></i> Horarios
                 </a>
-                <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="action-pill">
-                    <i class="bi bi-file-earmark-medical text-danger"></i> Validar Excusas
-                </a>
+               
             </div>
 
             <!-- KPIs Globales del Sistema -->

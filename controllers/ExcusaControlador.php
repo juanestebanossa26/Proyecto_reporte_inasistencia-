@@ -29,7 +29,7 @@ class ExcusaControlador extends ControladorBase
     // aprendices, pendientes de aprobar o rechazar).
     public function listarPendientes(): void
     {
-        $this->exigirSesion(['Instructor', 'Administrador']);
+        $this->exigirSesion(['Instructor']);
 
         try {
             $excusaModelo      = new ExcusaModelo();
@@ -237,7 +237,7 @@ class ExcusaControlador extends ControladorBase
 
     public function procesar(): void
     {
-        $this->exigirSesion(['Instructor', 'Administrador']);
+        $this->exigirSesion(['Instructor']);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['id_excusa'])) {
             $this->redirigirAccion('validarExcusas', ['error' => '11']);
@@ -262,7 +262,26 @@ class ExcusaControlador extends ControladorBase
         }
 
         try {
+            $detalleAprendiz = $modelo->obtenerDetalleRevision($idRevision);
             $modelo->procesarRevision($idRevision, $estadoBD, $observacion);
+
+            // Notificar al aprendiz por correo electrónico el resultado de la revisión sin alterar ni borrar registros
+            if ($detalleAprendiz && !empty($detalleAprendiz['correo_electronico'])) {
+                $fichaTxt = !empty($detalleAprendiz['numero_ficha'])
+                    ? ($detalleAprendiz['numero_ficha'] . ' · ' . ($detalleAprendiz['nombre_programa'] ?? ''))
+                    : '';
+
+                EmailHelper::notificarResultadoExcusa(
+                    $detalleAprendiz['correo_electronico'],
+                    $detalleAprendiz['nombre_completo'] ?? 'Aprendiz',
+                    $detalleAprendiz['fecha'] ?? date('Y-m-d'),
+                    $estadoBD,
+                    $observacion,
+                    trim($_SESSION['nombre'] ?? 'Instructor'),
+                    $fichaTxt
+                );
+            }
+
             $this->redirigirAccion('validarExcusas', ['success' => '1']);
         } catch (Exception $e) {
             error_log('Error al procesar excusa: ' . $e->getMessage());

@@ -4,7 +4,7 @@ $(document).ready(function () {
     language: typeof DATATABLES_ESPANOL !== "undefined" ? DATATABLES_ESPANOL : {},
     order: [], // Evita que ordene automáticamente
     pageLength: 10,
-    responsive: true,
+    autoWidth: false,
     columnDefs: [
       { targets: 6, orderable: false, searchable: false }, // Desactiva orden en Acciones
     ],

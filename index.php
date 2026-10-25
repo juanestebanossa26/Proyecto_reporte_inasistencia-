@@ -50,10 +50,12 @@ session_start();
 require_once BASE_PATH . '/config/conexion.php';
 require_once BASE_PATH . '/helpers/Seguridad.php';
 
-// Carga de dependencias de Composer (PhpSpreadsheet, etc.)
+// Carga de dependencias de Composer (PhpSpreadsheet, PHPMailer, etc.)
 if (file_exists(BASE_PATH . '/vendor/autoload.php')) {
     require_once BASE_PATH . '/vendor/autoload.php';
 }
+
+require_once BASE_PATH . '/helpers/EmailHelper.php';
 
 // Modelos (acceso a datos, sin HTML ni encabezados HTTP).
 require_once BASE_PATH . '/models/UsuarioModelo.php';

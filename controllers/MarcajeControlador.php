@@ -3,7 +3,7 @@
 
 class MarcajeControlador extends ControladorBase
 {
-    private const TOLERANCIA_RETARDO_MIN   = 0; // minutos de gracia antes de contar como retardo
+    private const TOLERANCIA_RETARDO_MIN   = 10; // minutos de gracia antes de contar como retardo
     private const ANTICIPACION_PERMITIDA_MIN = 30; // minutos antes del inicio en que ya se puede marcar
 
     // accion=marcaje -> muestra el lector + los últimos marcajes de hoy.
@@ -212,16 +212,38 @@ class MarcajeControlador extends ControladorBase
                 $modelo->registrarEntrada($idAprendiz, $idHorario, $fechaHoy, $horaActual, $estado, $minutosRetraso);
             }
 
+            $correoNotificado = false;
+            // Notificar por correo electrónico si resultó en retardo y tiene correo registrado
+            if ($estado === 'retardo' && !empty($aprendiz['correo_electronico'])) {
+                $horaProgramadaStr = substr($bloque['hora_entrada_programada'] ?? '', 0, 5);
+                $correoNotificado = EmailHelper::notificarRetardo(
+                    $aprendiz['correo_electronico'],
+                    $nombreCompleto,
+                    $fechaHoy,
+                    $ahora->format('g:i a'),
+                    $horaProgramadaStr,
+                    $minutosRetraso,
+                    $fichaLabel,
+                    $nombreInstructorSesion
+                );
+            }
+
             $etiquetaEstado = $estado === 'retardo' ? "Retardo de {$minutosRetraso} min" : 'A tiempo';
+            $mensajeResp = "Entrada registrada para {$nombreCompleto} ({$etiquetaEstado}).";
+            if ($correoNotificado) {
+                $mensajeResp .= " Se envió notificación por correo.";
+            }
 
             return [
-                'success' => true,
-                'tipo'    => 'entrada',
-                'nombre'  => $nombreCompleto,
-                'ficha'   => $fichaLabel,
-                'hora'    => $ahora->format('g:i a'),
-                'estado'  => $estado,
-                'message' => "Entrada registrada para {$nombreCompleto} ({$etiquetaEstado}).",
+                'success'           => true,
+                'tipo'              => 'entrada',
+                'nombre'            => $nombreCompleto,
+                'ficha'             => $fichaLabel,
+                'hora'              => $ahora->format('g:i a'),
+                'estado'            => $estado,
+                'retardo_min'       => $minutosRetraso,
+                'correo_notificado' => $correoNotificado,
+                'message'           => $mensajeResp,
             ];
         }
 

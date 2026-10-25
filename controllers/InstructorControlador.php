@@ -46,6 +46,10 @@ class InstructorControlador extends ControladorBase
         $nombre    = trim($_POST['nombre'] ?? '');
         $usuario   = trim($_POST['usuario'] ?? $_POST['documento'] ?? '');
         $area      = trim($_POST['area'] ?? '');
+        if ($area !== '' && (strpos($area, '-') !== false || strpos($area, '–') !== false || strpos($area, '—') !== false)) {
+            $partesArea = preg_split('/[-–—]/u', $area);
+            $area = trim($partesArea[0] ?? '');
+        }
         $correo    = trim($_POST['correo'] ?? '');
         $password  = trim($_POST['password'] ?? '');
 
@@ -98,6 +102,10 @@ class InstructorControlador extends ControladorBase
         $nombre    = trim($_POST['nombre'] ?? '');
         $usuario   = trim($_POST['usuario'] ?? $_POST['documento'] ?? '');
         $area      = trim($_POST['area'] ?? '');
+        if ($area !== '' && (strpos($area, '-') !== false || strpos($area, '–') !== false || strpos($area, '—') !== false)) {
+            $partesArea = preg_split('/[-–—]/u', $area);
+            $area = trim($partesArea[0] ?? '');
+        }
         $correo    = trim($_POST['correo'] ?? '');
         $password  = trim($_POST['password'] ?? '');
 
