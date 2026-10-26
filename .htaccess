@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------
-# Configuración de Seguridad y Servidor Apache
+# Configuración de Servidor y Seguridad Apache · SERVIPLUS SENA
 # ----------------------------------------------------------------------
 
 # Evitar el listado de archivos en los directorios
@@ -9,19 +9,19 @@ Options -Indexes
 DirectoryIndex index.php
 
 # ----------------------------------------------------------------------
-# Protección de archivos confidenciales (.env, .git, etc.)
+# Redirección Forzada a HTTPS (Opcional - Activar si tu hosting tiene SSL)
+# Descomenta las siguientes 3 líneas si deseas forzar https://
 # ----------------------------------------------------------------------
-<FilesMatch "^\.env">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Order allow,deny
-        Deny from all
-    </IfModule>
-</FilesMatch>
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
 
-<FilesMatch "^(composer\.(json|lock)|\.gitignore|README\.md|perfiles\.txt)$">
+# ----------------------------------------------------------------------
+# Protección de archivos confidenciales y de configuración
+# ----------------------------------------------------------------------
+<FilesMatch "(^\.env|\.sql$|\.log$|\.git|composer\.(json|lock)|\.gitignore|README\.md|perfiles\.txt)">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -33,11 +33,13 @@ DirectoryIndex index.php
 
 # ----------------------------------------------------------------------
 # Variables de Entorno para la Base de Datos (Apache mod_env)
+# NOTA: En producción (Hosting), las credenciales deben configurarse en .env
+# Si tu servidor requiere SetEnv, descomenta y ajusta las siguientes líneas:
 # ----------------------------------------------------------------------
-<IfModule mod_env.c>
-    SetEnv DB_HOST "localhost"
-    SetEnv DB_NAME "control_asistencia"
-    SetEnv DB_USER "root"
-    SetEnv DB_PASS ""
-    SetEnv DB_CHARSET "utf8mb4"
-</IfModule>
+# <IfModule mod_env.c>
+#     SetEnv DB_HOST "localhost"
+#     SetEnv DB_NAME "control_asistencia"
+#     SetEnv DB_USER "root"
+#     SetEnv DB_PASS ""
+#     SetEnv DB_CHARSET "utf8mb4"
+# </IfModule>

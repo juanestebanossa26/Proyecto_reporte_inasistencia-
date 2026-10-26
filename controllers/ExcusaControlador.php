@@ -107,6 +107,9 @@ class ExcusaControlador extends ControladorBase
         }
 
         $directorioDestino  = BASE_PATH . '/assets/excusas/';
+        if (!is_dir($directorioDestino)) {
+            @mkdir($directorioDestino, 0755, true);
+        }
         $nombreUnico        = Seguridad::generarNombreArchivoUnico($archivoSubido['name']);
         $rutaFisicaCompleta = $directorioDestino . $nombreUnico;
         $rutaRelativaBD     = 'assets/excusas/' . $nombreUnico;
@@ -202,6 +205,9 @@ class ExcusaControlador extends ControladorBase
         }
 
         $directorioDestino  = BASE_PATH . '/assets/excusas/';
+        if (!is_dir($directorioDestino)) {
+            @mkdir($directorioDestino, 0755, true);
+        }
         $nombreUnico        = Seguridad::generarNombreArchivoUnico($archivoSubido['name']);
         $rutaFisicaCompleta = $directorioDestino . $nombreUnico;
         $rutaRelativaBD     = 'assets/excusas/' . $nombreUnico;

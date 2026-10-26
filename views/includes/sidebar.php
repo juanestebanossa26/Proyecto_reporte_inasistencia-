@@ -24,7 +24,9 @@ if (!function_exists('navLink')) {
 ?>
 <aside class="app-sidebar">
     <div class="sidebar-brand">
-        <div class="logo-box">SC</div>
+        <div class="logo-box">
+            <img src="<?= BASE_URL ?>/assets/img/logo-sena-blanco.svg" alt="SENA" style="width:22px;height:22px;object-fit:contain;">
+        </div>
         <div class="brand-text">
             <div class="fw-bold" style="font-size:.95rem;">Control Ingreso</div>
             <small>Aprendices · RFID</small>

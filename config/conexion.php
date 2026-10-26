@@ -2,11 +2,6 @@
 // Conexión única a la base de datos usando PDO.
 // Todos los Modelos obtienen la conexión a través de Conexion::obtener(),
 // nunca creando su propio new PDO(...).
-//
-// Esta clase reemplaza a la antigua config/mysql.php (que mezclaba la
-// conexión con métodos de consulta) y corrige las referencias rotas que
-// había en el proyecto original a "../models/mysql.php", un archivo que
-// en realidad nunca existía dentro de la carpeta models/.
 
 require_once __DIR__ . '/config.php';
 
@@ -22,7 +17,8 @@ class Conexion
     public static function obtener(): PDO
     {
         if (self::$instancia === null) {
-            $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
+            $puerto = defined('DB_PORT') && DB_PORT ? ';port=' . DB_PORT : '';
+            $dsn = 'mysql:host=' . DB_HOST . $puerto . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
 
             try {
                 self::$instancia = new PDO($dsn, DB_USER, DB_PASS, [
@@ -44,7 +40,12 @@ class Conexion
                 // Sincronización estricta de zona horaria con America/Bogota (UTC-5)
                 self::$instancia->exec("SET time_zone = '-05:00'");
             } catch (PDOException $e) {
-                die('Error de conexión: ' . $e->getMessage());
+                error_log('Error de conexión a la base de datos: ' . $e->getMessage());
+                if (defined('MODO_DEBUG') && MODO_DEBUG) {
+                    die('Error de conexión a la base de datos: ' . htmlspecialchars($e->getMessage()));
+                }
+                http_response_code(500);
+                die('No fue posible conectar con la base de datos. Por favor, verifica la configuración o contacta al administrador.');
             }
         }
 

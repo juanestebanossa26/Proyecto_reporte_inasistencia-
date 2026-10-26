@@ -1,3 +1,8 @@
 /vendor/
 .env
 .sql
+perfiles.txt
+storage/logs/*.log
+!storage/logs/.gitkeep
+assets/excusas/*.pdf
+!assets/excusas/.gitkeep

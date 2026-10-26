@@ -1,54 +1,172 @@
 /* ============================================================
-   assets/css/login.css (SERVIPLUS Minimalista con Llavero RFID)
+   assets/css/login.css (SERVIPLUS Minimalista con Identidad SENA)
    ============================================================ */
 
 :root {
-    --sena-primary: #00843D;
-    --sena-primary-hover: #006b31;
-    --sena-light: #edf7f0;
-    --sena-accent: #10B981;
-    --bg-page: #F8FAFC;
+    --sena-primary: #39A900;
+    --sena-primary-hover: #2e8b00;
+    --sena-dark: #00324D;
+    --sena-forest: #064E3B;
+    --sena-light: #EDF7F0;
+    --sena-accent: #39A900;
+    --bg-page: #072a15;
     --surface-card: #FFFFFF;
     --border-subtle: #E2E8F0;
     --text-heading: #0F172A;
     --text-body: #475569;
     --text-muted: #94A3B8;
     --radius-md: 12px;
-    --radius-lg: 20px;
+    --radius-lg: 22px;
 }
 
-body {
-    background-color: var(--bg-page);
+/* Fondo enriquecido institucional SENA */
+body.login-body {
+    background-color: #072a15;
+    background-image: 
+        radial-gradient(circle at 12% 18%, rgba(57, 169, 0, 0.28) 0%, transparent 45%),
+        radial-gradient(circle at 88% 82%, rgba(0, 50, 77, 0.45) 0%, transparent 50%),
+        radial-gradient(circle at 50% 30%, rgba(57, 169, 0, 0.16) 0%, transparent 55%),
+        radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.2px),
+        linear-gradient(135deg, #072b16 0%, #0c4322 35%, #06381e 68%, #002235 100%);
+    background-size: auto, auto, auto, 26px 26px, auto;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: var(--text-body);
+    position: relative;
+    overflow-x: hidden;
 }
 
+/* Capas decorativas de ambiente */
+.login-decorations {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.sena-ambient-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.35;
+    animation: floatGlow 14s ease-in-out infinite alternate;
+}
+
+.glow-1 {
+    width: 480px;
+    height: 480px;
+    top: -120px;
+    left: -100px;
+    background: radial-gradient(circle, #39A900 0%, transparent 70%);
+}
+
+.glow-2 {
+    width: 520px;
+    height: 520px;
+    bottom: -150px;
+    right: -100px;
+    background: radial-gradient(circle, #004d73 0%, transparent 70%);
+    animation-delay: -5s;
+}
+
+.glow-3 {
+    width: 320px;
+    height: 320px;
+    top: 55%;
+    left: 8%;
+    background: radial-gradient(circle, #22c55e 0%, transparent 70%);
+    opacity: 0.18;
+    animation-delay: -9s;
+}
+
+@keyframes floatGlow {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(30px, 25px) scale(1.08); }
+}
+
+/* Marca de agua institucional SENA en el fondo */
+.sena-bg-watermark {
+    position: absolute;
+    right: -60px;
+    bottom: -60px;
+    width: 540px;
+    height: 540px;
+    opacity: 0.04;
+    pointer-events: none;
+    transform: rotate(-10deg);
+}
+
+.sena-watermark-svg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Contenedor envolvente */
+.login-wrapper {
+    width: 100%;
+    max-width: 980px;
+    z-index: 1;
+}
+
+/* Badge superior institucional tipo píldora */
+.badge-sena-portal {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #FFFFFF;
+    padding: 8px 18px;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transition: all 0.25s ease;
+}
+
+.badge-sena-portal:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.sena-pill-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+/* Layout de la tarjeta principal */
 .login-layout {
     width: 100%;
-    max-width: 960px;
     background: #FFFFFF;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--radius-lg);
-    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.03), 0 20px 30px -10px rgba(15, 23, 42, 0.06);
+    box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.38),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 10px 25px -5px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     display: grid;
     grid-template-columns: 1fr 1.05fr;
     min-height: 590px;
-    margin: 24px auto;
+    margin: 0 auto;
 }
 
 @media (max-width: 900px) {
     .login-layout {
         grid-template-columns: 1fr;
-        max-width: 460px;
+        max-width: 480px;
     }
     .aside-panel {
         display: none !important;
     }
 }
 
+/* Panel Izquierdo */
 .aside-panel {
-    background: linear-gradient(180deg, #F9FBFA 0%, #F4F7F5 100%);
+    background: linear-gradient(180deg, #F8FCF8 0%, #EFF8F2 100%);
     border-right: 1px solid var(--border-subtle);
     padding: 44px 38px;
     display: flex;
@@ -56,28 +174,90 @@ body {
     justify-content: space-between;
 }
 
+/* Insignia del Logo SENA */
+.sena-logo-card-badge {
+    width: 44px;
+    height: 44px;
+    background: #FFFFFF;
+    border: 1.5px solid rgba(57, 169, 0, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    box-shadow: 0 4px 10px rgba(57, 169, 0, 0.12);
+    transition: transform 0.25s ease;
+}
+
+.sena-logo-card-badge:hover {
+    transform: scale(1.05);
+    border-color: var(--sena-primary);
+}
+
+.sena-card-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Dot indicador de estado activo */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--sena-primary);
+    box-shadow: 0 0 0 0 rgba(57, 169, 0, 0.7);
+    animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(57, 169, 0, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(57, 169, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(57, 169, 0, 0);
+    }
+}
+
+/* Panel Derecho: Formulario */
 .form-panel {
-    padding: 48px 44px;
+    padding: 44px 42px;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    background: #FFFFFF;
+}
+
+.form-sena-header {
+    display: flex;
+    align-items: center;
+}
+
+.form-sena-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
 }
 
 /* Llavero Inteligente RFID */
 .fob-showcase {
     background: #FFFFFF;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid #D6E8DB;
     border-radius: 18px;
     padding: 24px;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+    box-shadow: 0 4px 20px rgba(57, 169, 0, 0.06);
     margin: 20px 0;
     cursor: pointer;
     transition: all 0.25s ease;
 }
 
 .fob-showcase:hover {
-    border-color: #CBD5E1;
+    border-color: var(--sena-primary);
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(57, 169, 0, 0.15);
 }
 
 .fob-container {
@@ -161,8 +341,8 @@ body {
 }
 
 .fob-showcase:hover .fob-led {
-    background: #10B981;
-    box-shadow: 0 0 6px #10B981;
+    background: var(--sena-primary);
+    box-shadow: 0 0 8px var(--sena-primary);
 }
 
 /* Inputs limpios */
@@ -180,27 +360,30 @@ body {
 
 .form-control-minimal:focus {
     border-color: var(--sena-primary);
-    box-shadow: 0 0 0 3px rgba(0, 132, 61, 0.12);
+    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.18);
 }
 
+/* Botón institucional */
 .btn-submit-clean {
     width: 100%;
     height: 48px;
-    background: var(--sena-primary);
+    background: linear-gradient(135deg, #39A900 0%, #2e8b00 100%);
     color: #FFFFFF;
     border: none;
     border-radius: var(--radius-md);
-    font-size: 0.92rem;
+    font-size: 0.94rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     cursor: pointer;
+    box-shadow: 0 4px 14px rgba(57, 169, 0, 0.35);
     transition: all 0.2s ease;
 }
 
 .btn-submit-clean:hover {
-    background: var(--sena-primary-hover);
+    background: linear-gradient(135deg, #2e8b00 0%, #247000 100%);
+    box-shadow: 0 6px 20px rgba(57, 169, 0, 0.45);
     transform: translateY(-1px);
 }
