@@ -30,11 +30,11 @@ foreach (explode(' ', $nombreUsuario) as $parte) {
 <header class="app-topbar">
     <div class="d-flex align-items-center gap-2 gap-sm-3 min-w-0" style="min-width: 0;">
         <!-- Toggle escritorio: colapsa a solo íconos -->
-        <button class="sidebar-toggle-btn d-none d-lg-flex flex-shrink-0" id="sidebarToggle" type="button" title="Ocultar/mostrar menú">
+        <button class="sidebar-toggle-btn d-none d-lg-flex flex-shrink-0" id="sidebarToggle" type="button" title="Ocultar/mostrar menú" aria-label="Ocultar o mostrar menú lateral">
             <i class="bi bi-layout-sidebar-inset"></i>
         </button>
         <!-- Toggle móvil: abre el drawer -->
-        <button class="sidebar-toggle-btn d-lg-none flex-shrink-0" id="sidebarMobileToggle" type="button" title="Menú">
+        <button class="sidebar-toggle-btn d-lg-none flex-shrink-0" id="sidebarMobileToggle" type="button" title="Menú" aria-label="Abrir menú de navegación móvil">
             <i class="bi bi-list"></i>
         </button>
 
@@ -48,7 +48,7 @@ foreach (explode(' ', $nombreUsuario) as $parte) {
 
         <!-- Usuario -->
         <div class="dropdown">
-            <button class="btn d-flex align-items-center gap-2 border rounded-3 py-1 px-2" type="button" data-bs-toggle="dropdown">
+            <button class="btn d-flex align-items-center gap-2 border rounded-3 py-1 px-2" type="button" data-bs-toggle="dropdown" aria-label="Menú de perfil de usuario">
                 
                 <!-- Aquí se imprimen las iniciales -->
                 <span class="avatar-circ"><?= htmlspecialchars($iniciales ?: 'US') ?></span>

@@ -27,7 +27,7 @@ $tituloPagina = 'Iniciar sesión · SERVIPLUS SENA';
         <!-- Barra superior institucional tipo píldora -->
         <div class="text-center mb-3">
             <div class="badge-sena-portal d-inline-flex align-items-center gap-2">
-                <img src="<?= BASE_URL ?>/assets/img/logo-sena-blanco.svg" alt="SENA" class="sena-pill-logo">
+                <img src="<?= BASE_URL ?>/assets/img/logo-sena-blanco.svg" alt="SENA" width="18" height="18" class="sena-pill-logo">
                 <span class="fw-semibold">SENA</span>
                 <span class="opacity-50">·</span>
                 <span>Regional Valle</span>
@@ -45,7 +45,7 @@ $tituloPagina = 'Iniciar sesión · SERVIPLUS SENA';
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <div class="d-flex align-items-center gap-3">
                             <div class="sena-logo-card-badge">
-                                <img src="<?= BASE_URL ?>/assets/img/logo-sena-verde.svg" alt="Logo SENA" class="sena-card-logo">
+                                <img src="<?= BASE_URL ?>/assets/img/logo-sena-verde.svg" alt="Logo SENA" width="38" height="38" class="sena-card-logo">
                             </div>
                             <div>
                                 <div class="fw-bold text-dark lh-1" style="font-size: 1.1rem;">ASISTENCIAS</div>
@@ -94,7 +94,7 @@ $tituloPagina = 'Iniciar sesión · SERVIPLUS SENA';
                 <!-- Encabezado con Logo SENA para Móvil y Desktop -->
                 <div class="form-sena-header mb-4">
                     <div class="d-flex align-items-center gap-3">
-                        <img src="<?= BASE_URL ?>/assets/img/logo-sena-verde.svg" alt="Logo SENA" class="form-sena-logo">
+                        <img src="<?= BASE_URL ?>/assets/img/logo-sena-verde.svg" alt="Logo SENA" width="40" height="40" class="form-sena-logo">
                         <div class="border-start border-2 ps-3" style="border-color: #39A900 !important;">
                             <span class="d-block fw-bold text-dark lh-1" style="font-size: 0.95rem;">SENA</span>
                             <small class="text-muted d-block" style="font-size: 0.75rem; margin-top: 2px;">Centro de Tecnologías Agroindustriales</small>

@@ -288,11 +288,11 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                         <div class="d-flex flex-wrap justify-content-between align-items-center dashboard-pagination" id="paginacionIngresosInstructor">
                             <small class="text-suave info-paginacion">Mostrando 1 - <?= min($porPagina, $totalIngresos) ?> de <?= $totalIngresos ?> registros</small>
                             <div class="d-flex align-items-center gap-1">
-                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-prev" disabled style="font-size: .78rem;" title="Página anterior">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-prev" disabled style="font-size: .78rem;" title="Página anterior" aria-label="Página anterior">
                                     <i class="bi bi-chevron-left me-1"></i> Anterior
                                 </button>
                                 <span class="px-2 small fw-semibold text-secondary indicador-pagina" style="font-size: .78rem;">Pág. 1 de <?= $totalPaginas ?></span>
-                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-next" <?= $totalPaginas <= 1 ? 'disabled' : '' ?> style="font-size: .78rem;" title="Página siguiente">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-next" <?= $totalPaginas <= 1 ? 'disabled' : '' ?> style="font-size: .78rem;" title="Página siguiente" aria-label="Página siguiente">
                                     Siguiente <i class="bi bi-chevron-right ms-1"></i>
                                 </button>
                             </div>
@@ -398,11 +398,11 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                             <div class="d-flex flex-wrap justify-content-between align-items-center dashboard-pagination" id="paginacionFichasInstructor">
                                 <small class="text-suave info-paginacion">Mostrando 1 - <?= min($porPaginaFichas, $totalFichas) ?> de <?= $totalFichas ?> fichas</small>
                                 <div class="d-flex align-items-center gap-1">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-prev" disabled style="font-size: .78rem;" title="Página anterior">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-prev" disabled style="font-size: .78rem;" title="Página anterior" aria-label="Página anterior">
                                         <i class="bi bi-chevron-left me-1"></i> Anterior
                                     </button>
                                     <span class="px-2 small fw-semibold text-secondary indicador-pagina" style="font-size: .78rem;">Pág. 1 de <?= $totalPaginasFichas ?></span>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-next" <?= $totalPaginasFichas <= 1 ? 'disabled' : '' ?> style="font-size: .78rem;" title="Página siguiente">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 btn-next" <?= $totalPaginasFichas <= 1 ? 'disabled' : '' ?> style="font-size: .78rem;" title="Página siguiente" aria-label="Página siguiente">
                                         Siguiente <i class="bi bi-chevron-right ms-1"></i>
                                     </button>
                                 </div>

@@ -68,7 +68,7 @@ if (!function_exists('renderBadgeHistorial')) {
                     <h1 class="h4 fw-bold mb-0">Mi historial</h1>
                     <p class="text-suave mb-0">Consulta tus asistencias, retardos, inasistencias y el estado de tus excusas.</p>
                 </div>
-                <a href="<?= BASE_URL ?>/index.php?accion=descargarMiReporte" target="_blank" class="btn btn-outline-sena" id="btnDescargarMiReporte">
+                <a href="<?= BASE_URL ?>/index.php?accion=descargarMiReporte" target="_blank" rel="noopener noreferrer" class="btn btn-outline-sena" id="btnDescargarMiReporte" aria-label="Descargar reporte individual de asistencia en PDF">
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Descargar mi reporte
                 </a>
             </div>
