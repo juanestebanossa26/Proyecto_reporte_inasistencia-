@@ -145,7 +145,7 @@ class HistorialControlador extends ControladorBase
         $pdf->SetTextColor(31, 122, 0);
         $pdf->SetFont('Arial', '', 7.5);
         $pdf->SetXY(12, $yKpi + 2);
-        $pdf->Cell($anchoKpi, 4, utf8_decode('Asistencias a tiempo'), 0, 0, 'C');
+        $pdf->Cell($anchoKpi, 4, utf8_decode('Asistencia de hoy'), 0, 0, 'C');
         $pdf->SetFont('Arial', 'B', 12);
         $pdf->SetXY(12, $yKpi + 7);
         $pdf->Cell($anchoKpi, 6, (string) $totalAsistencias, 0, 0, 'C');

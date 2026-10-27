@@ -58,7 +58,7 @@ class DashboardControlador extends ControladorBase
             $this->asistenciaModelo->sincronizarInasistenciasGlobal();
 
             $kpis              = $this->modelo->obtenerKpisAdmin($fechaHoy);
-            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesAdmin(20);
+            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesAdmin(20, $fechaHoy);
             $excusasPendientes = $this->modelo->obtenerExcusasRecientesAdmin(6);
             $resumenFichas     = $this->modelo->obtenerResumenFichasAdmin(20);
         } catch (PDOException $e) {
@@ -102,7 +102,7 @@ class DashboardControlador extends ControladorBase
 
             $kpis              = $this->modelo->obtenerKpisInstructor($idInstructor, $fechaHoy);
             $horariosHoy       = $this->modelo->obtenerHorariosHoyInstructor($idInstructor, $fechaHoy);
-            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesInstructor($idInstructor, 20);
+            $ingresosRecientes = $this->modelo->obtenerIngresosRecientesInstructor($idInstructor, 20, $fechaHoy);
             $excusasPendientes = $this->modelo->obtenerExcusasPendientesInstructor($idInstructor, 6);
             $misFichas         = $this->modelo->obtenerMisFichas($idInstructor);
         } catch (PDOException $e) {

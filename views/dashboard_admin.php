@@ -141,7 +141,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Administrador')[
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
                                 <h2 class="h6 fw-bold mb-0"><i class="bi bi-clock-history me-1 text-sena"></i> Ingresos Recientes al Centro</h2>
-                                <small class="text-suave">Últimos registros de marcajes en tiempo real</small>
+                                <small class="text-suave">Últimos registros de marcajes en tiempo real de hoy</small>
                             </div>
                            
                         </div>
@@ -162,7 +162,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Administrador')[
                                         <tr>
                                             <td colspan="6" class="text-center text-muted py-4">
                                                 <i class="bi bi-inbox fs-3 d-block mb-1 text-secondary"></i>
-                                                No hay registros de asistencia recientes.
+                                                No hay registros de ingreso registrados hoy.
                                             </td>
                                         </tr>
                                     <?php else: ?>
@@ -233,7 +233,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Administrador')[
                         $totalPaginasResumenFichas = max(1, (int) ceil($totalResumenFichas / $porPaginaResumenFichas));
                     ?>
                     <div class="card p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                             <div>
                                 <h2 class="h6 fw-bold mb-0"><i class="bi bi-journal-bookmark-fill me-1 text-sena"></i> Fichas del Centro de Formación</h2>
                                 <small class="text-suave">Fichas con aprendices e instructores registrados</small>

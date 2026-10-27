@@ -15,6 +15,9 @@ if (!isset($tituloPagina)) {
 <meta http-equiv="Expires" content="0">
 <title><?= htmlspecialchars($tituloPagina) ?> · Control de Ingreso</title>
 
+<!-- Favicon del sitio -->
+<link rel="icon" type="image/svg+xml" href="<?= BASE_URL ?>/assets/img/logo-sena-verde.svg">
+
 <!-- Constantes y configuración global JS -->
 <script>
 window.BASE_URL = <?= json_encode(BASE_URL) ?>;

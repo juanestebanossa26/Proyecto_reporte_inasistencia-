@@ -6,17 +6,25 @@ class AsistenciaModelo
 {
     // Historial completo del aprendiz, con el estado de la excusa si la tiene
     // (LEFT JOIN: también trae inasistencias sin excusa asociada).
-    public function listarPorAprendiz(int $idUsuario): array
+    // Historial del aprendiz: se muestran todas las inasistencias, retardos y novedades,
+    // pero para asistencias cumplidas ('asistencia', 'presente', 'a tiempo') únicamente se visualiza la del día actual.
+    public function listarPorAprendiz(int $idUsuario, ?string $fechaHoy = null): array
     {
+        $fechaHoy = $fechaHoy ?: date('Y-m-d');
         $sql = "SELECT asistencias.*
-                       
                 FROM asistencias
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 LEFT JOIN excusas_medicas ON excusas_medicas.id_asistencia = asistencias.id_asistencia
-                WHERE aprendices.id_usuario = :id_usuario";
+                WHERE aprendices.id_usuario = :id_usuario
+                  AND (
+                      LOWER(asistencias.estado) NOT IN ('asistencia', 'presente', 'a tiempo')
+                      OR asistencias.fecha = :fecha_hoy
+                  )
+                ORDER BY asistencias.fecha DESC, asistencias.hora_entrada_real DESC";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+        $stmt->bindParam(':fecha_hoy', $fechaHoy, PDO::PARAM_STR);
         $stmt->execute();
 
         return $stmt->fetchAll();
@@ -77,8 +85,9 @@ class AsistenciaModelo
     }
 
     // Historial ordenado y con detalle de horario programado para el reporte PDF
-    public function listarHistorialCompleto(int $idUsuario): array
+    public function listarHistorialCompleto(int $idUsuario, ?string $fechaHoy = null): array
     {
+        $fechaHoy = $fechaHoy ?: date('Y-m-d');
         $sql = "SELECT 
                     a.fecha,
                     a.hora_entrada_real,
@@ -91,10 +100,15 @@ class AsistenciaModelo
                 JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
                 LEFT JOIN horarios h ON h.id_horario = a.id_horario
                 WHERE ap.id_usuario = :id_usuario
+                  AND (
+                      LOWER(a.estado) NOT IN ('asistencia', 'presente', 'a tiempo')
+                      OR a.fecha = :fecha_hoy
+                  )
                 ORDER BY a.fecha DESC, a.hora_entrada_real DESC";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+        $stmt->bindParam(':fecha_hoy', $fechaHoy, PDO::PARAM_STR);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

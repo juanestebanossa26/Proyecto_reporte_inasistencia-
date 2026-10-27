@@ -77,7 +77,7 @@ if (!function_exists('renderBadgeHistorial')) {
             <div class="row g-3 mb-3">
                 <div class="col-6 col-md-3">
                     <div class="card kpi-card p-3 text-center border-0 shadow-sm" style="border-top: 3px solid #1F7A00 !important;">
-                        <div class="text-suave" style="font-size:.76rem;"><i class="bi bi-check-circle text-success me-1"></i>Asistencias</div>
+                        <div class="text-suave" style="font-size:.76rem;"><i class="bi bi-check-circle text-success me-1"></i>Asistencia de hoy</div>
                         <div class="h4 fw-bold mb-0 text-success"><?= $total_asistencia ?></div>
                     </div>
                 </div>
@@ -109,7 +109,7 @@ if (!function_exists('renderBadgeHistorial')) {
                 <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2">
                     <div>
                         <h2 class="h6 fw-bold mb-0 text-dark">Registros de asistencia</h2>
-                        <small class="text-muted" style="font-size:.78rem;">Historial detallado de marcajes y estados registrados en el sistema</small>
+                        <small class="text-muted" style="font-size:.78rem;">Historial de inasistencias, retardos y marcaje del día actual</small>
                     </div>
                     <span class="badge bg-light text-muted border px-2 py-1" style="font-size:.75rem;">
                         <i class="bi bi-list-check me-1"></i> <?= count($historial) ?> registro<?= count($historial) !== 1 ? 's' : '' ?>

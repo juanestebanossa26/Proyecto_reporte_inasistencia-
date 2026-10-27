@@ -130,16 +130,7 @@ if ($iniciales === '') $iniciales = 'US';
                             </div>
                         </div>
 
-                        <div class="col-md-6 col-lg-4">
-                            <div class="info-field-card">
-                                <div class="text-suave small mb-1">
-                                    <i class="bi bi-mortarboard me-1 text-sena"></i> Área o Programa
-                                </div>
-                                <div class="fs-6 fw-bold text-dark"><?= htmlspecialchars($areaUsuario) ?></div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6 col-lg-4">
+                        <div class="col-md-6">
                             <div class="info-field-card">
                                 <div class="text-suave small mb-1">
                                     <i class="bi bi-shield-check me-1 text-sena"></i> Nivel de Acceso (Rol)
@@ -148,7 +139,7 @@ if ($iniciales === '') $iniciales = 'US';
                             </div>
                         </div>
 
-                        <div class="col-md-6 col-lg-4">
+                        <div class="col-md-6">
                             <div class="info-field-card">
                                 <div class="text-suave small mb-1">
                                     <i class="bi bi-activity me-1 text-sena"></i> Estado de la Cuenta

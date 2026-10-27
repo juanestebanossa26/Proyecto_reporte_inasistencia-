@@ -143,7 +143,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                 <div class="col-lg-8">
                     <!-- Clases / Horarios Programados de Hoy -->
                     <div class="card p-3 mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                             <div>
                                 <h2 class="h6 fw-bold mb-0">
                                     <i class="bi bi-calendar-check text-sena me-1"></i> Clases Programadas para Hoy
@@ -208,12 +208,12 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                         $totalPaginas = max(1, (int) ceil($totalIngresos / $porPagina));
                     ?>
                     <div class="card p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                             <div>
                                 <h2 class="h6 fw-bold mb-0">
                                     <i class="bi bi-clock-history text-sena me-1"></i> Ingresos Recientes en tus Fichas
                                 </h2>
-                                <small class="text-suave">Últimos registros de asistencia de tus aprendices</small>
+                                <small class="text-suave">Últimos registros de asistencia de hoy</small>
                             </div>
                             <a href="<?= BASE_URL ?>/index.php?accion=reportes" class="btn btn-sm btn-outline-secondary">
                                 Generar reporte
@@ -236,7 +236,7 @@ $nombreCorto = htmlspecialchars(explode(' ', $nombreUsuario ?? 'Instructor')[0])
                                         <tr>
                                             <td colspan="6" class="text-center text-muted py-4">
                                                 <i class="bi bi-inbox fs-3 d-block mb-1 text-secondary"></i>
-                                                No hay registros de asistencia de tus fichas recientemente.
+                                                No hay registros de ingreso de tus fichas hoy.
                                             </td>
                                         </tr>
                                     <?php else: ?>

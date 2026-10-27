@@ -61,10 +61,12 @@ class DashboardModelo
     }
 
     /**
-     * Obtiene los registros de marcajes/asistencias más recientes del sistema.
+     * Obtiene los registros de marcajes/asistencias más recientes del sistema (del día actual).
      */
-    public function obtenerIngresosRecientesAdmin(int $limite = 10): array
+    public function obtenerIngresosRecientesAdmin(int $limite = 10, ?string $fecha = null): array
     {
+        $fecha = $fecha ?: date('Y-m-d');
+
         $sql = "SELECT 
                     a.id_asistencia,
                     a.fecha,
@@ -81,10 +83,14 @@ class DashboardModelo
                 JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
                 JOIN usuarios u ON u.id_usuario = ap.id_usuario
                 LEFT JOIN fichas f ON f.id_ficha = ap.id_ficha
-                ORDER BY a.fecha DESC, (CASE WHEN a.hora_entrada_real IS NOT NULL THEN a.hora_entrada_real ELSE '00:00:00' END) DESC, a.id_asistencia DESC
+                WHERE a.fecha = :fecha
+                  AND a.hora_entrada_real IS NOT NULL 
+                  AND LOWER(a.estado) != 'inasistencia'
+                ORDER BY a.hora_entrada_real DESC, a.id_asistencia DESC
                 LIMIT :limite";
 
         $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':fecha', $fecha, PDO::PARAM_STR);
         $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -263,10 +269,12 @@ class DashboardModelo
     }
 
     /**
-     * Ingresos recientes correspondientes únicamente a aprendices de fichas del instructor.
+     * Ingresos recientes correspondientes únicamente a aprendices de fichas del instructor (del día actual).
      */
-    public function obtenerIngresosRecientesInstructor(int $idInstructor, int $limite = 10): array
+    public function obtenerIngresosRecientesInstructor(int $idInstructor, int $limite = 10, ?string $fecha = null): array
     {
+        $fecha = $fecha ?: date('Y-m-d');
+
         $sql = "SELECT 
                     a.id_asistencia,
                     a.fecha,
@@ -282,15 +290,19 @@ class DashboardModelo
                 JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
                 JOIN usuarios u ON u.id_usuario = ap.id_usuario
                 JOIN fichas f ON f.id_ficha = ap.id_ficha
-                WHERE ap.id_ficha IN (
+                WHERE a.fecha = :fecha
+                  AND a.hora_entrada_real IS NOT NULL 
+                  AND LOWER(a.estado) != 'inasistencia'
+                  AND ap.id_ficha IN (
                     SELECT fhu.fichas_id_ficha FROM fichas_has_usuarios fhu WHERE fhu.id_instructor = :i1
                     UNION
                     SELECT h.id_ficha FROM horarios h WHERE h.id_instructor = :i2
                 )
-                ORDER BY a.fecha DESC, (CASE WHEN a.hora_entrada_real IS NOT NULL THEN a.hora_entrada_real ELSE '00:00:00' END) DESC, a.id_asistencia DESC
+                ORDER BY a.hora_entrada_real DESC, a.id_asistencia DESC
                 LIMIT :limite";
 
         $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':fecha', $fecha, PDO::PARAM_STR);
         $stmt->bindValue(':i1', $idInstructor, PDO::PARAM_INT);
         $stmt->bindValue(':i2', $idInstructor, PDO::PARAM_INT);
         $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);

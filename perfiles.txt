@@ -1,6 +1,0 @@
-Aprendiz:
-usuario:1111 contraseña:123
-Admin
-usuario:123456 contraseña:123
-Instructor
-usuario:54321 contraseña:123

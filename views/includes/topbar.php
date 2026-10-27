@@ -28,38 +28,23 @@ foreach (explode(' ', $nombreUsuario) as $parte) {
 }
 ?>
 <header class="app-topbar">
-    <div class="d-flex align-items-center gap-3">
+    <div class="d-flex align-items-center gap-2 gap-sm-3 min-w-0" style="min-width: 0;">
         <!-- Toggle escritorio: colapsa a solo íconos -->
-        <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggle" type="button" title="Ocultar/mostrar menú">
+        <button class="sidebar-toggle-btn d-none d-lg-flex flex-shrink-0" id="sidebarToggle" type="button" title="Ocultar/mostrar menú">
             <i class="bi bi-layout-sidebar-inset"></i>
         </button>
         <!-- Toggle móvil: abre el drawer -->
-        <button class="sidebar-toggle-btn d-lg-none" id="sidebarMobileToggle" type="button" title="Menú">
+        <button class="sidebar-toggle-btn d-lg-none flex-shrink-0" id="sidebarMobileToggle" type="button" title="Menú">
             <i class="bi bi-list"></i>
         </button>
 
-        <div>
-            <div class="fw-semibold" style="font-size:.95rem;"><?= htmlspecialchars($tituloPagina ?? '') ?></div>
-            <div class="text-suave" style="font-size:.76rem;">SENA · Sistema de Control de Ingreso de Aprendices</div>
+        <div class="min-w-0" style="min-width: 0;">
+            <div class="fw-semibold text-truncate topbar-title" title="<?= htmlspecialchars($tituloPagina ?? '') ?>"><?= htmlspecialchars($tituloPagina ?? '') ?></div>
+            <div class="text-suave text-truncate d-none d-md-block" style="font-size:.76rem; line-height: 1.2;">SENA · Sistema de Control de Ingreso de Aprendices</div>
         </div>
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-
-        <!-- Notificaciones -->
-        <div class="dropdown">
-            <button class="sidebar-toggle-btn position-relative" type="button" data-bs-toggle="dropdown">
-                <i class="bi bi-bell"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.55rem;">3</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end p-2" style="width:300px;">
-                <li class="px-2 py-1 fw-semibold">Notificaciones</li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item small rounded-2" href="#"><i class="bi bi-file-earmark-medical text-sena me-2"></i>Nueva excusa médica pendiente</a></li>
-                <li><a class="dropdown-item small rounded-2" href="#"><i class="bi bi-exclamation-triangle text-warning me-2"></i>3 retardos registrados hoy</a></li>
-                <li><a class="dropdown-item small rounded-2" href="#"><i class="bi bi-bar-chart text-primary me-2"></i>Reporte semanal disponible</a></li>
-            </ul>
-        </div>
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
 
         <!-- Usuario -->
         <div class="dropdown">
