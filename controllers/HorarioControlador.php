@@ -502,13 +502,31 @@ class HorarioControlador extends ControladorBase
         // Solo el Administrador puede importar archivos Excel de horarios
         $this->exigirSesion(['Administrador', 'admin']);
 
+        // Detección temprana: superación de post_max_size en el servidor
+        if (
+            $_SERVER['REQUEST_METHOD'] === 'POST' &&
+            empty($_POST) &&
+            empty($_FILES) &&
+            isset($_SERVER['CONTENT_LENGTH']) &&
+            (int)$_SERVER['CONTENT_LENGTH'] > 0
+        ) {
+            $postMaxSize = ini_get('post_max_size');
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Archivo demasiado pesado',
+                "La solicitud supera el límite de carga permitido por el servidor (post_max_size: {$postMaxSize}). El archivo no pudo recibirse.",
+                $this->urlAccion('horarios')
+            );
+            return;
+        }
+
         // Validación de CSRF
         if (!Seguridad::validarCsrf($_POST['csrf_token'] ?? '')) {
             Seguridad::alertaYRedirigir(
                 'error',
                 'Sesión inválida',
                 'El token de seguridad ha caducado. Por favor, intenta de nuevo.',
-                $this->urlAccion('fichas')
+                $this->urlAccion('horarios')
             );
             return;
         }

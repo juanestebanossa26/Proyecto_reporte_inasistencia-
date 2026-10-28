@@ -161,7 +161,7 @@ class File
     public static function assertFile(string $filename, string $zipMember = ''): void
     {
         self::prohibitWrappers($filename);
-        if (!is_file($filename) || !is_readable($filename)) {
+        if (!is_file($filename) || (!is_readable($filename) && !@fopen($filename, 'rb'))) {
             throw new ReaderException('File "' . $filename . '" does not exist or is not readable.');
         }
 
@@ -184,7 +184,7 @@ class File
     public static function testFileNoThrow(string $filename, ?string $zipMember = null): bool
     {
         self::prohibitWrappers($filename);
-        if (!is_file($filename) || !is_readable($filename)) {
+        if (!is_file($filename) || (!is_readable($filename) && !@fopen($filename, 'rb'))) {
             return false;
         }
         if ($zipMember === null) {

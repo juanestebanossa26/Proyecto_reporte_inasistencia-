@@ -8,6 +8,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ExcelHorarioHelper
 {
+    public const DEFAULT_MAX_MB = 5;
+    public const DEFAULT_MAX_BYTES = 5242880; // 5 * 1024 * 1024
+
     private HorarioModelo $modelo;
     private array $fichasCache = [];
     private array $instructoresCache = [];
@@ -23,37 +26,59 @@ class ExcelHorarioHelper
      */
     public function validarArchivo(array $archivo): array
     {
-        if (!isset($archivo['error']) || $archivo['error'] === UPLOAD_ERR_NO_FILE) {
-            return ['valido' => false, 'error' => 'No seleccionaste ningún archivo Excel.'];
+        if (empty($archivo) || !isset($archivo['error'])) {
+            return ['valido' => false, 'error' => 'No se recibió ningún archivo para procesar.'];
         }
 
-        if ($archivo['error'] !== UPLOAD_ERR_OK) {
-            return ['valido' => false, 'error' => 'Ocurrió un error al cargar el archivo en el servidor.'];
+        // Interpretación exhaustiva de códigos de error de PHP en $_FILES
+        switch ($archivo['error']) {
+            case UPLOAD_ERR_OK:
+                break;
+            case UPLOAD_ERR_INI_SIZE:
+                $maxServer = ini_get('upload_max_filesize');
+                return ['valido' => false, 'error' => "El archivo supera el tamaño máximo permitido por el servidor (upload_max_filesize: {$maxServer})."];
+            case UPLOAD_ERR_FORM_SIZE:
+                return ['valido' => false, 'error' => 'El archivo supera el tamaño máximo permitido por el formulario web.'];
+            case UPLOAD_ERR_PARTIAL:
+                return ['valido' => false, 'error' => 'El archivo sólo se subió de forma parcial. Por favor, intenta de nuevo.'];
+            case UPLOAD_ERR_NO_FILE:
+                return ['valido' => false, 'error' => 'No seleccionaste ningún archivo Excel para importar.'];
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return ['valido' => false, 'error' => 'Error interno de configuración del servidor: falta el directorio temporal de subida.'];
+            case UPLOAD_ERR_CANT_WRITE:
+                return ['valido' => false, 'error' => 'Error interno del servidor: no se pudo escribir el archivo en el disco.'];
+            case UPLOAD_ERR_EXTENSION:
+                return ['valido' => false, 'error' => 'Una extensión de PHP detuvo la carga del archivo en el servidor.'];
+            default:
+                return ['valido' => false, 'error' => 'Ocurrió un error inesperado al subir el archivo (código ' . (int)$archivo['error'] . ').'];
         }
 
-        $nombreOriginal = $archivo['name'] ?? '';
+        $nombreOriginal = (string)($archivo['name'] ?? '');
         $ext = strtolower(pathinfo($nombreOriginal, PATHINFO_EXTENSION));
         if (!in_array($ext, ['xlsx', 'xls'], true)) {
-            return ['valido' => false, 'error' => 'Formato no válido. Solo se permiten archivos Excel (.xlsx, .xls).'];
+            return ['valido' => false, 'error' => 'Formato no válido. Solo se permiten archivos Excel oficiales (.xlsx, .xls).'];
         }
 
-        $rutaTemp = $archivo['tmp_name'] ?? '';
+        $rutaTemp = (string)($archivo['tmp_name'] ?? '');
         if ((PHP_SAPI !== 'cli' && !is_uploaded_file($rutaTemp)) || !file_exists($rutaTemp)) {
-            return ['valido' => false, 'error' => 'El archivo recibido no es una carga válida.'];
+            return ['valido' => false, 'error' => 'El archivo recibido no es una carga válida del servidor.'];
         }
 
         // Validación de archivo vacío (0 bytes)
-        $tamano = (int) ($archivo['size'] ?? 0);
-        if ($tamano === 0 || filesize($rutaTemp) === 0) {
+        $tamano = (int)($archivo['size'] ?? 0);
+        $tamanoReal = filesize($rutaTemp);
+        if ($tamano === 0 || $tamanoReal === 0) {
             return ['valido' => false, 'error' => 'El archivo seleccionado está vacío (0 bytes). Selecciona un archivo con datos.'];
         }
 
-        // Validación de tamaño máximo (15MB)
-        if ($tamano > 15 * 1024 * 1024) {
-            return ['valido' => false, 'error' => 'El archivo supera el tamaño máximo permitido (15MB).'];
+        // Validación estricta de tamaño máximo (5MB centralizado en constante)
+        $limiteMaximoBytes = defined('LIMITE_EXCEL_HORARIOS_BYTES') ? (int)LIMITE_EXCEL_HORARIOS_BYTES : self::DEFAULT_MAX_BYTES;
+        if ($tamano > $limiteMaximoBytes || $tamanoReal > $limiteMaximoBytes) {
+            $mb = defined('LIMITE_EXCEL_HORARIOS_MB') ? (int)LIMITE_EXCEL_HORARIOS_MB : self::DEFAULT_MAX_MB;
+            return ['valido' => false, 'error' => "El archivo supera el límite de tamaño permitido (máximo {$mb}MB). Las plantillas oficiales de horarios SENA suelen pesar menos de 1MB."];
         }
 
-        // Validación de tipo MIME real en el servidor
+        // Validación de tipo MIME real en el servidor (inspección binaria)
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $rutaTemp);
         finfo_close($finfo);
@@ -69,15 +94,32 @@ class ExcelHorarioHelper
         ];
 
         if (!in_array($mime, $mimesPermitidos, true)) {
-            return ['valido' => false, 'error' => 'Formato no válido. El contenido del archivo no corresponde a una hoja de cálculo Excel.'];
+            return ['valido' => false, 'error' => 'Formato no válido. El contenido binario del archivo no corresponde a una hoja de cálculo Excel.'];
         }
 
-        // Comprobar que el archivo no esté corrupto o protegido verificando lectura con PhpSpreadsheet
-        try {
-            $reader = IOFactory::createReaderForFile($rutaTemp);
-            $reader->setReadDataOnly(true);
-        } catch (\Throwable $e) {
-            return ['valido' => false, 'error' => 'El archivo Excel está dañado, corrupto o protegido de una forma que impide su lectura.'];
+        // Comprobación de integridad estructural ultrarrápida sin sobrecarga de memoria
+        if ($ext === 'xlsx') {
+            if (class_exists('ZipArchive')) {
+                $zip = new \ZipArchive();
+                $resZip = $zip->open($rutaTemp);
+                if ($resZip !== true) {
+                    return ['valido' => false, 'error' => 'El archivo Excel está dañado, corrupto o no es un paquete válido.'];
+                }
+                $esWorkbookValido = ($zip->locateName('[Content_Types].xml') !== false || $zip->locateName('xl/workbook.xml') !== false);
+                $zip->close();
+                if (!$esWorkbookValido) {
+                    return ['valido' => false, 'error' => 'El archivo no contiene la estructura interna de una hoja de cálculo Excel (.xlsx).'];
+                }
+            }
+        } elseif ($ext === 'xls') {
+            $fp = @fopen($rutaTemp, 'rb');
+            if ($fp) {
+                $header = fread($fp, 8);
+                fclose($fp);
+                if ($header !== "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1") {
+                    return ['valido' => false, 'error' => 'El archivo no contiene una estructura válida de Excel 97-2003 (.xls).'];
+                }
+            }
         }
 
         return ['valido' => true, 'error' => null];
@@ -115,9 +157,15 @@ class ExcelHorarioHelper
             return $resultado;
         }
 
-        $maxRow = $sheet->getHighestRow();
+        $maxRow = (int)$sheet->getHighestRow();
         if ($maxRow < 2) {
             $resultado['mensaje'] = 'El archivo seleccionado no contiene información suficiente para procesar.';
+            return $resultado;
+        }
+
+        // Límite de seguridad DoS: evitar procesar archivos artificialmente gigantescos
+        if ($maxRow > 3000) {
+            $resultado['mensaje'] = 'El archivo contiene un número excesivo de filas (' . $maxRow . '). El límite permitido es de 3,000 filas por seguridad del servidor.';
             return $resultado;
         }
 
@@ -274,32 +322,54 @@ class ExcelHorarioHelper
         }
 
         // ======================================================================
-        // FASE 3: EVALUACIÓN DE CONFLICTOS INTERNOS Y SOLAPAMIENTOS
+        // FASE 3: EVALUACIÓN DE CONFLICTOS INTERNOS Y SOLAPAMIENTOS (Optimizado O(N))
         // ======================================================================
         $conflictosInternos = [];
         $duplicadosInternosExactos = [];
-        $totalRegVal = count($registrosValidados);
 
-        for ($i = 0; $i < $totalRegVal; $i++) {
-            $a = $registrosValidados[$i];
+        // Agrupación en memoria por ficha|fecha e instructor|fecha para evitar doble bucle O(N^2)
+        $gruposFichaFecha = [];
+        $gruposInstructorFecha = [];
 
-            for ($j = $i + 1; $j < $totalRegVal; $j++) {
-                $b = $registrosValidados[$j];
+        foreach ($registrosValidados as $reg) {
+            $keyFF = $reg['numero_ficha'] . '|' . $reg['fecha'];
+            $gruposFichaFecha[$keyFF][] = $reg;
 
-                if ($a['numero_ficha'] === $b['numero_ficha'] && $a['fecha'] === $b['fecha']) {
+            if (!empty($reg['instructor'])) {
+                $normInst = mb_strtolower(trim($reg['instructor']), 'UTF-8');
+                $keyIF = $normInst . '|' . $reg['fecha'];
+                $gruposInstructorFecha[$keyIF][] = $reg;
+            }
+        }
+
+        // 3.1 Solapamientos y duplicados en la misma ficha y fecha
+        foreach ($gruposFichaFecha as $grupo) {
+            $cnt = count($grupo);
+            if ($cnt < 2) continue;
+            for ($i = 0; $i < $cnt; $i++) {
+                $a = $grupo[$i];
+                for ($j = $i + 1; $j < $cnt; $j++) {
+                    $b = $grupo[$j];
                     if ($a['hora_entrada'] === $b['hora_entrada'] && $a['hora_salida'] === $b['hora_salida']) {
                         $duplicadosInternosExactos[$b['fila']] = true;
                     } elseif ($a['hora_entrada'] < $b['hora_salida'] && $a['hora_salida'] > $b['hora_entrada']) {
                         $conflictosInternos[] = "Fila {$b['fila']}: Conflicto interno con Fila {$a['fila']}. La ficha {$a['numero_ficha']} tiene horarios superpuestos el día {$a['fecha']} ({$a['hora_entrada']}-{$a['hora_salida']} vs {$b['hora_entrada']}-{$b['hora_salida']}).";
                     }
                 }
+            }
+        }
 
-                if (!empty($a['instructor']) && !empty($b['instructor']) && $a['fecha'] === $b['fecha']) {
-                    if (strcasecmp($a['instructor'], $b['instructor']) === 0) {
+        // 3.2 Solapamientos de un mismo instructor en fichas diferentes en la misma fecha
+        foreach ($gruposInstructorFecha as $grupo) {
+            $cnt = count($grupo);
+            if ($cnt < 2) continue;
+            for ($i = 0; $i < $cnt; $i++) {
+                $a = $grupo[$i];
+                for ($j = $i + 1; $j < $cnt; $j++) {
+                    $b = $grupo[$j];
+                    if ($a['numero_ficha'] !== $b['numero_ficha']) {
                         if ($a['hora_entrada'] < $b['hora_salida'] && $a['hora_salida'] > $b['hora_entrada']) {
-                            if ($a['numero_ficha'] !== $b['numero_ficha']) {
-                                $conflictosInternos[] = "Fila {$b['fila']}: El instructor {$a['instructor']} tiene clases cruzadas en fichas diferentes ({$a['numero_ficha']} y {$b['numero_ficha']}) el día {$a['fecha']} de {$a['hora_entrada']} a {$a['hora_salida']}.";
-                            }
+                            $conflictosInternos[] = "Fila {$b['fila']}: El instructor {$a['instructor']} tiene clases cruzadas en fichas diferentes ({$a['numero_ficha']} y {$b['numero_ficha']}) el día {$a['fecha']} de {$a['hora_entrada']} a {$a['hora_salida']}.";
                         }
                     }
                 }
@@ -318,7 +388,10 @@ class ExcelHorarioHelper
             }
 
             $numFicha = $rItem['numero_ficha'];
-            $fichaBD = $this->modelo->buscarFichaPorNumero($numFicha);
+            if (!array_key_exists($numFicha, $this->fichasCache)) {
+                $this->fichasCache[$numFicha] = $this->modelo->buscarFichaPorNumero($numFicha);
+            }
+            $fichaBD = $this->fichasCache[$numFicha];
 
             if ($fichaBD !== null) {
                 if (($fichaBD['estado'] ?? 'Activa') !== 'Activa') {

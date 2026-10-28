@@ -9,6 +9,8 @@ let todosLosEventos = [];
 let fichasDisponibles = [];
 let coloresFicha = {};
 let proximaClaseInfo = null;
+let maxExcelSizeMB = 5;
+let maxExcelSizeBytes = 5 * 1024 * 1024;
 
 // Cargar datos del servidor desde el bloque JSON incrustado o desde window
 (function cargarDatosServidor() {
@@ -21,6 +23,8 @@ let proximaClaseInfo = null;
             fichasDisponibles = Array.isArray(config.fichasDisponibles) ? config.fichasDisponibles : [];
             coloresFicha = (typeof config.coloresFicha === 'object' && config.coloresFicha !== null) ? config.coloresFicha : {};
             proximaClaseInfo = config.proximaClaseInfo || null;
+            if (config.maxExcelSizeMB) maxExcelSizeMB = Number(config.maxExcelSizeMB);
+            if (config.maxExcelSizeBytes) maxExcelSizeBytes = Number(config.maxExcelSizeBytes);
         } catch (e) {
             console.error('Error al parsear los datos de horarios:', e);
         }
@@ -648,13 +652,13 @@ function inicializarHorarios() {
                 return;
             }
 
-            if (archivo.size > 15 * 1024 * 1024) {
+            if (archivo.size > maxExcelSizeBytes) {
                 this.value = '';
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Archivo muy grande',
-                        text: 'El archivo supera el tamaño máximo permitido de 15MB.',
+                        text: `El archivo supera el tamaño máximo permitido de ${maxExcelSizeMB}MB.`,
                         confirmButtonColor: '#39a900'
                     });
                 }
@@ -673,6 +677,19 @@ function inicializarHorarios() {
                         icon: 'warning',
                         title: 'Archivo requerido',
                         text: 'Por favor selecciona un archivo de Excel antes de importar.',
+                        confirmButtonColor: '#39a900'
+                    });
+                }
+                return;
+            }
+
+            if (archivo.size > maxExcelSizeBytes) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Archivo muy grande',
+                        text: `El archivo supera el tamaño máximo permitido de ${maxExcelSizeMB}MB.`,
                         confirmButtonColor: '#39a900'
                     });
                 }
