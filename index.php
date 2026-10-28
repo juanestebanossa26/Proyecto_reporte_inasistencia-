@@ -86,7 +86,7 @@ require_once BASE_PATH . '/controllers/FichaControlador.php';
 require_once BASE_PATH . '/controllers/HorarioControlador.php'; 
 require_once BASE_PATH . '/controllers/MarcajeControlador.php';
 require_once BASE_PATH . '/controllers/HistorialControlador.php'; 
-require_once BASE_PATH . '/controllers/AprendizControlador.php';
+require_once BASE_PATH . '/controllers/aprendizControlador.php';
 require_once BASE_PATH . '/controllers/ReporteControlador.php';
 require_once BASE_PATH . '/controllers/DashboardControlador.php';
 
