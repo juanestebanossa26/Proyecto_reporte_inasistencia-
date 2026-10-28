@@ -118,6 +118,127 @@ class HorarioModelo
         return $filas;
     }
 
+    /**
+     * Obtiene los datos del aprendiz y su ficha asociada a partir de su ID de usuario en sesión.
+     */
+    public function obtenerInfoAprendizPorUsuario(int $idUsuario): ?array
+    {
+        $db = Conexion::obtener();
+        $sql = "SELECT 
+                    a.id_aprendiz,
+                    a.id_usuario,
+                    a.id_ficha,
+                    u.nombre_completo,
+                    u.usuario AS documento,
+                    f.numero_ficha,
+                    f.nombre_programa,
+                    f.estado AS estado_ficha
+                FROM aprendices a
+                JOIN usuarios u ON u.id_usuario = a.id_usuario
+                LEFT JOIN fichas f ON f.id_ficha = a.id_ficha
+                WHERE a.id_usuario = :id_usuario
+                LIMIT 1";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute([':id_usuario' => $idUsuario]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$fila && !empty($_SESSION['usuario'])) {
+            $sqlFallback = "SELECT 
+                                a.id_aprendiz,
+                                a.id_usuario,
+                                a.id_ficha,
+                                u.nombre_completo,
+                                u.usuario AS documento,
+                                f.numero_ficha,
+                                f.nombre_programa,
+                                f.estado AS estado_ficha
+                            FROM usuarios u
+                            LEFT JOIN aprendices a ON a.id_usuario = u.id_usuario
+                            LEFT JOIN fichas f ON f.id_ficha = a.id_ficha
+                            WHERE u.usuario = :usuario
+                            LIMIT 1";
+            $stmtFallback = $db->prepare($sqlFallback);
+            $stmtFallback->execute([':usuario' => (string)$_SESSION['usuario']]);
+            $fila = $stmtFallback->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if ($fila) {
+            $fila['nombre_programa'] = html_entity_decode((string)($fila['nombre_programa'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $fila['nombre_completo'] = html_entity_decode((string)($fila['nombre_completo'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            return $fila;
+        }
+
+        return null;
+    }
+
+    /**
+     * Lista los horarios programados correspondientes a una ficha específica.
+     * En consultas ordinarias de aprendices solo incluye horarios 'Programado' de fichas con estado 'Activa'.
+     */
+    public function listarHorariosPorFicha(int $idFicha, ?string $fechaDesde = null, ?string $fechaHasta = null, bool $incluirCancelados = false): array
+    {
+        $params = [':id_ficha' => $idFicha];
+        $whereFiltros = "";
+
+        if ($fechaDesde !== null && $fechaDesde !== '') {
+            $whereFiltros .= " AND h.dia_semana >= :desde";
+            $params[':desde'] = $fechaDesde;
+        }
+
+        if ($fechaHasta !== null && $fechaHasta !== '') {
+            $whereFiltros .= " AND h.dia_semana <= :hasta";
+            $params[':hasta'] = $fechaHasta;
+        }
+
+        if (!$incluirCancelados) {
+            $whereFiltros .= " AND h.estado = 'Programado' AND f.estado = 'Activa'";
+        }
+
+        $sql = "SELECT
+                    h.id_horario,
+                    h.id_ficha,
+                    h.hora_entrada_programada,
+                    h.hora_salida_programada,
+                    h.dia_semana AS fecha,
+                    h.estado AS estado_horario,
+                    h.fecha_cancelacion,
+                    h.motivo_cancelacion,
+                    f.numero_ficha,
+                    f.nombre_programa,
+                    f.estado AS estado_ficha,
+                    COALESCE(h.id_instructor, fhu.id_instructor) AS id_instructor,
+                    COALESCE(u_directo.nombre_completo, u_ficha.nombre_completo, '') AS instructor_nombre,
+                    COALESCE(u_directo.area, u_ficha.area, '') AS instructor_area,
+                    (SELECT COUNT(*) FROM aprendices a WHERE a.id_ficha = f.id_ficha) AS total_aprendices
+                FROM horarios h
+                JOIN fichas f ON f.id_ficha = h.id_ficha
+                LEFT JOIN usuarios u_directo ON u_directo.id_usuario = h.id_instructor
+                LEFT JOIN (
+                    SELECT fichas_id_ficha, MIN(id_instructor) AS id_instructor
+                    FROM fichas_has_usuarios
+                    GROUP BY fichas_id_ficha
+                ) fhu ON fhu.fichas_id_ficha = f.id_ficha
+                LEFT JOIN usuarios u_ficha ON u_ficha.id_usuario = fhu.id_instructor
+                WHERE h.id_ficha = :id_ficha
+                      {$whereFiltros}
+                ORDER BY h.dia_semana ASC, h.hora_entrada_programada ASC";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->execute($params);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($filas as &$f) {
+            $f['nombre_programa']    = html_entity_decode((string)($f['nombre_programa'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $f['instructor_nombre']  = html_entity_decode((string)($f['instructor_nombre'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $f['instructor_area']    = html_entity_decode((string)($f['instructor_area'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $f['motivo_cancelacion'] = html_entity_decode((string)($f['motivo_cancelacion'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        unset($f);
+
+        return $filas;
+    }
+
 
     // =========================================================================
     // Delegación al Módulo de Fichas (FichaModelo)

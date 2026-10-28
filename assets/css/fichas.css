@@ -3,52 +3,30 @@
    ============================================================ */
 
 .badge-estado-activa {
-            background-color: #e8f5e9;
-            color: #1b5e20;
-            border: 1px solid #c8e6c9;
-            font-weight: 600;
-        }
-        .badge-estado-finalizada {
-            background-color: #fff3e0;
-            color: #e65100;
-            border: 1px solid #ffe0b2;
-            font-weight: 600;
-        }
-        .badge-estado-archivada {
-            background-color: #eceff1;
-            color: #455a64;
-            border: 1px solid #cfd8dc;
-            font-weight: 600;
-        }
-        .nav-tabs-sena .nav-link {
-            color: #4b6b58;
-            font-weight: 500;
-            border: none;
-            border-bottom: 3px solid transparent;
-            padding: 0.75rem 1.25rem;
-        }
-        .nav-tabs-sena .nav-link.active {
-            color: #1b5e20;
-            font-weight: 700;
-            background: transparent;
-            border-bottom: 3px solid #39A900;
-        }
-        .timeline-audit-item {
-            border-left: 2px solid #39A900;
-            padding-left: 1rem;
-            position: relative;
-            margin-bottom: 1.25rem;
-        }
-        .timeline-audit-item::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 4px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #39A900;
-        }
+    background-color: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #c8e6c9;
+    font-weight: 600;
+}
+.badge-estado-finalizada {
+    background-color: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffe0b2;
+    font-weight: 600;
+}
+.nav-tabs-sena .nav-link {
+    color: #4b6b58;
+    font-weight: 500;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.75rem 1.25rem;
+}
+.nav-tabs-sena .nav-link.active {
+    color: #1b5e20;
+    font-weight: 700;
+    background: transparent;
+    border-bottom: 3px solid #39A900;
+}
 
         /* Cuadrícula CSS Grid y Tarjetas de Ficha */
         .fichas-grid-container {
@@ -100,9 +78,6 @@
         }
         .ficha-card.card-estado-finalizada {
             border-top: 3.5px solid #f59e0b;
-        }
-        .ficha-card.card-estado-archivada {
-            border-top: 3.5px solid #64748b;
         }
 
         .ficha-card-header {
@@ -275,4 +250,96 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        /* Estilos específicos para la vista «Mis Fichas» del Instructor */
+        .ficha-card-instructor {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: 3.5px solid #39A900;
+            border-radius: 14px;
+            padding: 1.35rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            min-height: 270px;
+        }
+        .ficha-card-instructor:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(16, 36, 28, 0.08);
+            border-color: #cbd5e1;
+            border-top-color: #2e8b00;
+        }
+        .ficha-horario-proximo {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 0.65rem 0.85rem;
+            margin-top: 0.75rem;
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+        }
+        .ficha-horario-proximo.sin-horario {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+        }
+        .ficha-horario-icon {
+            color: #16a34a;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .ficha-horario-proximo.sin-horario .ficha-horario-icon {
+            color: #94a3b8;
+        }
+        .ficha-horario-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #15803d;
+            margin-bottom: 2px;
+        }
+        .ficha-horario-proximo.sin-horario .ficha-horario-label {
+            color: #64748b;
+        }
+        .ficha-horario-texto {
+            font-size: 0.825rem;
+            font-weight: 600;
+            color: #166534;
+            line-height: 1.35;
+        }
+        .ficha-horario-proximo.sin-horario .ficha-horario-texto {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #64748b;
+            font-style: italic;
+        }
+        .btn-ver-ficha-instructor {
+            background-color: #f8fafc;
+            color: #1e293b;
+            border: 1px solid #cbd5e1;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.45rem 1rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            width: 100%;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+        .btn-ver-ficha-instructor:hover {
+            background-color: #39A900;
+            color: #ffffff;
+            border-color: #39A900;
+            box-shadow: 0 4px 12px rgba(57, 169, 0, 0.2);
+            transform: translateY(-1px);
         }

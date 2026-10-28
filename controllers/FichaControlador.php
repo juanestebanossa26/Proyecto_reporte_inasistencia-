@@ -1,6 +1,6 @@
 <?php
 // controllers/FichaControlador.php — Controlador dedicado a la gestión y ciclo de vida de Fichas
-// Encargado de listar por estado, crear, editar, finalizar atómicamente, archivar,
+// Encargado de listar por estado, crear, editar, finalizar atómicamente,
 // reabrir auditadamente y eliminar fichas respetando las relaciones e integridad institucional.
 
 declare(strict_types=1);
@@ -30,9 +30,25 @@ class FichaControlador extends ControladorBase
         $esInstructor       = (strtolower($rolSesion) === 'instructor');
         $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
 
-        // Pestaña o filtro de estado seleccionado ('Activa', 'Finalizada', 'Archivada', o 'todos')
+        // Si el usuario es Instructor, presentar su panel especializado "Mis Fichas"
+        if ($esInstructor) {
+            try {
+                $kpisInstructor = $this->modelo->obtenerKpisInstructor($idInstructorSesion);
+                $fichas         = $this->modelo->listarFichasInstructor($idInstructorSesion);
+            } catch (PDOException $e) {
+                error_log('Error al listar fichas para instructor: ' . $e->getMessage());
+                $fichas         = [];
+                $kpisInstructor = ['total_fichas' => 0, 'clases_hoy' => 0, 'proximas_clases' => 0];
+                $_SESSION['mensaje_error'] = 'No se pudieron cargar sus fichas de formación.';
+            }
+
+            require BASE_PATH . '/views/fichas_instructor.php';
+            return;
+        }
+
+        // Flujo Administrativo: Consulta global por estados de ciclo de vida
         $estadoFiltro = trim((string)($_GET['estado'] ?? 'Activa'));
-        if (!in_array($estadoFiltro, ['Activa', 'Finalizada', 'Archivada', 'todos'], true)) {
+        if (!in_array($estadoFiltro, ['Activa', 'Finalizada', 'todos'], true)) {
             $estadoFiltro = 'Activa';
         }
 
@@ -44,7 +60,7 @@ class FichaControlador extends ControladorBase
             error_log('Error al listar fichas: ' . $e->getMessage());
             $fichas       = [];
             $instructores = [];
-            $conteos      = ['total' => 0, 'activas' => 0, 'finalizadas' => 0, 'archivadas' => 0];
+            $conteos      = ['total' => 0, 'activas' => 0, 'finalizadas' => 0];
             $_SESSION['mensaje_error'] = 'No se pudieron cargar las fichas.';
         }
 
@@ -233,54 +249,6 @@ class FichaControlador extends ControladorBase
     }
 
     /**
-     * accion=archivarFicha (POST) -> Traslada una ficha finalizada al archivo histórico
-     */
-    public function archivarFicha(): void
-    {
-        $this->exigirSesion(['Administrador', 'admin']);
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirigirAccion('fichas');
-            return;
-        }
-
-        if (!Seguridad::validarCsrf($_POST['csrf_token'] ?? '')) {
-            Seguridad::alertaYRedirigir(
-                'error',
-                'Sesión inválida',
-                'El token de seguridad ha caducado. Por favor intenta de nuevo.',
-                $this->urlAccion('fichas', ['estado' => 'Finalizada'])
-            );
-            return;
-        }
-
-        $idFicha = (int) ($_POST['id_ficha'] ?? 0);
-        $motivo  = trim((string)($_POST['motivo_archivado'] ?? ''));
-        $idAdmin = (int) ($_SESSION['id'] ?? 0);
-
-        if ($idFicha <= 0) {
-            Seguridad::alertaYRedirigir('warning', 'Ficha no válida', 'Ficha no especificada.', $this->urlAccion('fichas'));
-            return;
-        }
-
-        try {
-            $res = $this->modelo->archivarFicha($idFicha, $idAdmin, $motivo);
-
-            Seguridad::alertaYRedirigir(
-                'success',
-                '¡Ficha Archivada!',
-                "La ficha {$res['numero_ficha']} fue archivada exitosamente. Se encuentra disponible en el archivo histórico para consultas autorizadas.",
-                $this->urlAccion('fichas', ['estado' => 'Archivada'])
-            );
-        } catch (DomainException $e) {
-            Seguridad::alertaYRedirigir('warning', 'No se puede archivar', $e->getMessage(), $this->urlAccion('fichas', ['estado' => 'Finalizada']));
-        } catch (\Throwable $e) {
-            error_log("Error al archivar ficha {$idFicha}: " . $e->getMessage());
-            Seguridad::alertaYRedirigir('error', 'Error al archivar', 'Ocurrió un error al archivar la ficha.', $this->urlAccion('fichas'));
-        }
-    }
-
-    /**
      * accion=reabrirFicha (POST) -> Reapertura administrativa excepcional y auditada
      */
     public function reabrirFicha(): void
@@ -375,28 +343,5 @@ class FichaControlador extends ControladorBase
                 $this->urlAccion('fichas')
             );
         }
-    }
-
-    /**
-     * accion=obtenerAuditoriaFicha (GET/AJAX) -> Devuelve el historial de auditoría de una ficha en JSON
-     */
-    public function obtenerAuditoriaFicha(): void
-    {
-        $this->exigirSesion(['Administrador', 'admin']);
-        header('Content-Type: application/json; charset=utf-8');
-
-        $idFicha = (int)($_GET['id_ficha'] ?? 0);
-        if ($idFicha <= 0) {
-            echo json_encode(['exito' => false, 'error' => 'Ficha no especificada.']);
-            exit;
-        }
-
-        try {
-            $eventos = $this->auditoria->listarPorFicha($idFicha);
-            echo json_encode(['exito' => true, 'eventos' => $eventos], JSON_UNESCAPED_UNICODE);
-        } catch (\Throwable $e) {
-            echo json_encode(['exito' => false, 'error' => $e->getMessage()]);
-        }
-        exit;
     }
 }

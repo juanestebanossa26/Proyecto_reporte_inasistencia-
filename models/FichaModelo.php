@@ -1,6 +1,6 @@
 <?php
 // models/FichaModelo.php — Acceso a datos y lógica del Módulo de Fichas
-// Gestiona el ciclo de vida de las fichas (Activa, Finalizada, Archivada),
+// Gestiona el ciclo de vida de las fichas (Activa, Finalizada),
 // finalización atómica, cancelación de horarios futuros, recálculo de acceso
 // y eliminación segura sin borrados en cascada destructivos.
 
@@ -19,7 +19,7 @@ class FichaModelo
 
     /**
      * Lista fichas con métricas de aprendices, horarios y metadatos del ciclo de vida.
-     * Soporta filtrado por instructor y por estado de negocio ('Activa', 'Finalizada', 'Archivada', o null para todas).
+     * Soporta filtrado por instructor y por estado de negocio ('Activa', 'Finalizada', o null para todas).
      *
      * @param int|null $idInstructor
      * @param string|null $filtroEstado
@@ -44,11 +44,7 @@ class FichaModelo
                         f.fecha_finalizacion,
                         f.id_usuario_finalizacion,
                         f.motivo_finalizacion,
-                        f.fecha_archivado,
-                        f.id_usuario_archivado,
-                        f.motivo_archivado,
                         u_fin.nombre_completo AS responsable_finalizacion,
-                        u_arc.nombre_completo AS responsable_archivado,
                         COUNT(DISTINCT a.id_aprendiz) AS total_aprendices,
                         COUNT(DISTINCT h.id_horario) AS total_horarios,
                         COUNT(DISTINCT CASE WHEN h.estado = 'Cancelado' THEN h.id_horario END) AS horarios_cancelados,
@@ -61,7 +57,6 @@ class FichaModelo
                     LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = f.id_ficha
                     LEFT JOIN usuarios u ON u.id_usuario = fhu.id_instructor
                     LEFT JOIN usuarios u_fin ON u_fin.id_usuario = f.id_usuario_finalizacion
-                    LEFT JOIN usuarios u_arc ON u_arc.id_usuario = f.id_usuario_archivado
                     WHERE f.id_ficha IN (
                         SELECT id_ficha FROM horarios WHERE id_instructor = :id_inst2
                         UNION
@@ -87,11 +82,7 @@ class FichaModelo
                         f.fecha_finalizacion,
                         f.id_usuario_finalizacion,
                         f.motivo_finalizacion,
-                        f.fecha_archivado,
-                        f.id_usuario_archivado,
-                        f.motivo_archivado,
                         u_fin.nombre_completo AS responsable_finalizacion,
-                        u_arc.nombre_completo AS responsable_archivado,
                         COUNT(DISTINCT a.id_aprendiz) AS total_aprendices,
                         COUNT(DISTINCT h.id_horario) AS total_horarios,
                         COUNT(DISTINCT CASE WHEN h.estado = 'Cancelado' THEN h.id_horario END) AS horarios_cancelados,
@@ -104,7 +95,6 @@ class FichaModelo
                     LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = f.id_ficha
                     LEFT JOIN usuarios u ON u.id_usuario = fhu.id_instructor
                     LEFT JOIN usuarios u_fin ON u_fin.id_usuario = f.id_usuario_finalizacion
-                    LEFT JOIN usuarios u_arc ON u_arc.id_usuario = f.id_usuario_archivado
                     WHERE 1=1 {$whereFiltros}
                     GROUP BY f.id_ficha
                     ORDER BY f.numero_ficha ASC";
@@ -119,7 +109,6 @@ class FichaModelo
             $f['nombre_programa']          = html_entity_decode((string)($f['nombre_programa'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $f['instructores']             = html_entity_decode((string)($f['instructores'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $f['responsable_finalizacion'] = html_entity_decode((string)($f['responsable_finalizacion'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $f['responsable_archivado']    = html_entity_decode((string)($f['responsable_archivado'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }
         unset($f);
 
@@ -148,8 +137,7 @@ class FichaModelo
         $sql = "SELECT 
                     COUNT(*) AS total,
                     SUM(CASE WHEN f.estado = 'Activa' THEN 1 ELSE 0 END) AS activas,
-                    SUM(CASE WHEN f.estado = 'Finalizada' THEN 1 ELSE 0 END) AS finalizadas,
-                    SUM(CASE WHEN f.estado = 'Archivada' THEN 1 ELSE 0 END) AS archivadas
+                    SUM(CASE WHEN f.estado = 'Finalizada' THEN 1 ELSE 0 END) AS finalizadas
                 FROM fichas f
                 WHERE 1=1 {$whereInst}";
 
@@ -161,8 +149,93 @@ class FichaModelo
             'total'       => (int)($res['total'] ?? 0),
             'activas'     => (int)($res['activas'] ?? 0),
             'finalizadas' => (int)($res['finalizadas'] ?? 0),
-            'archivadas'  => (int)($res['archivadas'] ?? 0),
         ];
+    }
+
+    /**
+     * Retorna los indicadores académicos clave para el panel del instructor:
+     * - total_fichas: fichas activas actualmente asignadas
+     * - clases_hoy: clases programadas para el día de hoy
+     * - proximas_clases: clases programadas para fechas futuras
+     */
+    public function obtenerKpisInstructor(int $idInstructor): array
+    {
+        $db = Conexion::obtener();
+
+        // 1. Total fichas activas asignadas
+        $sqlFichas = "SELECT COUNT(DISTINCT f.id_ficha)
+                      FROM fichas f
+                      WHERE f.estado = 'Activa'
+                        AND f.id_ficha IN (
+                            SELECT id_ficha FROM horarios WHERE id_instructor = :id1
+                            UNION
+                            SELECT fichas_id_ficha FROM fichas_has_usuarios WHERE id_instructor = :id2
+                        )";
+        $stmtFichas = $db->prepare($sqlFichas);
+        $stmtFichas->execute([':id1' => $idInstructor, ':id2' => $idInstructor]);
+        $totalFichas = (int)$stmtFichas->fetchColumn();
+
+        // 2. Clases programadas hoy
+        $sqlHoy = "SELECT COUNT(*)
+                   FROM horarios
+                   WHERE id_instructor = :id
+                     AND dia_semana = CURDATE()
+                     AND estado = 'Programado'";
+        $stmtHoy = $db->prepare($sqlHoy);
+        $stmtHoy->execute([':id' => $idInstructor]);
+        $clasesHoy = (int)$stmtHoy->fetchColumn();
+
+        // 3. Próximas clases programadas a partir de mañana
+        $sqlProx = "SELECT COUNT(*)
+                    FROM horarios
+                    WHERE id_instructor = :id
+                      AND dia_semana > CURDATE()
+                      AND estado = 'Programado'";
+        $stmtProx = $db->prepare($sqlProx);
+        $stmtProx->execute([':id' => $idInstructor]);
+        $proximasClases = (int)$stmtProx->fetchColumn();
+
+        return [
+            'total_fichas'    => $totalFichas,
+            'clases_hoy'      => $clasesHoy,
+            'proximas_clases' => $proximasClases,
+        ];
+    }
+
+    /**
+     * Obtiene exclusivamente las fichas activas asignadas al instructor,
+     * incorporando la información de su próxima clase programada.
+     */
+    public function listarFichasInstructor(int $idInstructor): array
+    {
+        // Se reutiliza listarFichasDetalladas forzando únicamente estado 'Activa' y filtrado por instructor
+        $fichas = $this->listarFichasDetalladas($idInstructor, 'Activa');
+        if (empty($fichas)) {
+            return [];
+        }
+
+        $db = Conexion::obtener();
+        $sqlProximo = "SELECT dia_semana, hora_entrada_programada, hora_salida_programada
+                       FROM horarios
+                       WHERE id_ficha = :id_ficha
+                         AND id_instructor = :id_inst
+                         AND estado = 'Programado'
+                         AND (dia_semana > CURDATE() OR (dia_semana = CURDATE() AND hora_salida_programada >= CURTIME()))
+                       ORDER BY dia_semana ASC, hora_entrada_programada ASC
+                       LIMIT 1";
+        $stmtProximo = $db->prepare($sqlProximo);
+
+        foreach ($fichas as &$f) {
+            $stmtProximo->execute([
+                ':id_ficha' => $f['id_ficha'],
+                ':id_inst'  => $idInstructor,
+            ]);
+            $proximo = $stmtProximo->fetch(PDO::FETCH_ASSOC);
+            $f['proximo_horario'] = $proximo ?: null;
+        }
+        unset($f);
+
+        return $fichas;
     }
 
     /**
@@ -171,11 +244,9 @@ class FichaModelo
     public function buscarFichaPorId(int $idFicha): ?array
     {
         $sql = "SELECT f.*,
-                       u_fin.nombre_completo AS responsable_finalizacion,
-                       u_arc.nombre_completo AS responsable_archivado
+                       u_fin.nombre_completo AS responsable_finalizacion
                 FROM fichas f
                 LEFT JOIN usuarios u_fin ON u_fin.id_usuario = f.id_usuario_finalizacion
-                LEFT JOIN usuarios u_arc ON u_arc.id_usuario = f.id_usuario_archivado
                 WHERE f.id_ficha = :id 
                 LIMIT 1";
 
@@ -186,7 +257,6 @@ class FichaModelo
         if ($ficha) {
             $ficha['nombre_programa']          = html_entity_decode((string)$ficha['nombre_programa'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $ficha['responsable_finalizacion'] = html_entity_decode((string)($ficha['responsable_finalizacion'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $ficha['responsable_archivado']    = html_entity_decode((string)($ficha['responsable_archivado'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             return $ficha;
         }
 
@@ -199,11 +269,9 @@ class FichaModelo
     public function buscarFichaPorNumero(string $numeroFicha): ?array
     {
         $sql = "SELECT f.*,
-                       u_fin.nombre_completo AS responsable_finalizacion,
-                       u_arc.nombre_completo AS responsable_archivado
+                       u_fin.nombre_completo AS responsable_finalizacion
                 FROM fichas f
                 LEFT JOIN usuarios u_fin ON u_fin.id_usuario = f.id_usuario_finalizacion
-                LEFT JOIN usuarios u_arc ON u_arc.id_usuario = f.id_usuario_archivado
                 WHERE f.numero_ficha = :num 
                 LIMIT 1";
 
@@ -214,7 +282,6 @@ class FichaModelo
         if ($ficha) {
             $ficha['nombre_programa']          = html_entity_decode((string)$ficha['nombre_programa'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $ficha['responsable_finalizacion'] = html_entity_decode((string)($ficha['responsable_finalizacion'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $ficha['responsable_archivado']    = html_entity_decode((string)($ficha['responsable_archivado'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             return $ficha;
         }
 
@@ -414,11 +481,6 @@ class FichaModelo
             throw new DomainException("La ficha {$ficha['numero_ficha']} ya se encuentra finalizada previamente.");
         }
 
-        if ($ficha['estado'] === 'Archivada') {
-            $this->auditoria->registrar('FINALIZAR', $idFicha, $ficha['numero_ficha'], $idUsuarioAdmin, 'Archivada', 'Archivada', $motivo, 'RECHAZADO', ['error' => 'No es posible finalizar una ficha que ya está archivada.'], $correlacionId);
-            throw new DomainException("La ficha {$ficha['numero_ficha']} se encuentra archivada. No admite transición a finalizada.");
-        }
-
         if ($ficha['estado'] !== 'Activa') {
             $this->auditoria->registrar('FINALIZAR', $idFicha, $ficha['numero_ficha'], $idUsuarioAdmin, $ficha['estado'], null, $motivo, 'RECHAZADO', ['error' => 'Estado inválido'], $correlacionId);
             throw new DomainException("La ficha no se encuentra en estado Activa.");
@@ -615,119 +677,8 @@ class FichaModelo
     }
 
     /**
-     * ARCHIVADO DE UNA FICHA: Operación administrativa específica para fichas finalizadas.
-     *
-     * Reglas aplicadas:
-     * 1. Verifica que la ficha exista y su estado actual sea 'Finalizada'.
-     * 2. Confirma que no tenga horarios vigentes pendientes de cancelación.
-     * 3. Actualiza estado a 'Archivada', con fecha_archivado, id_usuario_archivado y motivo.
-     * 4. Excluye la ficha de listados operativos y selectores.
-     * 5. Mantiene disponible toda la trazabilidad histórica de asistencias, excusas y horarios.
-     *
-     * @param int $idFicha
-     * @param int $idUsuarioAdmin
-     * @param string|null $motivo
-     * @return array
-     */
-    public function archivarFicha(int $idFicha, int $idUsuarioAdmin, ?string $motivo = null): array
-    {
-        $db = Conexion::obtener();
-        $correlacionId = 'arc_' . bin2hex(random_bytes(8));
-
-        $ficha = $this->buscarFichaPorId($idFicha);
-        if (!$ficha) {
-            $this->auditoria->registrar('ARCHIVAR', $idFicha, null, $idUsuarioAdmin, null, null, $motivo, 'RECHAZADO', ['error' => 'Ficha no encontrada'], $correlacionId);
-            throw new InvalidArgumentException("La ficha especificada no existe.");
-        }
-
-        if ($ficha['estado'] === 'Archivada') {
-            $this->auditoria->registrar('ARCHIVAR', $idFicha, $ficha['numero_ficha'], $idUsuarioAdmin, 'Archivada', 'Archivada', $motivo, 'RECHAZADO', ['error' => 'La ficha ya se encuentra archivada.'], $correlacionId);
-            throw new DomainException("La ficha {$ficha['numero_ficha']} ya se encuentra archivada.");
-        }
-
-        if ($ficha['estado'] !== 'Finalizada') {
-            $this->auditoria->registrar('ARCHIVAR', $idFicha, $ficha['numero_ficha'], $idUsuarioAdmin, $ficha['estado'], null, $motivo, 'RECHAZADO', ['error' => 'Solo se pueden archivar fichas que hayan sido formalmente finalizadas.'], $correlacionId);
-            throw new DomainException("Para archivar la ficha {$ficha['numero_ficha']}, primero debe estar en estado 'Finalizada'.");
-        }
-
-        // Validar que no existan horarios en estado 'Programado' futuros
-        $stmtHorPend = $db->prepare("
-            SELECT COUNT(*) FROM horarios 
-            WHERE id_ficha = :id AND estado = 'Programado' AND dia_semana >= CURDATE()
-        ");
-        $stmtHorPend->execute([':id' => $idFicha]);
-        $pendientes = (int)$stmtHorPend->fetchColumn();
-
-        if ($pendientes > 0) {
-            $this->auditoria->registrar('ARCHIVAR', $idFicha, $ficha['numero_ficha'], $idUsuarioAdmin, 'Finalizada', null, $motivo, 'RECHAZADO', ['error' => "Existen {$pendientes} horarios futuros programados pendientes de resolución."], $correlacionId);
-            throw new DomainException("No se puede archivar la ficha porque existen {$pendientes} horarios programados sin cancelar.");
-        }
-
-        $motivoLimpio = trim((string)($motivo ?? 'Archivado definitivo para conservación histórica y auditoría'));
-
-        $db->beginTransaction();
-        try {
-            $sqlUpdate = "
-                UPDATE fichas 
-                SET estado = 'Archivada',
-                    fecha_archivado = NOW(),
-                    id_usuario_archivado = :id_usr,
-                    motivo_archivado = :motivo
-                WHERE id_ficha = :id
-            ";
-            $stmt = $db->prepare($sqlUpdate);
-            $stmt->execute([
-                ':id_usr' => $idUsuarioAdmin,
-                ':motivo' => $motivoLimpio,
-                ':id'     => $idFicha
-            ]);
-
-            $this->auditoria->registrar(
-                'ARCHIVAR',
-                $idFicha,
-                $ficha['numero_ficha'],
-                $idUsuarioAdmin,
-                'Finalizada',
-                'Archivada',
-                $motivoLimpio,
-                'EXITOSO',
-                ['mensaje' => 'Ficha trasladada al archivo histórico.'],
-                $correlacionId
-            );
-
-            $db->commit();
-
-            return [
-                'exito'           => true,
-                'id_ficha'        => $idFicha,
-                'numero_ficha'    => $ficha['numero_ficha'],
-                'nombre_programa' => $ficha['nombre_programa'],
-                'estado_nuevo'    => 'Archivada',
-                'correlacion_id'  => $correlacionId,
-            ];
-        } catch (\Throwable $e) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
-            }
-            $this->auditoria->registrar(
-                'ARCHIVAR',
-                $idFicha,
-                $ficha['numero_ficha'],
-                $idUsuarioAdmin,
-                'Finalizada',
-                'ERROR',
-                $motivoLimpio,
-                'ERROR',
-                ['error' => $e->getMessage()],
-                $correlacionId
-            );
-            throw $e;
-        }
-    }
-
-    /**
      * REAPERTURA EXCEPCIONAL DE UNA FICHA FINALIZADA.
-     * Solo para subsanar cierres erróneos. No permitido para fichas archivadas.
+     * Permite reactivar fichas finalizadas para subsanar cierres erróneos o ampliación lectiva.
      */
     public function reabrirFicha(int $idFicha, int $idUsuarioAdmin, string $motivo): array
     {
@@ -744,13 +695,12 @@ class FichaModelo
             throw new InvalidArgumentException("La ficha especificada no existe.");
         }
 
-        if ($ficha['estado'] === 'Archivada') {
-            $this->auditoria->registrar('REABRIR', $idFicha, $ficha['numero_ficha'], $idUsuarioAdmin, 'Archivada', null, $motivoLimpio, 'RECHAZADO', ['error' => 'Prohibida la reapertura directa de fichas archivadas.'], $correlacionId);
-            throw new DomainException("Una ficha archivada no puede reabrirse directamente por políticas de gestión documental.");
-        }
-
         if ($ficha['estado'] === 'Activa') {
             throw new DomainException("La ficha ya se encuentra activa.");
+        }
+
+        if ($ficha['estado'] !== 'Finalizada') {
+            throw new DomainException("Solo se pueden reabrir fichas en estado 'Finalizada'.");
         }
 
         $db->beginTransaction();
@@ -953,7 +903,7 @@ class FichaModelo
                 $correlacionId
             );
 
-            throw new DomainException("No es posible eliminar la ficha {$ficha['numero_ficha']} porque contiene información académica asociada ({$textoDep}). Para dar de baja una ficha con historial, debes utilizar la opción 'Finalizar' o 'Archivar'.");
+            throw new DomainException("No es posible eliminar la ficha {$ficha['numero_ficha']} porque contiene información académica asociada ({$textoDep}). Para dar de baja una ficha con registros, debes utilizar la opción 'Finalizar'.");
         }
 
         $db->beginTransaction();

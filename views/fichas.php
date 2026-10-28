@@ -10,7 +10,7 @@ $tituloPagina  = 'Fichas de Formación';
 
 $fichas       = $fichas ?? [];
 $instructores = $instructores ?? [];
-$conteos      = $conteos ?? ['total' => 0, 'activas' => 0, 'finalizadas' => 0, 'archivadas' => 0];
+$conteos      = $conteos ?? ['total' => 0, 'activas' => 0, 'finalizadas' => 0];
 $estadoFiltro = $estadoFiltro ?? 'Activa';
 ?>
 <!DOCTYPE html>
@@ -31,7 +31,7 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                 <div>
                     <div class="eyebrow text-uppercase fw-semibold" style="letter-spacing: 0.05em; font-size: 0.8rem; color: #1b5e20;">Ciclo de Vida Académico</div>
                     <h1 class="h4 fw-bold mb-1">Fichas de Formación</h1>
-                    <p class="text-suave mb-0">Gestiona los estados operativos, finalización lectiva, archivo histórico y asignaciones académicas del SENA.</p>
+                    <p class="text-suave mb-0">Gestiona los estados operativos, finalización lectiva y asignaciones académicas del SENA.</p>
                 </div>
                 <?php if ($rolActivo === 'Administrador'): ?>
                 <div class="d-flex gap-2">
@@ -42,9 +42,9 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                 <?php endif; ?>
             </div>
 
-            <!-- Resumen de Métricas de Ciclo de Vida -->
+            <!-- Resumen de Métricas de Ciclo de Vida (3 Columnas Equilibradas) -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-4 col-sm-6">
                     <div class="card border-0 shadow-sm p-3 h-100">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
@@ -58,7 +58,7 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-4 col-sm-6">
                     <div class="card border-0 shadow-sm p-3 h-100">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
@@ -72,21 +72,7 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="card border-0 shadow-sm p-3 h-100">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <small class="text-muted text-uppercase fw-semibold" style="font-size:0.75rem;">Fichas Archivadas</small>
-                                <h3 class="fw-bold mb-0 text-secondary"><?= $conteos['archivadas'] ?></h3>
-                                <small class="text-muted">Memoria histórica</small>
-                            </div>
-                            <div class="rounded-circle bg-secondary-subtle p-3 text-secondary">
-                                <i class="bi bi-archive fs-3"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-4 col-sm-12">
                     <div class="card border-0 shadow-sm p-3 h-100">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
@@ -102,7 +88,7 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                 </div>
             </div>
 
-            <!-- Navegación de Estados (Tabs) -->
+            <!-- Navegación de Estados (Tabs: Activas, Finalizadas, Todas) -->
             <ul class="nav nav-tabs nav-tabs-sena mb-3 border-bottom">
                 <li class="nav-item">
                     <a class="nav-link <?= $estadoFiltro === 'Activa' ? 'active' : '' ?>" href="<?= BASE_URL ?>/index.php?accion=fichas&estado=Activa">
@@ -117,17 +103,13 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= $estadoFiltro === 'Archivada' ? 'active' : '' ?>" href="<?= BASE_URL ?>/index.php?accion=fichas&estado=Archivada">
-                        <i class="bi bi-archive-fill text-secondary me-1"></i> Archivadas 
-                        <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1"><?= $conteos['archivadas'] ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link <?= $estadoFiltro === 'todos' ? 'active' : '' ?>" href="<?= BASE_URL ?>/index.php?accion=fichas&estado=todos">
                         <i class="bi bi-list-ul me-1"></i> Todas las Fichas
                     </a>
                 </li>
-              <!-- Barra de Búsqueda y Herramientas -->
+            </ul>
+
+            <!-- Barra de Búsqueda y Herramientas -->
             <div class="ficha-toolbar-card d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div class="ficha-search-box">
                     <i class="bi bi-search ficha-search-icon"></i>
@@ -160,15 +142,11 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                     <?php else: ?>
                         <?php foreach ($fichas as $f): 
                             $badgeClase = match($f['estado']) {
-                                'Activa'     => 'badge-estado-activa',
                                 'Finalizada' => 'badge-estado-finalizada',
-                                'Archivada'  => 'badge-estado-archivada',
                                 default      => 'badge-estado-activa'
                             };
                             $badgeIcono = match($f['estado']) {
-                                'Activa'     => 'bi-play-circle',
                                 'Finalizada' => 'bi-check2-circle',
-                                'Archivada'  => 'bi-archive',
                                 default      => 'bi-play-circle'
                             };
                             $instTexto = trim($f['instructores'] ?? '');
@@ -209,8 +187,8 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                                         <?php endif; ?>
                                     </div>
 
-                                    <!-- Metadatos de Finalización / Archivado -->
-                                    <?php if (!empty($f['fecha_finalizacion']) && ($f['estado'] === 'Finalizada' || $f['estado'] === 'Archivada' || $estadoFiltro === 'todos')): ?>
+                                    <!-- Metadatos de Finalización Lectiva -->
+                                    <?php if (!empty($f['fecha_finalizacion']) && ($f['estado'] === 'Finalizada' || $estadoFiltro === 'todos')): ?>
                                     <div class="ficha-meta-cierre">
                                         <div class="d-flex align-items-center justify-content-between">
                                             <span class="text-muted"><i class="bi bi-calendar-check text-warning me-1"></i>Finalizada:</span>
@@ -219,20 +197,6 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                                         <?php if (!empty($f['responsable_finalizacion'])): ?>
                                         <div class="small text-muted text-truncate" title="Por: <?= htmlspecialchars($f['responsable_finalizacion']) ?>">
                                             Por: <?= htmlspecialchars($f['responsable_finalizacion']) ?>
-                                        </div>
-                                        <?php endif; ?>
-                                    </div>
-                                    <?php endif; ?>
-
-                                    <?php if (!empty($f['fecha_archivado']) && ($f['estado'] === 'Archivada' || $estadoFiltro === 'todos')): ?>
-                                    <div class="ficha-meta-cierre border-secondary">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <span class="text-muted"><i class="bi bi-archive text-secondary me-1"></i>Archivada:</span>
-                                            <strong class="text-secondary"><?= htmlspecialchars(substr((string)$f['fecha_archivado'], 0, 10)) ?></strong>
-                                        </div>
-                                        <?php if (!empty($f['responsable_archivado'])): ?>
-                                        <div class="small text-muted text-truncate" title="Por: <?= htmlspecialchars($f['responsable_archivado']) ?>">
-                                            Por: <?= htmlspecialchars($f['responsable_archivado']) ?>
                                         </div>
                                         <?php endif; ?>
                                     </div>
@@ -259,15 +223,6 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                                 <!-- Acciones y Botones Operativos -->
                                 <div class="ficha-card-actions">
                                     <div class="d-flex align-items-center gap-1">
-                                        <!-- Botón Ver Historial / Bitácora de Auditoría -->
-                                        <button type="button" 
-                                                class="btn btn-sm btn-outline-info ficha-action-btn btn-ver-auditoria" 
-                                                title="Consultar bitácora de auditoría"
-                                                data-id="<?= $f['id_ficha'] ?>"
-                                                data-numero="<?= htmlspecialchars($f['numero_ficha'], ENT_QUOTES, 'UTF-8') ?>">
-                                            <i class="bi bi-journal-text me-1"></i><span class="d-none d-sm-inline">Historial</span>
-                                        </button>
-
                                         <!-- Ver horarios en calendario (solo si activa) -->
                                         <?php if ($f['estado'] === 'Activa'): ?>
                                         <a href="<?= BASE_URL ?>/index.php?accion=horarios" 
@@ -299,45 +254,19 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
                                                     data-programa="<?= htmlspecialchars($f['nombre_programa'], ENT_QUOTES, 'UTF-8') ?>"
                                                     data-aprendices="<?= (int)($f['total_aprendices'] ?? 0) ?>"
                                                     data-horarios="<?= (int)($f['total_horarios'] ?? 0) ?>">
-                                                <i class="bi bi-check2-circle text-warning"></i>
-                                            </button>
-
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-outline-danger ficha-action-btn btn-eliminar-ficha" 
-                                                    title="Eliminar Ficha (Solo si fue creada por error y sin registros)"
-                                                    data-id="<?= $f['id_ficha'] ?>"
-                                                    data-numero="<?= htmlspecialchars($f['numero_ficha'], ENT_QUOTES, 'UTF-8') ?>"
-                                                    data-aprendices="<?= (int)($f['total_aprendices'] ?? 0) ?>"
-                                                    data-horarios="<?= (int)($f['total_horarios'] ?? 0) ?>">
-                                                <i class="bi bi-trash3"></i>
+                                                <i class="bi bi-check2-circle text-warning me-1"></i>Finalizar
                                             </button>
                                         <?php endif; ?>
 
                                         <!-- Acciones para ficha FINALIZADA -->
                                         <?php if ($f['estado'] === 'Finalizada' && $rolActivo === 'Administrador'): ?>
                                             <button type="button" 
-                                                    class="btn btn-sm btn-outline-secondary ficha-action-btn btn-archivar-ficha" 
-                                                    title="Archivar ficha para custodia histórica"
-                                                    data-id="<?= $f['id_ficha'] ?>"
-                                                    data-numero="<?= htmlspecialchars($f['numero_ficha'], ENT_QUOTES, 'UTF-8') ?>"
-                                                    data-programa="<?= htmlspecialchars($f['nombre_programa'], ENT_QUOTES, 'UTF-8') ?>">
-                                                <i class="bi bi-archive text-secondary me-1"></i>Archivar
-                                            </button>
-
-                                            <button type="button" 
                                                     class="btn btn-sm btn-outline-success ficha-action-btn btn-reabrir-ficha" 
                                                     title="Reapertura administrativa excepcional"
                                                     data-id="<?= $f['id_ficha'] ?>"
                                                     data-numero="<?= htmlspecialchars($f['numero_ficha'], ENT_QUOTES, 'UTF-8') ?>">
-                                                <i class="bi bi-arrow-counterclockwise text-success"></i>
+                                                <i class="bi bi-arrow-counterclockwise text-success me-1"></i>Reabrir
                                             </button>
-                                        <?php endif; ?>
-
-                                        <!-- Ficha ARCHIVADA -->
-                                        <?php if ($f['estado'] === 'Archivada'): ?>
-                                            <span class="badge bg-secondary-subtle text-secondary small py-1 px-2 border" title="Ficha en custodia histórica">
-                                                <i class="bi bi-lock me-1"></i>Custodiada
-                                            </span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -453,40 +382,7 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
   </div>
 </div>
 
-<!-- 3. Modal: Archivar Ficha -->
-<div class="modal fade" id="modalArchivarFicha" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <form id="formArchivarFicha" action="<?= BASE_URL ?>/index.php?accion=archivarFicha" method="POST">
-        <input type="hidden" name="csrf_token" value="<?= Seguridad::tokenCsrf() ?>">
-        <input type="hidden" name="id_ficha" id="archivar_id_ficha" value="0">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold text-secondary">
-            <i class="bi bi-archive-fill text-secondary me-2"></i>Archivar Ficha Histórica
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-            <p class="text-muted small">
-                La ficha <strong id="archivar_numero_ficha"></strong> pasará a custodia en el archivo histórico general.
-                Se excluirá de los listados y selectores operativos cotidianos, pero sus registros de asistencia y reportes
-                permanecerán consultables permanentemente para auditorías.
-            </p>
-            <div class="mb-3">
-                <label class="form-label fw-semibold">Motivo del archivado (Opcional)</label>
-                <input type="text" class="form-control" name="motivo_archivado" id="archivar_motivo" placeholder="Ej. Cierre de expediente institucional anual">
-            </div>
-        </div>
-        <div class="modal-footer border-0">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-secondary" id="btnConfirmarArchivar">Archivar Ficha</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- 4. Modal: Reapertura Excepcional -->
+<!-- 3. Modal: Reapertura Excepcional -->
 <div class="modal fade" id="modalReabrirFicha" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
@@ -502,8 +398,8 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
         <div class="modal-body">
             <div class="alert alert-info border-0 small mb-3">
                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                Esta operación reactivará la ficha <strong id="reabrir_numero_ficha"></strong> para permitir nuevas actividades.
-                Requiere un motivo explícito que quedará registrado en la bitácora de auditoría.
+                Esta operación reactivará la ficha <strong id="reabrir_numero_ficha"></strong> para permitir nuevas actividades formativas.
+                Requiere un motivo explícito que quedará registrado en el sistema.
             </div>
             <div class="mb-3">
                 <label class="form-label fw-semibold">Motivo justificado de reapertura <span class="text-danger">*</span></label>
@@ -518,43 +414,6 @@ $estadoFiltro = $estadoFiltro ?? 'Activa';
     </div>
   </div>
 </div>
-
-<!-- 5. Modal: Bitácora de Auditoría -->
-<div class="modal fade" id="modalAuditoriaFicha" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title fw-bold">
-          <i class="bi bi-journal-text text-info me-2"></i>Bitácora de Auditoría · Ficha <span id="audit_num_ficha"></span>
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body pt-3" style="max-height: 480px; overflow-y: auto;">
-        <div id="audit_loading" class="text-center py-4">
-            <div class="spinner-border text-success" role="status"></div>
-            <p class="text-muted small mt-2">Cargando bitácora de auditoría...</p>
-        </div>
-        <div id="audit_contenido" style="display: none;">
-            <!-- Contenedor dinámico de eventos de auditoría -->
-        </div>
-        <div id="audit_vacio" class="text-center py-4 text-muted small" style="display: none;">
-            <i class="bi bi-info-circle fs-3 d-block mb-1"></i>
-            No se registran eventos de auditoría para esta ficha.
-        </div>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Formulario Oculto para Eliminar Ficha con CSRF -->
-<form id="formEliminarFichaOculto" action="<?= BASE_URL ?>/index.php?accion=eliminarFicha" method="POST" style="display: none;">
-    <input type="hidden" name="csrf_token" value="<?= Seguridad::tokenCsrf() ?>">
-    <input type="hidden" name="id_ficha" id="inputEliminarFichaId" value="0">
-    <input type="hidden" name="motivo_eliminacion" id="inputEliminarFichaMotivo" value="">
-</form>
 
 <?php include 'includes/scripts.php'; ?>
 

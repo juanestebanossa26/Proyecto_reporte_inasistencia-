@@ -62,8 +62,9 @@ if (!function_exists('navLink')) {
                 <?php navLink(BASE_URL . '/index.php?accion=reportes', 'bi-bar-chart-line-fill', 'Reportes de mi ficha', 'reportes', $paginaActiva); ?>
 
             <?php elseif (strtolower($rolActivo) === 'aprendiz'): ?>
-                <div class="sidebar-section-label">Mi asistencia</div>
+                <div class="sidebar-section-label">Mi formación</div>
             
+                <?php navLink(BASE_URL . '/index.php?accion=horarioAprendiz', 'bi-calendar3', 'Horario de clases', 'horario_aprendiz', $paginaActiva); ?>
                 <?php navLink(BASE_URL . '/index.php?accion=historial', 'bi-clock-history', 'Mi historial', 'historial', $paginaActiva); ?>
                 <?php navLink(BASE_URL . '/index.php?accion=excusas', 'bi-file-earmark-medical-fill', 'Anexar excusa médica', 'excusas', $paginaActiva); ?>
             <?php endif; ?>

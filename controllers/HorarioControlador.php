@@ -124,6 +124,82 @@ class HorarioControlador extends ControladorBase
         $this->mostrarHorarios();
     }
 
+    /**
+     * accion=horarioAprendiz -> Vista de consulta académica exclusiva para el rol Aprendiz.
+     * Carga únicamente los horarios correspondientes a la ficha asignada en el servidor.
+     */
+    public function mostrarHorarioAprendiz(): void
+    {
+        $this->exigirSesion(['Aprendiz', 'aprendiz']);
+
+        $rolActivo          = $_SESSION['rol'] ?? 'Aprendiz';
+        $nombreUsuario      = $_SESSION['nombre'] ?? 'Aprendiz';
+        $paginaActiva       = 'horario_aprendiz';
+        $tituloPagina       = 'Horario de Formación';
+
+        $idUsuario          = (int) ($_SESSION['id'] ?? 0);
+        $aprendizInfo       = null;
+        $sinFicha           = false;
+        $sinHorarios        = false;
+        $eventosCalendario  = [];
+        $coloresFicha       = [];
+        $resumenAprendiz    = [
+            'total_clases'  => 0,
+            'proxima_clase' => null,
+            'ficha'         => null,
+            'programa'      => null,
+        ];
+
+        try {
+            $aprendizInfo = $this->modelo->obtenerInfoAprendizPorUsuario($idUsuario);
+
+            if ($aprendizInfo === null || empty($aprendizInfo['id_ficha'])) {
+                $sinFicha = true;
+            } else {
+                $idFicha = (int) $aprendizInfo['id_ficha'];
+                $horarios = $this->modelo->listarHorariosPorFicha($idFicha);
+                $festivos = $this->modelo->listarFestivos($idFicha);
+
+                $coloresFicha = [$idFicha => '#39A900']; // Verde SENA institucional
+                $eventosCalendario = $this->formatearEventos($horarios, $festivos, $coloresFicha);
+
+                $sinHorarios = empty($horarios);
+
+                // Calcular próxima clase
+                $fechaHoy = date('Y-m-d');
+                $horaActual = date('H:i:s');
+                $proximaClase = null;
+
+                foreach ($horarios as $h) {
+                    if ($h['fecha'] > $fechaHoy || ($h['fecha'] === $fechaHoy && $h['hora_salida_programada'] > $horaActual)) {
+                        $proximaClase = $h;
+                        break;
+                    }
+                }
+
+                $resumenAprendiz = [
+                    'total_clases'  => count($horarios),
+                    'proxima_clase' => $proximaClase,
+                    'ficha'         => $aprendizInfo['numero_ficha'],
+                    'programa'      => $aprendizInfo['nombre_programa'],
+                ];
+            }
+        } catch (PDOException $e) {
+            error_log('Error al cargar horario del aprendiz: ' . $e->getMessage());
+            $_SESSION['mensaje_error'] = 'No se pudo cargar tu horario. Por favor intenta de nuevo.';
+        }
+
+        require BASE_PATH . '/views/horarios_aprendiz.php';
+    }
+
+    /**
+     * Alias para compatibilidad hacia atrás
+     */
+    public function mostrarMiHorario(): void
+    {
+        $this->mostrarHorarioAprendiz();
+    }
+
 
     // accion=guardarHorario (POST)
     public function guardar(): void
@@ -588,12 +664,13 @@ class HorarioControlador extends ControladorBase
     // accion=obtenerEventosJson (GET) - Endpoint AJAX para recarga segura de eventos
     public function obtenerEventosJson(): void
     {
-        $this->exigirSesion(['Administrador', 'Instructor']);
+        $this->exigirSesion(['Administrador', 'Instructor', 'Aprendiz', 'aprendiz']);
 
         header('Content-Type: application/json; charset=utf-8');
 
-        $rolActivo          = $_SESSION['rol'] ?? 'Administrador';
-        $esInstructor       = (strtolower($rolActivo) === 'instructor');
+        $rolActivo          = strtolower(trim((string)($_SESSION['rol'] ?? 'Administrador')));
+        $esInstructor       = ($rolActivo === 'instructor');
+        $esAprendiz         = ($rolActivo === 'aprendiz');
         $idInstructorSesion = $esInstructor ? (int) ($_SESSION['id'] ?? 0) : null;
 
         $fechaInicio = null;
@@ -614,6 +691,31 @@ class HorarioControlador extends ControladorBase
         }
 
         try {
+            // Si es rol Aprendiz: filtra estricta y exclusivamente por la ficha asignada a su usuario en sesión
+            if ($esAprendiz) {
+                $idUsuario = (int) ($_SESSION['id'] ?? 0);
+                $aprendizInfo = $this->modelo->obtenerInfoAprendizPorUsuario($idUsuario);
+
+                if (!$aprendizInfo || empty($aprendizInfo['id_ficha'])) {
+                    echo json_encode(['exito' => true, 'eventos' => []], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+
+                $idFicha = (int) $aprendizInfo['id_ficha'];
+                $horarios = $this->modelo->listarHorariosPorFicha($idFicha, $fechaInicio, $fechaFin);
+                $festivos = $this->modelo->listarFestivos($idFicha, $fechaInicio, $fechaFin);
+                $coloresFicha = [$idFicha => '#39A900'];
+
+                $eventos = $this->formatearEventos($horarios, $festivos, $coloresFicha);
+
+                echo json_encode([
+                    'exito'   => true,
+                    'eventos' => $eventos
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            // Administrador e Instructor
             $horarios     = $this->modelo->listarHorarios($idInstructorSesion, $fechaInicio, $fechaFin);
             $festivos     = $this->modelo->listarFestivos(null, $fechaInicio, $fechaFin);
             $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion);

@@ -150,13 +150,15 @@ match ($accion) {
     'fichas'                => $ficha->mostrarFichas(),
     'guardarFicha'          => $ficha->guardarFicha(),
     'finalizarFicha'        => $ficha->finalizarFicha(),
-    'archivarFicha'         => $ficha->archivarFicha(),
     'reabrirFicha'          => $ficha->reabrirFicha(),
     'eliminarFicha'         => $ficha->eliminarFicha(),
-    'obtenerAuditoriaFicha' => $ficha->obtenerAuditoriaFicha(),
 
     // --- Horarios ---
     'horarios'                   => $horario->mostrarHorarios(),
+    'horarioAprendiz'            => $horario->mostrarHorarioAprendiz(),
+    'horariosAprendiz'           => $horario->mostrarHorarioAprendiz(),
+    'miHorario'                  => $horario->mostrarHorarioAprendiz(),
+    'mi_horario'                 => $horario->mostrarHorarioAprendiz(),
     'obtenerEventosJson'         => $horario->obtenerEventosJson(),
     'guardarHorario'             => $horario->guardar(),
     'eliminarHorario'            => $horario->eliminar(),
