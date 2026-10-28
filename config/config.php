@@ -53,3 +53,8 @@ define('MAIL_FROM_NAME', !empty($env['MAIL_FROM_NAME']) ? $env['MAIL_FROM_NAME']
 
 // Token de seguridad para la ejecución remota de tareas programadas (CRON)
 define('CRON_SECRET_TOKEN', $env['CRON_SECRET_TOKEN'] ?? 'SENA_CRON_SECURE_2026');
+
+
+// Límite de tamaño máximo para importación de horarios Excel
+define('LIMITE_EXCEL_HORARIOS_MB', 5);
+define('LIMITE_EXCEL_HORARIOS_BYTES', LIMITE_EXCEL_HORARIOS_MB * 1024 * 1024);

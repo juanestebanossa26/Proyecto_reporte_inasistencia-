@@ -584,7 +584,7 @@ if (!isset($iniciales)) {
           <div class="mb-3">
             <label for="inputArchivoExcel" class="form-label fw-semibold small">Archivo de Excel</label>
             <input class="form-control rounded-3" type="file" id="inputArchivoExcel" name="archivo_excel" accept=".xlsx, .xls" required>
-            <div class="form-text small">Formatos permitidos: .xlsx, .xls (Máximo 15MB)</div>
+            <div class="form-text small">Formatos permitidos: .xlsx, .xls (Máximo <?= defined('LIMITE_EXCEL_HORARIOS_MB') ? LIMITE_EXCEL_HORARIOS_MB : 5 ?>MB)</div>
           </div>
 
           <div class="card bg-light border-0 p-3 small text-secondary rounded-3">
@@ -652,6 +652,8 @@ if (!isset($iniciales)) {
     'fichasDisponibles' => $fichas,
     'coloresFicha'      => $coloresFicha,
     'proximaClaseInfo'  => $resumenJornada['proxima_clase'] ?? null,
+    'maxExcelSizeMB'    => defined('LIMITE_EXCEL_HORARIOS_MB') ? LIMITE_EXCEL_HORARIOS_MB : 5,
+    'maxExcelSizeBytes' => defined('LIMITE_EXCEL_HORARIOS_BYTES') ? LIMITE_EXCEL_HORARIOS_BYTES : (5 * 1024 * 1024),
 ], JSON_UNESCAPED_UNICODE) ?>
 </script>
 
