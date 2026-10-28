@@ -13,7 +13,7 @@ class AprendizControlador extends ControladorBase
     // El formulario de "editar" apunta aqui
     public function mostrar(): void
     {
-        $this->exigirSesion(['Administrador', 'Instructor']);
+        $this->exigirSesion(['Administrador', 'admin']);
         $aprendizModelo  = $this->modelo;
         $aprendizEditar  = null;
         try {
@@ -212,8 +212,8 @@ class AprendizControlador extends ControladorBase
     // Permite activar o desactivar un aprendiz cambiando su estado en la base de datos
     public function cambiarEstado(): void
     {
-        // Solo Administrador e Instructor pueden gestionar aprendices
-        $this->exigirSesion(['Administrador', 'Instructor']);
+        // Solo el Administrador puede cambiar el estado de los aprendices
+        $this->exigirSesion(['Administrador', 'admin']);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             Seguridad::alertaYRedirigir(

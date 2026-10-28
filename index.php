@@ -14,6 +14,14 @@ define('BASE_PATH', __DIR__);
 // en qué subcarpeta esté instalado el proyecto.
 define('BASE_URL', rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/'));
 
+// Protección en capa de aplicación: denegar acceso a secretos y configuración (defensa en profundidad)
+$uriPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
+$solicitado = basename($uriPath);
+if ($solicitado !== '' && preg_match('/(^\.env|\.sql$|\.log$|\.git|composer\.(json|lock)|\.gitignore|README\.md|perfiles\.txt)/i', $solicitado)) {
+    http_response_code(403);
+    die('Acceso denegado.');
+}
+
 // Cuando el proyecto se ejecuta con el servidor interno de PHP
 // (php -S localhost:8000), TODAS las peticiones pasan por este archivo,
 // incluidas las de CSS, JS o imágenes. Sin este bloque, el navegador nunca

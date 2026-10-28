@@ -242,17 +242,7 @@ class UsuarioModelo
             return false;
         }
 
-        if (password_verify($contrasenaActual, $hash)) {
-            return true;
-        }
-        if ($hash === $contrasenaActual || trim($hash) === $contrasenaActual) {
-            return true;
-        }
-        if (md5($contrasenaActual) === $hash || sha1($contrasenaActual) === $hash) {
-            return true;
-        }
-
-        return false;
+        return password_verify($contrasenaActual, $hash);
     }
 
     // Actualiza la contraseña de un usuario

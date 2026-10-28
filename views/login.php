@@ -1,7 +1,7 @@
 <?php
 // vistas/login.php
-// Sistema SERVIPLUS - Control de Asistencia y Acceso RFID
-$tituloPagina = 'Iniciar sesión · SERVIPLUS SENA';
+// Sistema Control de Asistencia y Acceso RFID SENA
+$tituloPagina = 'Iniciar sesión';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -141,7 +141,8 @@ $tituloPagina = 'Iniciar sesión · SERVIPLUS SENA';
 
                     <?php if (!empty($_GET['error'])): ?>
                         <div class="alert alert-danger py-2 small mb-3">
-                            <i class="bi bi-exclamation-triangle-fill me-1"></i> Credenciales incorrectas o usuario inactivo.
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                            <?= ($_GET['error'] === 'rol_invalido') ? 'Rol de usuario no autorizado o sin permisos asignados.' : 'Credenciales incorrectas o usuario inactivo.' ?>
                         </div>
                     <?php endif; ?>
 

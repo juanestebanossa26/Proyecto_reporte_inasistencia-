@@ -38,32 +38,9 @@ class AuthControlador extends ControladorBase
             $this->redirigirAccion('login', ['error' => 'inactivo']);
         }
 
-        // Verificación de contraseña compatible con bcrypt, texto plano y hashes legacy
+        // Verificación estricta de contraseña con hash seguro (bcrypt)
         $hashAlmacenado = (string) ($usuario['contrasena'] ?? '');
-        $passwordValida = false;
-
-        if (password_verify($password, $hashAlmacenado)) {
-            $passwordValida = true;
-        } elseif ($hashAlmacenado === $password || trim($hashAlmacenado) === $password) {
-            // Contraseña en texto plano en la base de datos
-            $passwordValida = true;
-            // Migrarla automáticamente a bcrypt
-            try {
-                (new UsuarioModelo())->cambiarContrasena((int) $usuario['id_usuario'], password_hash($password, PASSWORD_BCRYPT));
-            } catch (Throwable $t) {
-                error_log('No se pudo migrar contraseña a hash: ' . $t->getMessage());
-            }
-        } elseif (md5($password) === $hashAlmacenado || sha1($password) === $hashAlmacenado) {
-            // Contraseña con hash legacy MD5 o SHA1
-            $passwordValida = true;
-            try {
-                (new UsuarioModelo())->cambiarContrasena((int) $usuario['id_usuario'], password_hash($password, PASSWORD_BCRYPT));
-            } catch (Throwable $t) {
-                error_log('No se pudo migrar contraseña a hash: ' . $t->getMessage());
-            }
-        }
-
-        if (!$passwordValida) {
+        if (!password_verify($password, $hashAlmacenado)) {
             $this->redirigirAccion('login', ['error' => '2']);
         }
 
@@ -92,9 +69,13 @@ class AuthControlador extends ControladorBase
             $_SESSION['rol'] = 'Aprendiz';
             $this->redirigirAccion('historial');
         } else {
-            // Por defecto, si el rol no coincide con las palabras anteriores pero está autenticado
-            $_SESSION['rol'] = !empty($usuario['nombre_role']) ? $usuario['nombre_role'] : 'Administrador';
-            $this->redirigirAccion('dashboard');
+            // Si el rol no es reconocido o es inválido, denegar acceso por seguridad (Principio de menor privilegio)
+            error_log("Intento de inicio de sesión con rol no autorizado: ID " . ($usuario['id_usuario'] ?? 0) . ", Rol '" . ($usuario['nombre_role'] ?? '') . "', ID Role " . $idRole);
+            $_SESSION = [];
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_destroy();
+            }
+            $this->redirigirAccion('login', ['error' => 'rol_invalido']);
         }
     }
 
