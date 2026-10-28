@@ -816,18 +816,24 @@ async function recargarEventosServidor() {
         }
 
         if (data && data.exito && Array.isArray(data.eventos)) {
-            // Fusión segura y deduplicada
+            // Fusión segura y deduplicada (los festivos se deduplican por fecha)
+            const generarClaveEvento = (ev) => {
+                if (ev.extendedProps?.es_festivo) {
+                    const fecha = ev.start ? ev.start.split('T')[0] : (ev.extendedProps?.fecha || ev.id);
+                    return `festivo_${fecha}`;
+                }
+                return ev.id || `${ev.extendedProps?.id_ficha}_${ev.start}_${ev.end}`;
+            };
+
             const mapaEventos = new Map();
             todosLosEventos.forEach(ev => {
                 if (!ev) return;
-                const clave = ev.id || `${ev.extendedProps?.id_ficha}_${ev.start}_${ev.end}`;
-                mapaEventos.set(clave, ev);
+                mapaEventos.set(generarClaveEvento(ev), ev);
             });
 
             data.eventos.forEach(ev => {
                 if (!ev) return;
-                const clave = ev.id || `${ev.extendedProps?.id_ficha}_${ev.start}_${ev.end}`;
-                mapaEventos.set(clave, ev);
+                mapaEventos.set(generarClaveEvento(ev), ev);
             });
 
             todosLosEventos = Array.from(mapaEventos.values());
@@ -899,8 +905,8 @@ function filtrarFichas() {
     // Filtrar eventos en el calendario
     const eventosFiltrados = todosLosEventos.filter(ev => {
         const idFicha = ev.extendedProps?.id_ficha;
-        // Si el evento es festivo global (id_ficha === 0), mantenerlo visible
-        if (ev.extendedProps?.es_festivo && (!idFicha || idFicha === 0)) {
+        // Todo evento festivo oficial se mantiene visible en el calendario institucional
+        if (ev.extendedProps?.es_festivo) {
             return true;
         }
         return checksActivos.includes(idFicha);

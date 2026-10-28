@@ -217,16 +217,18 @@ class ExcelHorarioHelper
             $hFinFest  = $fest['hora_fin'] ?? '22:00:00';
             $esDiaComp = $fest['es_dia_completo'] ?? 1;
 
-            // Se registra el festivo a nivel institucional (id_ficha = null) para que proteja
-            // a todas las fichas del centro de formación en el calendario académico oficial.
-            if (!$this->modelo->existeFestivo(null, $fechaFest, $hIniFest, $hFinFest) &&
-                !$this->modelo->existeFestivo($idFichaGlobal, $fechaFest, $hIniFest, $hFinFest)) {
-                $this->modelo->guardarFestivo(null, $fechaFest, $hIniFest, $hFinFest, $esDiaComp, 'FESTIVO');
-                $resultado['festivos_registrados']++;
-                $resultado['detalles'][] = "Festivo oficial institucional registrado para el día {$fechaFest} ({$hIniFest} - {$hFinFest}). Marcador de calendario sin crear instructor.";
-            } else {
+            // Se registra el festivo a nivel institucional (id_ficha = null) para que aplique
+            // a todas las fichas del centro de formación. Si ya existe un festivo registrado
+            // en el sistema para esta fecha (sea institucional o de cualquier ficha), se omite
+            // para garantizar que los días festivos no se dupliquen al importar múltiples fichas.
+            if ($this->modelo->existeFestivoParaFecha($fechaFest)) {
                 $resultado['duplicados']++;
+                continue;
             }
+
+            $this->modelo->guardarFestivo(null, $fechaFest, $hIniFest, $hFinFest, $esDiaComp, 'FESTIVO');
+            $resultado['festivos_registrados']++;
+            $resultado['detalles'][] = "Festivo oficial institucional registrado para el día {$fechaFest} ({$hIniFest} - {$hFinFest}). Marcador de calendario sin crear instructor.";
         }
 
         // Si solo venían festivos y ninguna clase regular

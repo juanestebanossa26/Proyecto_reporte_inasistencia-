@@ -816,7 +816,15 @@ class HorarioControlador extends ControladorBase
             ];
         }
 
+        $festivosPorFecha = [];
         foreach ($festivos as $fest) {
+            $fecha = $fest['fecha'];
+            // Deduplicación por fecha para que nunca se rendericen eventos duplicados en FullCalendar
+            if (isset($festivosPorFecha[$fecha])) {
+                continue;
+            }
+            $festivosPorFecha[$fecha] = true;
+
             $hIni = substr($fest['hora_inicio'] ?? '06:00:00', 0, 5);
             $hFin = substr($fest['hora_fin'] ?? '22:00:00', 0, 5);
             $esDiaCompleto = (int)($fest['es_dia_completo'] ?? 1);

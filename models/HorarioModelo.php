@@ -1006,15 +1006,24 @@ class HorarioModelo
     }
 
     // Comprueba si un festivo ya fue registrado para una fecha y ficha
+    // Comprueba si ya existe un festivo registrado para una fecha determinada (a nivel general o institucional)
+    public function existeFestivoParaFecha(string $fecha): bool
+    {
+        $sql = "SELECT id_festivo FROM dias_festivos WHERE fecha = :fecha LIMIT 1";
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->execute([':fecha' => $fecha]);
+        return (bool)$stmt->fetchColumn();
+    }
+
     public function existeFestivo(?int $idFicha, string $fecha, ?string $horaInicio = null, ?string $horaFin = null): bool
     {
         $sql = "SELECT id_festivo FROM dias_festivos
                 WHERE fecha = :fecha
                   AND (
-                      (:id_ficha IS NULL AND (id_ficha IS NULL OR id_ficha = 0))
-                      OR id_ficha = :id_ficha2
-                      OR id_ficha IS NULL
+                      id_ficha IS NULL
                       OR id_ficha = 0
+                      OR (:id_ficha IS NOT NULL AND id_ficha = :id_ficha2)
+                      OR UPPER(TRIM(COALESCE(descripcion, ''))) IN ('FESTIVO', 'FESTIVOS', 'FERIADO', 'VACACIONES', 'RECESO')
                   )";
 
         if ($horaInicio !== null && $horaFin !== null) {
