@@ -201,7 +201,7 @@ function inicializarHorarios() {
             };
         },
 
-        // Renderizado inteligente y adaptativo del contenido del evento
+        // Renderizado inteligente y adaptativo del contenido del evento (Minimalista y Elegante)
         eventContent: function(arg) {
             const props = arg.event.extendedProps || {};
             const ficha = props.ficha || arg.event.title;
@@ -218,6 +218,7 @@ function inicializarHorarios() {
             }
 
             const div = document.createElement('div');
+            div.className = 'fc-event-main-frame';
             let html = '';
 
             // Adaptación exclusiva para cuadrícula de Vista Mes (dayGridMonth)
@@ -225,18 +226,18 @@ function inicializarHorarios() {
                 if (props.es_festivo) {
                     div.className = 'fc-event-festivo-month text-truncate';
                     div.innerHTML = `
-                        <span class="badge bg-dark bg-opacity-50 text-white fw-bold me-1" style="font-size:0.65rem;">FESTIVO</span>
-                        <span class="text-white small fw-medium">${props.es_dia_completo ? 'Día no laboral' : entrada}</span>
+                        <span class="fc-event-festivo-badge me-1">FESTIVO</span>
+                        <span class="small fw-medium" style="color: var(--cal-text-secondary);">${props.es_dia_completo ? 'No laboral' : entrada}</span>
                     `;
                     return { domNodes: [div] };
                 }
 
                 div.className = 'fc-event-month-item text-truncate';
                 div.innerHTML = `
-                    <div class="fc-event-title-line text-truncate d-flex align-items-center gap-1" style="line-height:1.2;">
-                        <span class="fc-event-time-short text-white-50 fw-normal" style="font-size:0.68rem;">${entrada}</span>
-                        <span class="fc-event-num fw-bold text-white" style="font-size:0.72rem;">${ficha}</span>
-                        ${programa ? `<span class="fc-event-prog-short text-white-50 text-truncate" style="font-size:0.68rem;">· ${programa}</span>` : ''}
+                    <div class="fc-event-title-line text-truncate d-flex align-items-center gap-1" style="line-height:1.25;">
+                        <span class="fc-event-time-short" style="color: var(--cal-text-muted); font-size:0.68rem; font-weight: 500;">${entrada}</span>
+                        <span class="fc-event-num" style="color: var(--cal-text-primary); font-size:0.72rem; font-weight: 700;">${ficha}</span>
+                        ${programa ? `<span class="fc-event-prog-short text-truncate" style="color: var(--cal-text-secondary); font-size:0.68rem;">· ${programa}</span>` : ''}
                     </div>
                 `;
                 return { domNodes: [div] };
@@ -246,10 +247,10 @@ function inicializarHorarios() {
             if (props.es_festivo) {
                 html = `
                     <div class="fc-event-festivo-frame text-center py-1">
-                        <span class="badge bg-dark bg-opacity-25 text-white fw-bold px-2 py-1 text-uppercase" style="letter-spacing: 0.08em; font-size: 0.78rem;">
+                        <span class="fc-event-festivo-badge text-uppercase" style="letter-spacing: 0.06em; font-size: 0.72rem; padding: 2px 6px;">
                             <i class="bi bi-calendar-event me-1"></i> FESTIVO
                         </span>
-                        <div class="small text-white-50 mt-1">${props.es_dia_completo ? 'Día no laboral' : `${entrada} – ${salida}`}</div>
+                        <div class="small mt-1" style="color: var(--cal-text-muted); font-size: 0.7rem;">${props.es_dia_completo ? 'Día no laboral' : `${entrada} – ${salida}`}</div>
                     </div>
                 `;
                 div.innerHTML = html;
@@ -259,9 +260,9 @@ function inicializarHorarios() {
             if (duracionMin <= 45) {
                 // Evento corto: 1 línea compacta
                 html = `
-                    <div class="fc-event-single-line">
+                    <div class="fc-event-single-line d-flex align-items-center gap-1">
                         <span class="fc-event-num">${ficha}</span>
-                        <span class="fc-event-time-short ms-1">${entrada}–${salida}</span>
+                        <span class="fc-event-time-short ms-auto">${entrada}–${salida}</span>
                     </div>
                 `;
             } else if (duracionMin <= 90) {
@@ -271,7 +272,9 @@ function inicializarHorarios() {
                         <span class="fc-event-num">${ficha}</span>
                         ${programa ? `<span class="fc-event-prog-short ms-1">· ${programa}</span>` : ''}
                     </div>
-                    <div class="fc-event-time-line">${entrada} – ${salida}</div>
+                    <div class="fc-event-time-line">
+                        <i class="bi bi-clock me-1 text-muted" style="font-size:0.65rem;"></i>${entrada} – ${salida}
+                    </div>
                 `;
             } else {
                 // Evento completo: ficha, horas e instructor
@@ -280,10 +283,12 @@ function inicializarHorarios() {
                         <span class="fc-event-num">${ficha}</span>
                         ${programa ? `<span class="fc-event-prog-short ms-1">· ${programa}</span>` : ''}
                     </div>
-                    <div class="fc-event-time-line">${entrada} – ${salida}</div>
+                    <div class="fc-event-time-line">
+                        <i class="bi bi-clock me-1 text-muted" style="font-size:0.65rem;"></i>${entrada} – ${salida}
+                    </div>
                     ${instructor && instructor !== 'Sin asignar' ? `
                         <div class="fc-event-inst-line text-truncate">
-                            <i class="bi bi-person-fill"></i> ${instructor}
+                            <i class="bi bi-person me-1"></i>${instructor}
                         </div>
                     ` : ''}
                 `;
@@ -293,13 +298,22 @@ function inicializarHorarios() {
             return { domNodes: [div] };
         },
 
-        // Tooltip nativo al posar el cursor sobre cualquier bloque
+        // Tooltip nativo y asignación del color de borde sutil
         eventDidMount: function(info) {
             const p = info.event.extendedProps || {};
+            const color = p.color || info.event.backgroundColor || '#2563EB';
+
+            // Asignar el color sutil al borde izquierdo para identificar la ficha
             if (p.es_festivo) {
+                info.el.classList.add('fc-event-festivo-tipo');
+                info.el.style.borderLeftColor = 'var(--cal-text-light)';
                 info.el.setAttribute('title', `DÍA FESTIVO SENA: ${p.fecha} (${p.entrada} - ${p.salida})\nCalendario Oficial - No hay clases programadas`);
                 return;
             }
+
+            info.el.style.borderLeftColor = color;
+            info.el.style.setProperty('--fc-event-border-color', color);
+
             const horario = `${p.entrada || ''} - ${p.salida || ''}`;
             const inst = p.instructor || 'Sin asignar';
             info.el.setAttribute('title', `Ficha: ${p.ficha}\nPrograma: ${p.programa}\nHorario: ${horario}\nInstructor: ${inst}\nAprendices: ${p.aprendices || 0}`);
@@ -670,6 +684,20 @@ function inicializarHorarios() {
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Importando datos...';
             }
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Procesando archivo Excel...',
+                    html: '<div style="font-size:0.92rem; color:#495057; line-height:1.5;">' +
+                          'Estamos analizando la matriz de horarios, sincronizando fichas y validando solapamientos.<br><br>' +
+                          '<div class="spinner-grow text-success" role="status" style="width: 2.2rem; height: 2.2rem;"></div>' +
+                          '<p class="mt-3 mb-0 text-muted small"><i class="bi bi-shield-check me-1"></i>Por favor no cierres ni recargues la ventana.</p>' +
+                          '</div>',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false
+                });
+            }
         });
     }
 }
@@ -872,7 +900,10 @@ function abrirDetalleHorario(evento) {
     const color = p.color || evento.backgroundColor || 'var(--cal-verde-sena)';
 
     const header = document.getElementById('modalDetalleHeader');
-    if (header) header.style.backgroundColor = color;
+    if (header) {
+        header.style.backgroundColor = '#FFFFFF';
+        header.style.borderLeft = `4px solid ${color}`;
+    }
 
     const elFicha = document.getElementById('modalDetalleFicha');
     if (elFicha) elFicha.innerText = `Ficha ${p.ficha}`;

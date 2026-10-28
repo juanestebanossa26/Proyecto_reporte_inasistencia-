@@ -1,34 +1,60 @@
 /* ==========================================================================
-   Módulo de Horarios SENA — Estilos adaptados al Sistema de Control de Ingreso
-   Integrado con la barra lateral verde oscuro y encabezado blanco del SENA
+   Módulo de Horarios SENA — Rediseño Visual Minimalista y Elegante
+   Paleta Neutra · Tipografía Clara · Bordes Sutiles · Acentos Discretos
    ========================================================================== */
 
 :root {
-    --cal-verde-sena: #39A900;
-    --cal-verde-oscuro: #1F7A00;
-    --cal-linea: #E4E9E6;
-    --cal-linea-suave: #F0F4F2;
-    --cal-texto-fuerte: #142019;
-    --cal-texto-suave: #5B6B63;
-    --cal-bg-panel: #FAFCFB;
-    --cal-red-now: #E53935;
-}
+    /* Paleta Neutra y Base */
+    --cal-bg-page: #F8FAFC;
+    --cal-surface: #FFFFFF;
+    --cal-surface-subtle: #F8FAFC;
+    --cal-surface-hover: #F1F5F9;
+    --cal-border: #E2E8F0;
+    --cal-border-subtle: #EDF2F7;
+    
+    /* Tipografía y Jerarquía */
+    --cal-text-primary: #0F172A;
+    --cal-text-secondary: #475569;
+    --cal-text-muted: #64748B;
+    --cal-text-light: #94A3B8;
 
-/* Card contenedor del calendario */
-.cal-card {
-    background: #FFFFFF;
-    border: 1px solid var(--cal-linea);
-    border-radius: 16px;
-    box-shadow: 0 4px 18px rgba(20, 32, 25, 0.04);
+    /* Acento Institucional SENA (Uso Restringido y Discreto) */
+    --cal-verde-sena: #39A900;
+    --cal-verde-hover: #2E7D32;
+    --cal-verde-subtle: #F0FDF4;
+    --cal-verde-border: #BBF7D0;
+
+    /* Estados y Acentos Complementarios */
+    --cal-red-now: #EF4444;
+    --cal-festivo-bg: #F8FAFC;
+    --cal-festivo-border: #CBD5E1;
+    --cal-festivo-text: #475569;
+
+    /* Sombras Ultraligeras */
+    --cal-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    --cal-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+    --cal-radius: 12px;
 }
 
 /* ==========================================================================
-   Barra de Herramientas Compacta (Toolbar)
+   Contenedor Principal del Módulo
+   ========================================================================== */
+.cal-card {
+    background: var(--cal-surface);
+    border: 1px solid var(--cal-border);
+    border-radius: var(--cal-radius);
+    box-shadow: var(--cal-shadow-sm);
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   Barra de Herramientas del Calendario (Toolbar)
    ========================================================================== */
 .cal-toolbar {
-    background: #FFFFFF;
-    border-bottom: 1px solid var(--cal-linea);
-    min-height: 64px;
+    background: var(--cal-surface);
+    border-bottom: 1px solid var(--cal-border);
+    min-height: 60px;
+    padding: 0.85rem 1.25rem !important;
 }
 
 .cal-nav-btn {
@@ -37,53 +63,71 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--cal-texto-fuerte);
+    color: var(--cal-text-secondary);
+    background: var(--cal-surface) !important;
+    border: 1px solid var(--cal-border) !important;
+    border-radius: 8px !important;
     transition: all 0.15s ease;
 }
 
 .cal-nav-btn:hover {
-    background-color: #EDF3F0 !important;
-    color: var(--cal-verde-oscuro);
+    background: var(--cal-surface-hover) !important;
+    border-color: #CBD5E1 !important;
+    color: var(--cal-text-primary);
 }
 
 .cal-period-title {
-    font-size: 1.15rem;
-    color: var(--cal-texto-fuerte);
-    letter-spacing: -0.01em;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--cal-text-primary);
+    letter-spacing: -0.015em;
+    min-width: 140px;
 }
 
-/* Selector de vista */
+/* Segmented Control para selector de vistas */
+.cal-view-group {
+    background: var(--cal-surface-hover);
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid var(--cal-border);
+    display: inline-flex;
+    gap: 2px;
+}
+
 .cal-view-group .btn {
-    font-size: 0.82rem;
-    font-weight: 600;
-    padding: 0.35rem 0.85rem;
-    border-color: #D1DDD6;
-    color: var(--cal-texto-suave);
-    background: #FFFFFF;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.28rem 0.75rem;
+    border: none !important;
+    color: var(--cal-text-muted);
+    background: transparent;
+    border-radius: 6px !important;
     transition: all 0.15s ease;
+    box-shadow: none !important;
 }
 
 .cal-view-group .btn:hover {
-    background: #F4F7F5;
-    color: var(--cal-texto-fuerte);
+    color: var(--cal-text-primary);
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .cal-view-group .btn.active {
-    background: var(--cal-verde-sena) !important;
-    border-color: var(--cal-verde-sena) !important;
-    color: #FFFFFF !important;
-    box-shadow: 0 2px 6px rgba(57, 169, 0, 0.25);
+    background: #FFFFFF !important;
+    color: var(--cal-text-primary) !important;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Campo de búsqueda */
+/* Campo de búsqueda minimalista */
 .cal-search-input {
-    border-radius: 20px;
-    border: 1px solid #D1DDD6;
-    background: #FAFBFB;
-    font-size: 0.82rem;
-    padding-left: 2rem;
-    padding-right: 0.8rem;
-    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--cal-border);
+    background: var(--cal-surface-subtle);
+    font-size: 0.815rem;
+    padding-left: 2.1rem;
+    padding-right: 2rem;
+    height: 36px;
+    color: var(--cal-text-primary);
     transition: all 0.15s ease;
 }
 
@@ -93,64 +137,84 @@
     box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.12);
 }
 
+.cal-search-input::placeholder {
+    color: var(--cal-text-light);
+}
+
+.btn-limpiar-filtro {
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 0.32rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid var(--cal-border) !important;
+    background: var(--cal-surface);
+    color: var(--cal-text-secondary);
+    transition: all 0.15s ease;
+}
+
+.btn-limpiar-filtro:hover {
+    background: var(--cal-surface-hover);
+    color: var(--cal-text-primary);
+    border-color: #CBD5E1 !important;
+}
+
 /* ==========================================================================
    Panel Lateral de Filtros de Fichas
    ========================================================================== */
 .cal-body-wrapper {
     position: relative;
     min-height: 680px;
+    background: var(--cal-surface);
 }
 
 .cal-fichas-sidebar {
-    width: 270px;
-    min-width: 270px;
-    max-width: 270px;
-    background: var(--cal-bg-panel);
-    border-right: 1px solid var(--cal-linea);
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
+    background: #FAFBFB;
+    border-right: 1px solid var(--cal-border);
     display: flex;
     flex-direction: column;
-    transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
 }
 
 .cal-fichas-sidebar.is-collapsed {
-    margin-left: -270px;
+    margin-left: -260px;
 }
 
 .cal-fichas-list {
     flex: 1;
     overflow-y: auto;
     max-height: 620px;
-    padding-right: 2px;
+    padding-right: 4px;
 }
 
-/* Custom Scrollbar */
 .cal-fichas-list::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
 }
 .cal-fichas-list::-webkit-scrollbar-thumb {
-    background: #C8D6CF;
+    background: #CBD5E1;
     border-radius: 4px;
 }
 .cal-fichas-list::-webkit-scrollbar-track {
     background: transparent;
 }
 
-/* Checkbox item de ficha */
 .cal-ficha-item {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     user-select: none;
     margin-bottom: 2px;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.12s ease;
 }
 
 .cal-ficha-item:hover {
-    background-color: #EDF3F0;
+    background-color: var(--cal-surface-hover);
 }
 
 .cal-ficha-item input[type="checkbox"] {
@@ -158,21 +222,21 @@
 }
 
 .cal-custom-box {
-    width: 17px;
-    height: 17px;
-    min-width: 17px;
+    width: 15px;
+    height: 15px;
+    min-width: 15px;
     border-radius: 4px;
-    border: 2px solid var(--chk-color, var(--cal-verde-sena));
+    border: 1.5px solid var(--chk-color, var(--cal-verde-sena));
     background-color: var(--chk-color, var(--cal-verde-sena));
     display: flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    transition: all 0.15s ease;
+    transition: all 0.12s ease;
 }
 
 .cal-custom-box i {
-    font-size: 11px;
+    font-size: 10px;
     color: #FFFFFF;
     display: block;
     line-height: 1;
@@ -180,6 +244,7 @@
 
 .cal-ficha-item input[type="checkbox"]:not(:checked) + .cal-custom-box {
     background-color: transparent !important;
+    border-color: #CBD5E1 !important;
 }
 
 .cal-ficha-item input[type="checkbox"]:not(:checked) + .cal-custom-box i {
@@ -187,8 +252,8 @@
 }
 
 .cal-ficha-label {
-    font-size: 0.81rem;
-    color: var(--cal-texto-fuerte);
+    font-size: 0.8rem;
+    color: var(--cal-text-primary);
     line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
@@ -197,49 +262,51 @@
 }
 
 .cal-ficha-num {
-    font-weight: 700;
+    font-weight: 600;
+    color: var(--cal-text-primary);
 }
 
 .cal-ficha-prog {
-    color: var(--cal-texto-suave);
-    font-size: 0.74rem;
+    color: var(--cal-text-muted);
+    font-size: 0.72rem;
+    font-weight: 400;
 }
 
 /* ==========================================================================
-   Contenedor Principal de FullCalendar
+   Contenedor Principal y Cuadrícula FullCalendar
    ========================================================================== */
 .cal-main-container {
     flex: 1;
     min-width: 0;
     overflow: hidden;
-    background: #FFFFFF;
+    background: var(--cal-surface);
 }
 
-/* FullCalendar Styling */
 .fc {
-    font-family: var(--font-body, 'Inter', sans-serif);
+    font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
     font-size: 0.8rem;
     height: 100%;
 }
 
+/* Líneas divisorias sobrias y limpias */
 .fc-theme-standard td, 
 .fc-theme-standard th {
-    border-color: #E6EBE8 !important;
+    border-color: var(--cal-border-subtle) !important;
 }
 
 .fc-theme-standard .fc-scrollgrid {
     border: none !important;
 }
 
-/* Encabezados de días */
+/* Encabezados de columnas (días) */
 .fc .fc-col-header {
-    background: #FFFFFF !important;
+    background: var(--cal-surface) !important;
 }
 
 .fc .fc-col-header-cell {
-    background: #FFFFFF !important;
-    border-color: #E6EBE8 !important;
-    padding: 8px 0 10px 0 !important;
+    background: var(--cal-surface) !important;
+    border-color: var(--cal-border-subtle) !important;
+    padding: 8px 0 8px 0 !important;
 }
 
 .fc .fc-col-header-cell a {
@@ -255,27 +322,28 @@
 }
 
 .cal-header-dayname {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    color: var(--cal-texto-suave);
+    color: var(--cal-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     margin-bottom: 2px;
 }
 
 .cal-header-daynum {
-    font-size: 1.15rem;
-    font-weight: 500;
-    color: var(--cal-texto-fuerte);
-    width: 34px;
-    height: 34px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--cal-text-primary);
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.15s ease;
 }
 
-/* Día actual destacado con color verde SENA / azul */
+/* Día actual: indicador sutil y discreto */
 .cal-header-day.is-today .cal-header-dayname {
     color: var(--cal-verde-sena);
     font-weight: 700;
@@ -285,60 +353,26 @@
     background-color: var(--cal-verde-sena);
     color: #FFFFFF !important;
     font-weight: 700;
-    box-shadow: 0 2px 6px rgba(57, 169, 0, 0.28);
 }
 
-/* En vista mensual se oculta exclusivamente la fila de cabecera de columnas (sin afectar semana ni día) */
-.fc-dayGridMonth-view .fc-col-header {
-    display: none !important;
-}
-
-/* Cabecera adaptativa para vista Mes */
-.cal-header-month {
-    padding: 2px 0 4px 0;
-}
-
-.cal-header-month .cal-header-dayname {
-    font-size: 0.74rem;
-    font-weight: 700;
-    color: var(--cal-texto-suave);
-    letter-spacing: 0.06em;
-    margin-bottom: 0;
-}
-
-/* Cabecera adaptativa para vista Día */
+/* Cabecera para vista Día */
 .cal-header-day-single {
     padding: 4px 12px;
 }
 
 .cal-header-day-single .cal-header-dayname {
     font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--cal-texto-fuerte);
+    font-weight: 600;
+    color: var(--cal-text-primary);
     text-transform: none;
     letter-spacing: normal;
-    margin-bottom: 0;
 }
 
 .cal-header-day-single.is-today .cal-header-dayname {
     color: var(--cal-verde-sena);
 }
 
-/* Estilos de eventos compactos en cuadrícula de vista Mes */
-.fc-event-month-item {
-    font-size: 0.72rem;
-    line-height: 1.25;
-    padding: 1px 2px;
-    overflow: hidden;
-}
-
-.fc-event-festivo-month {
-    font-size: 0.70rem;
-    line-height: 1.2;
-    padding: 1px 2px;
-}
-
-/* Sin tinte en la columna de hoy */
+/* Columna de hoy transparente, sin tinte pesado */
 .fc .fc-day-today,
 .fc-theme-standard .fc-timegrid-col.fc-day-today {
     background-color: transparent !important;
@@ -347,32 +381,31 @@
 
 /* Eje de Horas */
 .fc .fc-timegrid-axis-cushion {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--cal-texto-suave);
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--cal-text-light);
     padding: 4px 6px !important;
 }
 
 .fc .fc-timegrid-slot-label-cushion {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 500;
-    color: var(--cal-texto-suave);
-    padding: 0 6px 0 0 !important;
-    text-transform: uppercase;
+    color: var(--cal-text-muted);
+    padding: 0 8px 0 0 !important;
 }
 
 .fc .fc-timegrid-slot {
-    height: 52px !important;
+    height: 48px !important;
 }
 
 .fc .fc-timegrid-slot-minor {
-    border-top: 1px dotted #EEF2F0 !important;
+    border-top: 1px dotted var(--cal-border-subtle) !important;
 }
 
-/* Línea roja de hora actual */
+/* Línea de hora actual */
 .fc .fc-timegrid-now-indicator-line {
     border-color: var(--cal-red-now) !important;
-    border-width: 2px !important;
+    border-width: 1.5px !important;
     z-index: 10;
 }
 
@@ -383,40 +416,42 @@
 .fc .fc-timegrid-now-indicator-line::before {
     content: '';
     position: absolute;
-    left: -5px;
-    top: -4px;
-    width: 10px;
-    height: 10px;
+    left: -4px;
+    top: -3.5px;
+    width: 8px;
+    height: 8px;
     background-color: var(--cal-red-now);
     border-radius: 50%;
 }
 
 /* ==========================================================================
-   SOLUCIÓN DE SUPERPOSICIÓN DE EVENTOS
-   Distribución paralela en columnas, sin solapamiento destructivo
+   EVENTOS DE HORARIO: DISEÑO LIMPIO Y MINIMALISTA
+   Fondos Claros · Borde Lateral de Acento · Texto Oscuro y Legible
    ========================================================================== */
 .fc-timegrid-event-harness {
     min-width: 0 !important;
 }
 
 .fc-timegrid-event {
+    background-color: #FFFFFF !important;
+    border: 1px solid var(--cal-border) !important;
+    border-left: 3.5px solid var(--fc-event-border-color, #2563EB) !important;
     border-radius: 6px !important;
-    border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-    padding: 2px 4px !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+    padding: 4px 6px !important;
     overflow: hidden !important;
     cursor: pointer !important;
     margin-right: 1px !important;
     margin-left: 1px !important;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease, z-index 0.15s ease !important;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease !important;
 }
 
-/* Efecto hover: eleva el evento y asegura lectura clara incluso en columnas estrechas */
 .fc-timegrid-event:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22) !important;
-    filter: brightness(0.97);
-    z-index: 50 !important;
+    background-color: #F8FAFC !important;
+    border-color: #CBD5E1 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07) !important;
+    z-index: 40 !important;
 }
 
 /* Marco interno del evento */
@@ -428,8 +463,8 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    color: #FFFFFF;
-    line-height: 1.2;
+    color: var(--cal-text-primary);
+    line-height: 1.25;
 }
 
 .fc-event-title-line,
@@ -445,13 +480,14 @@
 
 .fc-event-num {
     font-weight: 700;
-    font-size: 0.74rem;
-    letter-spacing: 0.01em;
+    font-size: 0.75rem;
+    color: var(--cal-text-primary);
+    letter-spacing: -0.01em;
 }
 
 .fc-event-prog-short {
-    font-size: 0.69rem;
-    opacity: 0.92;
+    font-size: 0.70rem;
+    color: var(--cal-text-secondary);
     font-weight: 500;
 }
 
@@ -459,38 +495,49 @@
 .fc-event-time-short {
     font-size: 0.68rem;
     font-weight: 500;
-    opacity: 0.95;
+    color: var(--cal-text-muted);
 }
 
 .fc-event-inst-line {
-    font-size: 0.66rem;
-    opacity: 0.9;
+    font-size: 0.67rem;
+    color: var(--cal-text-muted);
     margin-top: 1px;
 }
 
 .fc-event-inst-line i {
-    font-size: 0.65rem;
-    margin-right: 2px;
+    font-size: 0.68rem;
+    margin-right: 3px;
+    color: var(--cal-text-light);
 }
 
-/* Vista mensual */
+/* Vista Mensual (dayGridMonth) */
 .fc-daygrid-event {
+    background-color: #FFFFFF !important;
+    border: 1px solid var(--cal-border) !important;
+    border-left: 3px solid var(--fc-event-border-color, #2563EB) !important;
     border-radius: 4px !important;
-    padding: 2px 5px !important;
-    font-size: 0.72rem !important;
-    border: none !important;
+    padding: 2px 4px !important;
     margin: 1px 2px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+    transition: all 0.12s ease !important;
 }
 
-.fc-daygrid-event .fc-event-title-line {
-    color: #FFFFFF;
-    font-weight: 600;
+.fc-daygrid-event:hover {
+    background-color: #F8FAFC !important;
+    border-color: #CBD5E1 !important;
+}
+
+.fc-event-month-item {
+    font-size: 0.72rem;
+    line-height: 1.25;
+    overflow: hidden;
+    color: var(--cal-text-primary);
 }
 
 .fc .fc-daygrid-day-number {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--cal-texto-suave);
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--cal-text-muted);
     padding: 4px 6px !important;
     text-decoration: none !important;
 }
@@ -498,6 +545,7 @@
 .fc .fc-day-today .fc-daygrid-day-number {
     background-color: var(--cal-verde-sena);
     color: #FFFFFF !important;
+    font-weight: 700;
     border-radius: 50%;
     width: 22px;
     height: 22px;
@@ -508,42 +556,32 @@
     padding: 0 !important;
 }
 
-/* ==========================================================================
-   Modal / Tarjeta de Detalles del Evento
-   ========================================================================== */
-.modal-horario-detalle .modal-header {
-    border-bottom: none;
-    border-radius: 16px 16px 0 0;
+/* Eventos Festivos Oficiales */
+.fc-timegrid-event.fc-event-festivo-tipo,
+.fc-daygrid-event.fc-event-festivo-tipo {
+    background-color: var(--cal-festivo-bg) !important;
+    border: 1px solid var(--cal-festivo-border) !important;
+    border-left: 3.5px solid var(--cal-text-light) !important;
 }
 
-.modal-horario-detalle .modal-content {
-    border-radius: 16px;
-    border: none;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-}
-
-.badge-ficha-color {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 6px;
-}
-
-/* Utilidad para evitar desbordes en contenedores flex */
-.min-w-0 {
-    min-width: 0 !important;
+.fc-event-festivo-badge {
+    background: #E2E8F0;
+    color: var(--cal-festivo-text);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
 }
 
 /* ==========================================================================
-   Resumen de la Jornada para el Instructor (Compacto y Elegante)
+   Resumen de la Jornada para el Instructor (Limpio y Monocromático)
    ========================================================================== */
 .cal-summary-bar {
-    background: #FFFFFF;
-    border: 1px solid var(--cal-linea);
-    border-radius: 14px;
-    box-shadow: 0 2px 10px rgba(20, 32, 25, 0.03);
+    background: var(--cal-surface);
+    border: 1px solid var(--cal-border);
+    border-radius: var(--cal-radius);
+    box-shadow: var(--cal-shadow-sm);
     overflow: hidden;
 }
 
@@ -552,8 +590,8 @@
     align-items: center;
     gap: 12px;
     padding: 10px 14px;
-    background: #FAFBFB;
-    border: 1px solid #E8ECE9;
+    background: var(--cal-surface);
+    border: 1px solid var(--cal-border);
     border-radius: 10px;
     transition: all 0.15s ease;
     width: 100%;
@@ -563,21 +601,24 @@
 }
 
 .cal-summary-box:hover {
-    background: #F4F7F5;
-    border-color: #D3DDD7;
+    background: var(--cal-surface-hover);
+    border-color: #CBD5E1;
 }
 
 .cal-summary-icon {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    max-width: 38px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    max-width: 36px;
     flex-shrink: 0;
-    border-radius: 10px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.15rem;
+    font-size: 1.05rem;
+    background: var(--cal-surface-hover);
+    color: var(--cal-text-secondary);
+    border: 1px solid var(--cal-border-subtle);
 }
 
 .cal-summary-content {
@@ -589,10 +630,10 @@
 
 .cal-summary-label {
     font-size: 0.68rem;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--cal-texto-suave);
+    letter-spacing: 0.04em;
+    color: var(--cal-text-muted);
     line-height: 1.2;
     margin-bottom: 2px;
 }
@@ -600,7 +641,7 @@
 .cal-summary-val {
     font-size: 1.05rem;
     font-weight: 700;
-    color: var(--cal-texto-fuerte);
+    color: var(--cal-text-primary);
     line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
@@ -609,7 +650,7 @@
 
 .cal-summary-sub {
     font-size: 0.72rem;
-    color: #6C7A72;
+    color: var(--cal-text-muted);
     line-height: 1.2;
     margin-top: 2px;
     white-space: nowrap;
@@ -617,36 +658,138 @@
     text-overflow: ellipsis;
 }
 
-.badge-estado-sesion {
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 0.25rem 0.6rem;
-    border-radius: 20px;
-}
-
-.btn-limpiar-filtro {
-    font-size: 0.75rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 20px;
-}
-
-/* Tarjeta interactiva con efecto clic y sombra */
 .cal-summary-box-clickable {
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.15s ease;
 }
 
 .cal-summary-box-clickable:hover {
-    background: #F0F9F2 !important;
-    border-color: var(--cal-verde-sena) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(57, 169, 0, 0.16);
+    background: var(--cal-surface-hover) !important;
+    border-color: #CBD5E1 !important;
+    transform: translateY(-1px);
+    box-shadow: var(--cal-shadow-sm);
 }
 
 .cal-summary-box-clickable:active {
     transform: translateY(0);
 }
 
+.badge-estado-sesion {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+}
 
+/* ==========================================================================
+   Modales: Estilo Limpio, Elegante y sin Gradientes Excesivos
+   ========================================================================== */
+.modal-content {
+    border: 1px solid var(--cal-border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+    overflow: hidden;
+}
+
+.modal-header {
+    background: #FFFFFF !important;
+    border-bottom: 1px solid var(--cal-border) !important;
+    padding: 1rem 1.25rem !important;
+}
+
+.modal-header .modal-title {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: var(--cal-text-primary) !important;
+}
+
+.modal-body {
+    padding: 1.25rem !important;
+    background: #FFFFFF;
+}
+
+.modal-footer {
+    background: var(--cal-surface-subtle) !important;
+    border-top: 1px solid var(--cal-border) !important;
+    padding: 0.75rem 1.25rem !important;
+}
+
+/* Form Controls en modales */
+.modal .form-control,
+.modal .form-select {
+    border-color: var(--cal-border) !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+    padding: 0.45rem 0.75rem !important;
+    color: var(--cal-text-primary) !important;
+}
+
+.modal .form-control:focus,
+.modal .form-select:focus {
+    border-color: var(--cal-verde-sena) !important;
+    box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.1) !important;
+}
+
+.modal .form-label {
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    color: var(--cal-text-secondary) !important;
+    margin-bottom: 0.3rem !important;
+}
+
+/* Tarjeta destacada del modal de próxima clase */
+.modal-prox-card {
+    background: var(--cal-surface-subtle);
+    border: 1px solid var(--cal-border);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+/* Utilidad */
+.min-w-0 {
+    min-width: 0 !important;
+}
+
+/* ==========================================================================
+   Responsive: Adaptación en Pantallas Medianas y Móviles
+   ========================================================================== */
+@media (max-width: 991.98px) {
+    .cal-fichas-sidebar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 30;
+        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+    }
+    
+    .cal-fichas-sidebar.is-collapsed {
+        margin-left: -260px;
+    }
+    
+    .cal-toolbar {
+        gap: 0.75rem !important;
+    }
+
+    .cal-period-title {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .cal-period-title {
+        font-size: 0.92rem;
+        min-width: auto;
+    }
+    
+    .cal-search-input {
+        width: 100% !important;
+    }
+    
+    .cal-view-group .btn {
+        padding: 0.25rem 0.55rem;
+        font-size: 0.75rem;
+    }
+}

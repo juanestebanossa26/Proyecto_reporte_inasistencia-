@@ -34,12 +34,12 @@ class Seguridad
         return filter_var(trim($valor ?? ''), FILTER_SANITIZE_FULL_SPECIAL_CHARS);
     }
 
-    // El proyecto exige que los correos de instructores sean @gmail.com.
+    // Valida que el correo sea válido y pertenezca a dominios autorizados (@gmail.com, @sena.edu.co, @misena.edu.co).
     public static function esCorreoGmailValido(?string $correo): bool
     {
         return $correo
             && filter_var($correo, FILTER_VALIDATE_EMAIL)
-            && preg_match('/@gmail\.com$/i', $correo) === 1;
+            && preg_match('/@(gmail\.com|sena\.edu\.co|misena\.edu\.co)$/i', $correo) === 1;
     }
 
     // Genera un nombre de archivo único para los soportes de excusas,

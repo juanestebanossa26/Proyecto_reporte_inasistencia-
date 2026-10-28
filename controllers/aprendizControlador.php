@@ -40,6 +40,7 @@ class AprendizControlador extends ControladorBase
     {
         // 1. Solo el Administrador puede gestionar aprendices
         $this->exigirSesion(['Administrador', 'admin']);
+        $this->exigirCsrfValido('aprendices');
 
         // Recoger y limpiar campos del formulario
         $idUsuario = (int) ($_POST['id_usuario'] ?? 0);  // 0 = crear, >0 = actualizar
@@ -214,8 +215,20 @@ class AprendizControlador extends ControladorBase
         // Solo Administrador e Instructor pueden gestionar aprendices
         $this->exigirSesion(['Administrador', 'Instructor']);
 
-        $idUsuario = (int) ($_POST['id_usuario'] ?? $_GET['id'] ?? 0);
-        $nuevoEstado = Seguridad::sanitizar($_POST['estado'] ?? $_GET['estado'] ?? '');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            Seguridad::alertaYRedirigir(
+                'error',
+                'Método no permitido',
+                'La acción solicitada requiere un método POST válido.',
+                $this->urlAccion('aprendices')
+            );
+            return;
+        }
+
+        $this->exigirCsrfValido('aprendices');
+
+        $idUsuario = (int) ($_POST['id_usuario'] ?? 0);
+        $nuevoEstado = Seguridad::sanitizar($_POST['estado'] ?? '');
 
         if ($idUsuario <= 0) {
             Seguridad::alertaYRedirigir(

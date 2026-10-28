@@ -67,6 +67,9 @@ class AuthControlador extends ControladorBase
             $this->redirigirAccion('login', ['error' => '2']);
         }
 
+        // Prevenir fijación de sesión (Session Fixation) regenerando el ID
+        session_regenerate_id(true);
+
         // Establecer variables de sesión del usuario
         $_SESSION['id']        = $usuario['id_usuario'];
         $_SESSION['nombre']    = $usuario['nombre_completo'];

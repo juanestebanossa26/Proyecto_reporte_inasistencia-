@@ -68,14 +68,11 @@ DirectoryIndex index.php
 </IfModule>
 
 # ----------------------------------------------------------------------
-# Variables de Entorno para la Base de Datos (Apache mod_env)
-# NOTA: En producción (Hosting), las credenciales deben configurarse en .env
-# Si tu servidor requiere SetEnv, descomenta y ajusta las siguientes líneas:
+# Cabeceras de Seguridad HTTP
 # ----------------------------------------------------------------------
-# <IfModule mod_env.c>
-#     SetEnv DB_HOST "localhost"
-#     SetEnv DB_NAME "control_asistencia"
-#     SetEnv DB_USER "root"
-#     SetEnv DB_PASS ""
-#     SetEnv DB_CHARSET "utf8mb4"
-# </IfModule>
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

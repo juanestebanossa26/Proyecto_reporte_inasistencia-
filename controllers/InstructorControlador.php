@@ -59,7 +59,7 @@ class InstructorControlador extends ControladorBase
         }
 
         if (!Seguridad::esCorreoGmailValido($correo)) {
-            Seguridad::alertaYRedirigir('error', 'Correo inválido', 'Ingrese una dirección de correo Gmail válida.', $this->urlAccion(self::ACCION_LISTADO));
+            Seguridad::alertaYRedirigir('error', 'Correo inválido', 'Ingrese una dirección de correo válida (@gmail.com, @sena.edu.co o @misena.edu.co).', $this->urlAccion(self::ACCION_LISTADO));
             return;
         }
 
@@ -115,7 +115,7 @@ class InstructorControlador extends ControladorBase
         }
 
         if (!Seguridad::esCorreoGmailValido($correo)) {
-            Seguridad::alertaYRedirigir('error', 'Correo inválido', 'Ingrese una dirección de correo Gmail válida.', $this->urlAccion(self::ACCION_LISTADO));
+            Seguridad::alertaYRedirigir('error', 'Correo inválido', 'Ingrese una dirección de correo válida (@gmail.com, @sena.edu.co o @misena.edu.co).', $this->urlAccion(self::ACCION_LISTADO));
             return;
         }
 
@@ -150,6 +150,7 @@ class InstructorControlador extends ControladorBase
     public function cambiarEstado(): void
     {
         $this->exigirSesion(['Administrador']);
+        $this->exigirCsrfValido(self::ACCION_LISTADO);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             Seguridad::alertaYRedirigir('error', 'Error', 'Método no permitido.', $this->urlAccion(self::ACCION_LISTADO));

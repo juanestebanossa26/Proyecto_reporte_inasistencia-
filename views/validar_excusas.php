@@ -86,7 +86,7 @@ $total_pendientes  = $total_pendientes ?? 0;
                             </td>
                             <td class="text-nowrap">
                                 <?php if (!empty($fila['archivo_adjunto'])): ?>
-                                    <a href="<?= BASE_URL ?>/<?= htmlspecialchars($fila['archivo_adjunto']) ?>" target="_blank" class="text-sena text-decoration-none fw-semibold" style="font-size: .84rem;">
+                                    <a href="<?= BASE_URL ?>/index.php?accion=verSoporteExcusa&id=<?= (int)$fila['id_excusa'] ?>" target="_blank" class="text-sena text-decoration-none fw-semibold" style="font-size: .84rem;">
                                         <i class="bi bi-file-earmark-pdf me-1"></i>Ver PDF
                                     </a>
                                 <?php else: ?>

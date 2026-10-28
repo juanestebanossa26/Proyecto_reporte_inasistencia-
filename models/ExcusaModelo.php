@@ -101,6 +101,48 @@ class ExcusaModelo
         return $stmt->fetch();
     }
 
+    /**
+     * Busca una excusa para descarga/visualización segura verificando autorización por rol
+     */
+    public function buscarPorIdParaVer(int $idExcusa, int $idUsuario, string $rol): array|false
+    {
+        $rolLimpio = strtolower(trim($rol));
+        $db = Conexion::obtener();
+
+        if (in_array($rolLimpio, ['administrador', 'admin'], true)) {
+            $stmt = $db->prepare("SELECT id_excusa, archivo_adjunto, motivo FROM excusas_medicas WHERE id_excusa = :id LIMIT 1");
+            $stmt->execute([':id' => $idExcusa]);
+            return $stmt->fetch();
+        }
+
+        if (in_array($rolLimpio, ['aprendiz', 'estudiante'], true)) {
+            return $this->buscarPorIdYAprendiz($idExcusa, $idUsuario);
+        }
+
+        if (in_array($rolLimpio, ['instructor', 'docente'], true)) {
+            $sql = "SELECT em.id_excusa, em.archivo_adjunto, em.motivo
+                    FROM excusas_medicas em
+                    JOIN asistencias a ON a.id_asistencia = em.id_asistencia
+                    JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
+                    LEFT JOIN horarios h ON h.id_horario = a.id_horario
+                    LEFT JOIN fichas_has_usuarios fhu ON fhu.fichas_id_ficha = ap.id_ficha AND fhu.id_instructor = :id_inst1
+                    LEFT JOIN revision_excusas re ON re.id_excusa = em.id_excusa AND re.id_instructor = :id_inst2
+                    WHERE em.id_excusa = :id
+                      AND (h.id_instructor = :id_inst3 OR fhu.id_instructor IS NOT NULL OR re.id_instructor IS NOT NULL)
+                    LIMIT 1";
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
+                ':id'       => $idExcusa,
+                ':id_inst1' => $idUsuario,
+                ':id_inst2' => $idUsuario,
+                ':id_inst3' => $idUsuario,
+            ]);
+            return $stmt->fetch();
+        }
+
+        return false;
+    }
+
     // Guarda una excusa para UNA fecha (se mantiene por compatibilidad;
     // internamente usa el mismo camino que guardarVarios()).
     public function guardar(int $idAsistencia, string $rutaRelativaArchivo, string $motivo): void

@@ -425,19 +425,29 @@ try {
 // ESCENARIO 14: Registro histórico cuya procedencia no puede identificarse
 // ------------------------------------------------------------------------------------------------
 try {
+    $pdo->beginTransaction();
+
+    // Crear un registro histórico de prueba sin id_horario para validar la detección de casos sospechosos
+    $fechaHuerfana = '2026-03-15';
+    $stmtHuerfano = $pdo->prepare("INSERT INTO asistencias (id_aprendiz, id_horario, fecha, hora_entrada_real, tiempo_retraso, estado) VALUES (5, NULL, :f, NULL, 0, 'inasistencia')");
+    $stmtHuerfano->execute([':f' => $fechaHuerfana]);
+    $idAsisTest = (int) $pdo->lastInsertId();
+
     $auditoria = $asistenciaModelo->auditarInasistenciasHistoricas();
-    // En la base de datos existe la inasistencia ID 6 (id_horario NULL con excusa)
     $encontradoSospechoso = false;
     foreach ($auditoria['detalles'] as $det) {
-        if ($det['id_asistencia'] === 6 && $det['clasificacion'] === 'caso_sospechoso') {
+        if ($det['id_asistencia'] === $idAsisTest && $det['clasificacion'] === 'caso_sospechoso') {
             $encontradoSospechoso = true;
             break;
         }
     }
 
     $paso = $encontradoSospechoso;
-    registrarResultado(14, "Registro histórico con procedencia no identificable", $paso, "Identificado ID 6 como 'caso_sospechoso'. Se preserva para verificación humana sin borrado destructivo.");
+    registrarResultado(14, "Registro histórico con procedencia no identificable", $paso, "Identificado ID {$idAsisTest} como 'caso_sospechoso' por id_horario NULL. Se preserva para verificación humana sin borrado destructivo.");
+
+    $pdo->rollBack();
 } catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
     registrarResultado(14, "Registro histórico con procedencia no identificable", false, "Error: " . $e->getMessage());
 }
 

@@ -29,20 +29,16 @@ class HorarioControlador extends ControladorBase
             $instructores = $this->modelo->listarInstructores();
             $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion, 'Activa');
 
-            // Paleta de colores con contraste óptimo para texto blanco
+            // Paleta sobria y armónica para bordes sutiles de acento por ficha
             $paletaGoogle = [
-                '#1976d2', // Azul corporativo
-                '#2e7d32', // Verde SENA
-                '#7b1fa2', // Púrpura intenso
-                '#c2185b', // Frambuesa
-                '#d97706', // Ámbar oscuro
-                '#e65100', // Naranja intenso
-                '#303f9f', // Índigo profundo
-                '#00796b', // Turquesa oscuro
-                '#d32f2f', // Carmesí / Rojo
-                '#455a64', // Pizarra / Grafito
-                '#00838f', // Cian oscuro
-                '#4e342e', // Café moka
+                '#2563eb', // Azul zafiro suave
+                '#16a34a', // Verde esmeralda suave
+                '#0891b2', // Cian pizarra
+                '#475569', // Pizarra grafito
+                '#7c3aed', // Violeta sobrio
+                '#d97706', // Ámbar cálido
+                '#0d9488', // Verde azulado
+                '#4338ca', // Índigo moderno
             ];
 
             // Asignar color único y consistente a cada ficha
@@ -623,9 +619,8 @@ class HorarioControlador extends ControladorBase
             $fichas       = $this->fichaModelo->listarFichasDetalladas($idInstructorSesion);
 
             $paletaGoogle = [
-                '#1976d2', '#2e7d32', '#7b1fa2', '#c2185b', '#d97706',
-                '#e65100', '#303f9f', '#00796b', '#d32f2f', '#455a64',
-                '#00838f', '#4e342e'
+                '#2563eb', '#16a34a', '#0891b2', '#475569',
+                '#7c3aed', '#d97706', '#0d9488', '#4338ca'
             ];
 
             $coloresFicha = [];

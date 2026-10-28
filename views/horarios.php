@@ -70,20 +70,20 @@ if (!isset($iniciales)) {
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <?php if ($rolActivo === 'Administrador'): ?>
-                        <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalImportarExcel">
-                            <i class="bi bi-file-earmark-excel"></i>
+                        <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalImportarExcel">
+                            <i class="bi bi-file-earmark-excel text-success"></i>
                             <span>Importar Excel</span>
                         </button>
-                        <button type="button" class="btn btn-sena d-flex align-items-center gap-2" onclick="abrirModalCrear()">
+                        <button type="button" class="btn btn-sm btn-sena d-flex align-items-center gap-2" onclick="abrirModalCrear()">
                             <i class="bi bi-plus-lg"></i>
                             <span>Nuevo horario</span>
                         </button>
                     <?php else: ?>
-                        <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="btn btn-outline-success d-flex align-items-center gap-2" title="Revisar excusas médicas de aprendices">
-                            <i class="bi bi-file-earmark-medical"></i>
+                        <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2" title="Revisar excusas médicas de aprendices">
+                            <i class="bi bi-file-earmark-medical text-success"></i>
                             <span>Validar excusas</span>
                         </a>
-                        <button type="button" class="btn btn-sena d-flex align-items-center gap-2" onclick="irAHoy()" title="Ir al día actual">
+                        <button type="button" class="btn btn-sm btn-sena d-flex align-items-center gap-2" onclick="irAHoy()" title="Ir al día actual">
                             <i class="bi bi-calendar2-check"></i>
                             <span>Ir a Hoy</span>
                         </button>
@@ -96,10 +96,10 @@ if (!isset($iniciales)) {
             <div class="cal-summary-bar p-3 bg-white mb-3" id="resumenJornadaBar">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-2 border-bottom">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="badge text-white fw-bold px-2 py-1" style="background-color: var(--cal-verde-sena); font-size: 0.75rem;">
-                            <i class="bi bi-speedometer2 me-1"></i>Resumen de la Jornada
+                        <span class="badge bg-light text-secondary border fw-semibold px-2 py-1" style="font-size: 0.72rem;">
+                            <i class="bi bi-speedometer2 me-1 text-success"></i>Resumen de la Jornada
                         </span>
-                        <span class="small text-muted fw-medium" id="resumenFechaLabel">
+                        <span class="small text-muted" id="resumenFechaLabel">
                             Hoy · <?= date('d/m/Y') ?>
                         </span>
                     </div>
@@ -110,7 +110,7 @@ if (!isset($iniciales)) {
                             </span>
                         <?php else: ?>
                             <span class="badge bg-light text-muted border px-2 py-1 small" id="resumenEstadoBadge">
-                                <i class="bi bi-sun me-1 text-warning"></i>Sin clases programadas para hoy
+                                <i class="bi bi-sun me-1 text-muted"></i>Sin clases programadas hoy
                             </span>
                         <?php endif; ?>
                     </div>
@@ -125,14 +125,14 @@ if (!isset($iniciales)) {
                              tabindex="0"
                              style="min-width: 0; max-width: 100%; overflow: hidden;"
                              title="Clic para ver detalles de la ficha, horario y aprendices matriculados">
-                            <div class="cal-summary-icon bg-success-subtle text-success flex-shrink-0">
+                            <div class="cal-summary-icon flex-shrink-0">
                                 <i class="bi bi-clock-history"></i>
                             </div>
                             <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
                                 <div class="d-flex align-items-center justify-content-between gap-1 mb-1 min-w-0">
                                     <div class="cal-summary-label mb-0 text-truncate" style="min-width: 0;">Próxima clase</div>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle py-0 px-1 flex-shrink-0" style="font-size: 0.62rem;">
-                                        <i class="bi bi-eye-fill me-1"></i>Ver
+                                    <span class="badge bg-light text-secondary border py-0 px-1 flex-shrink-0" style="font-size: 0.62rem;">
+                                        <i class="bi bi-eye me-1"></i>Ver
                                     </span>
                                 </div>
                                 <div class="cal-summary-val text-truncate" id="sumProximaHora" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
@@ -160,7 +160,7 @@ if (!isset($iniciales)) {
                     <!-- Tarjeta 2: Clases de hoy -->
                     <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
                         <div class="cal-summary-box h-100" style="min-width: 0; max-width: 100%; overflow: hidden;">
-                            <div class="cal-summary-icon bg-primary-subtle text-primary flex-shrink-0">
+                            <div class="cal-summary-icon flex-shrink-0">
                                 <i class="bi bi-calendar2-week"></i>
                             </div>
                             <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
@@ -178,7 +178,7 @@ if (!isset($iniciales)) {
                     <!-- Tarjeta 3: Horas programadas -->
                     <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
                         <div class="cal-summary-box h-100" style="min-width: 0; max-width: 100%; overflow: hidden;">
-                            <div class="cal-summary-icon bg-warning-subtle text-warning-emphasis flex-shrink-0">
+                            <div class="cal-summary-icon flex-shrink-0">
                                 <i class="bi bi-hourglass-split"></i>
                             </div>
                             <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
@@ -196,7 +196,7 @@ if (!isset($iniciales)) {
                     <!-- Tarjeta 4: Fichas activas -->
                     <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
                         <div class="cal-summary-box h-100" style="min-width: 0; max-width: 100%; overflow: hidden;">
-                            <div class="cal-summary-icon bg-info-subtle text-info-emphasis flex-shrink-0">
+                            <div class="cal-summary-icon flex-shrink-0">
                                 <i class="bi bi-journal-bookmark"></i>
                             </div>
                             <div class="cal-summary-content min-w-0" style="min-width: 0; max-width: 100%; overflow: hidden; flex: 1 1 0%;">
@@ -329,12 +329,12 @@ if (!isset($iniciales)) {
 <div class="modal fade modal-horario-detalle" id="modalDetalleHorario" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header px-4 py-3 text-white" id="modalDetalleHeader" style="background-color: var(--cal-verde-sena);">
+      <div class="modal-header px-4 py-3" id="modalDetalleHeader">
         <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-calendar3"></i>
-            <h5 class="modal-title fw-bold mb-0" id="modalDetalleFicha">Ficha</h5>
+            <i class="bi bi-calendar3 text-muted"></i>
+            <h5 class="modal-title fw-bold mb-0 text-dark" id="modalDetalleFicha">Ficha</h5>
         </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -344,45 +344,45 @@ if (!isset($iniciales)) {
 
         <div class="list-group list-group-flush mb-0 small mt-3">
           <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
-            <span class="text-muted"><i class="bi bi-clock me-2 text-sena"></i>Horario programado</span>
+            <span class="text-muted"><i class="bi bi-clock me-2 text-muted"></i>Horario programado</span>
             <span class="fw-semibold text-dark" id="modalDetalleHorarioTexto">07:00 – 13:00</span>
           </div>
           <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
-            <span class="text-muted"><i class="bi bi-hourglass-split me-2 text-warning"></i>Duración estimada</span>
+            <span class="text-muted"><i class="bi bi-hourglass-split me-2 text-muted"></i>Duración estimada</span>
             <span class="fw-semibold text-dark" id="modalDetalleDuracion">0 horas</span>
           </div>
           <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
-            <span class="text-muted"><i class="bi bi-calendar-event me-2 text-primary"></i>Fecha</span>
+            <span class="text-muted"><i class="bi bi-calendar-event me-2 text-muted"></i>Fecha</span>
             <span class="fw-semibold text-dark" id="modalDetalleFechaTexto">Fecha</span>
           </div>
           <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
-            <span class="text-muted"><i class="bi bi-person-badge me-2 text-info"></i>Instructor asignado</span>
+            <span class="text-muted"><i class="bi bi-person-badge me-2 text-muted"></i>Instructor asignado</span>
             <span class="fw-semibold text-dark" id="modalDetalleInstructor">Sin asignar</span>
           </div>
           <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between" id="rowDetalleArea">
-            <span class="text-muted"><i class="bi bi-mortarboard me-2 text-secondary"></i>Área / Especialidad</span>
+            <span class="text-muted"><i class="bi bi-mortarboard me-2 text-muted"></i>Área / Especialidad</span>
             <span class="fw-semibold text-dark" id="modalDetalleArea">General</span>
           </div>
           <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
-            <span class="text-muted"><i class="bi bi-people me-2 text-success"></i>Aprendices matriculados</span>
+            <span class="text-muted"><i class="bi bi-people me-2 text-muted"></i>Aprendices matriculados</span>
             <span class="fw-semibold text-dark" id="modalDetalleAprendices">0 aprendices</span>
           </div>
         </div>
       </div>
-      <div class="modal-footer bg-light px-4 py-2 border-0 d-flex justify-content-between">
+      <div class="modal-footer px-4 py-2 d-flex justify-content-between">
         <?php if ($rolActivo === 'Administrador'): ?>
         <div>
             <button type="button" class="btn btn-sm btn-outline-danger" id="btnEliminarDesdeDetalle">
                 <i class="bi bi-trash3 me-1"></i> Eliminar
             </button>
-            <button type="button" class="btn btn-sm btn-outline-primary ms-1" id="btnEditarDesdeDetalle">
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="btnEditarDesdeDetalle">
                 <i class="bi bi-pencil-square me-1"></i> Editar
             </button>
         </div>
         <?php else: ?>
         <div>
-            <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="btn btn-sm btn-outline-success">
-                <i class="bi bi-file-earmark-medical me-1"></i> Validar excusas
+            <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-file-earmark-medical me-1 text-success"></i> Validar excusas
             </a>
         </div>
         <?php endif; ?>
@@ -397,20 +397,20 @@ if (!isset($iniciales)) {
      ========================================================================== -->
 <div class="modal fade" id="modalDetalleProximaClase" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+    <div class="modal-content">
       
-      <!-- Encabezado con gradiente verde SENA -->
-      <div class="modal-header border-0 text-white p-3" style="background: linear-gradient(135deg, #007A33 0%, #005624 100%);">
+      <!-- Encabezado Minimalista y Limpio -->
+      <div class="modal-header p-3">
         <div class="d-flex align-items-center gap-2">
-          <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px;">
-            <i class="bi bi-clock-history fs-5" style="color: #007A33;"></i>
+          <div class="rounded-3 bg-light border d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+            <i class="bi bi-clock-history text-success fs-5"></i>
           </div>
           <div>
-            <span class="badge bg-white text-success border-0 px-2 py-0 fw-bold" style="font-size: 0.65rem; color: #007A33 !important;">PRÓXIMA CLASE PROGRAMADA</span>
-            <h6 class="modal-title fw-bold mb-0 text-white" id="modalProxTitulo">Información de la Clase</h6>
+            <span class="badge bg-light text-secondary border px-2 py-0 fw-semibold" style="font-size: 0.65rem;">PRÓXIMA CLASE PROGRAMADA</span>
+            <h6 class="modal-title fw-bold mb-0 text-dark" id="modalProxTitulo">Información de la Clase</h6>
           </div>
         </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
       <div class="modal-body p-4">
@@ -422,19 +422,19 @@ if (!isset($iniciales)) {
           <p class="text-muted fw-semibold mb-0" id="modalProxPrograma">Programa de formación</p>
         </div>
 
-        <!-- Tarjeta destacada de Aprendices Matriculados (Requerimiento Principal) -->
-        <div class="p-3 mb-3 rounded-3 border" style="background: linear-gradient(180deg, #F0F9F2 0%, #E8F5E9 100%); border-color: #A3D9B5 !important;">
+        <!-- Tarjeta limpia de Aprendices Matriculados -->
+        <div class="p-3 mb-3 rounded-3 border bg-light modal-prox-card">
           <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm" style="width: 46px; height: 46px; background-color: #007A33;">
-                <i class="bi bi-people-fill fs-4"></i>
+              <div class="rounded-3 d-flex align-items-center justify-content-center bg-white border shadow-sm" style="width: 42px; height: 42px;">
+                <i class="bi bi-people text-success fs-4"></i>
               </div>
               <div>
                 <div class="text-uppercase text-muted fw-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Aprendices en esta ficha</div>
-                <div class="fs-4 fw-bold mb-0" style="color: #007A33;" id="modalProxTotalAprendices">0 aprendices</div>
+                <div class="fs-4 fw-bold mb-0 text-dark" id="modalProxTotalAprendices">0 aprendices</div>
               </div>
             </div>
-            <a href="<?= BASE_URL ?>/index.php?accion=fichas" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-medium" style="font-size: 0.78rem;">
+            <a href="<?= BASE_URL ?>/index.php?accion=fichas" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium" style="font-size: 0.78rem;">
               <i class="bi bi-eye me-1"></i>Ver ficha
             </a>
           </div>
@@ -444,14 +444,14 @@ if (!isset($iniciales)) {
         <div class="row g-2 mb-3">
           <div class="col-6">
             <div class="p-2 border rounded-3 bg-light h-100">
-              <div class="text-muted small fw-semibold"><i class="bi bi-clock me-1 text-success"></i>Horario programado</div>
+              <div class="text-muted small fw-semibold"><i class="bi bi-clock me-1 text-muted"></i>Horario programado</div>
               <div class="fw-bold text-dark fs-6" id="modalProxHorario">--:-- – --:--</div>
               <div class="text-muted small" id="modalProxDuracion">--</div>
             </div>
           </div>
           <div class="col-6">
             <div class="p-2 border rounded-3 bg-light h-100">
-              <div class="text-muted small fw-semibold"><i class="bi bi-calendar3 me-1 text-success"></i>Fecha programada</div>
+              <div class="text-muted small fw-semibold"><i class="bi bi-calendar3 me-1 text-muted"></i>Fecha programada</div>
               <div class="fw-bold text-dark" style="font-size: 0.88rem;" id="modalProxFecha">--</div>
               <div class="text-muted small" id="modalProxDiaSemana">--</div>
             </div>
@@ -473,9 +473,9 @@ if (!isset($iniciales)) {
         </div>
       </div>
 
-      <div class="modal-footer bg-light border-top-0 d-flex justify-content-between p-3">
-        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-medium" onclick="ubicarProximaClaseEnCalendario()">
-          <i class="bi bi-calendar2-event me-1"></i>Ubicar en calendario
+      <div class="modal-footer d-flex justify-content-between p-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium" onclick="ubicarProximaClaseEnCalendario()">
+          <i class="bi bi-calendar2-event me-1 text-success"></i>Ubicar en calendario
         </button>
         <div class="d-flex gap-2">
           <a href="<?= BASE_URL ?>/index.php?accion=validarExcusas" class="btn btn-sm btn-outline-secondary rounded-pill px-3">

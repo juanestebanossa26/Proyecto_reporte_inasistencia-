@@ -217,6 +217,7 @@ $fichas        = $fichas ?? [];
 
     <!-- Formulario oculto para cambiar el estado -->
     <form id="formCambiarEstado" action="<?= BASE_URL ?>/index.php?accion=cambiarEstadoAprendiz" method="POST" style="display:none;">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(Seguridad::tokenCsrf()) ?>">
         <input type="hidden" name="id_usuario" id="estado_id_usuario" value="0">
         <input type="hidden" name="estado" id="estado_nuevo" value="">
     </form>

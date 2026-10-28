@@ -294,4 +294,47 @@ class ExcusaControlador extends ControladorBase
             $this->redirigirAccion('validarExcusas', ['error' => '12']);
         }
     }
+
+    /**
+     * accion=verSoporteExcusa -> Visualización segura del archivo PDF adjunto
+     * Valida sesión y autorización por rol antes de transmitir el archivo.
+     */
+    public function verSoporte(): void
+    {
+        $this->exigirSesion(['Administrador', 'Instructor', 'Aprendiz']);
+
+        $idExcusa = (int) ($_GET['id'] ?? 0);
+        if ($idExcusa <= 0) {
+            http_response_code(400);
+            die('Identificador de excusa no válido.');
+        }
+
+        $modelo    = new ExcusaModelo();
+        $idUsuario = (int) ($_SESSION['id'] ?? 0);
+        $rol       = (string) ($_SESSION['rol'] ?? '');
+
+        $excusa = $modelo->buscarPorIdParaVer($idExcusa, $idUsuario, $rol);
+
+        if (!$excusa || empty($excusa['archivo_adjunto'])) {
+            http_response_code(403);
+            die('Acceso denegado: No tienes permisos para consultar este documento o no existe.');
+        }
+
+        $rutaArchivo = BASE_PATH . '/' . ltrim(str_replace('\\', '/', $excusa['archivo_adjunto']), '/');
+
+        if (!file_exists($rutaArchivo) || !is_file($rutaArchivo)) {
+            http_response_code(404);
+            die('El archivo de soporte solicitado no fue localizado en el servidor.');
+        }
+
+        // Cabeceras estrictas de transmisión de documento PDF seguro
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . basename($rutaArchivo) . '"');
+        header('Content-Length: ' . filesize($rutaArchivo));
+        header('Cache-Control: private, max-age=0, must-revalidate');
+        header('Pragma: public');
+
+        readfile($rutaArchivo);
+        exit;
+    }
 }

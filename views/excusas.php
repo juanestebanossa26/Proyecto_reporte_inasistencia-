@@ -213,6 +213,11 @@ $tituloPagina  = 'Excusas médicas';
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end text-nowrap">
+                                        <?php if (!empty($fila['archivo_adjunto'])): ?>
+                                            <a href="<?= BASE_URL ?>/index.php?accion=verSoporteExcusa&id=<?= (int)$fila['id_excusa'] ?>" target="_blank" class="btn btn-sm btn-outline-primary border-0 me-1" title="Ver documento adjunto">
+                                                <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                                            </a>
+                                        <?php endif; ?>
                                         <?php if ($sePuedeReenviar): ?>
                                             <button type="button"
                                                     class="btn btn-sm btn-outline-secondary border-0 btn-reenviar-excusa"
