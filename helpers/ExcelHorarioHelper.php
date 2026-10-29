@@ -400,7 +400,7 @@ class ExcelHorarioHelper
                     $conflictosBaseDatos[] = "Fila {$rItem['fila']}: La ficha '{$numFicha}' se encuentra en estado '{$fichaBD['estado']}'. No se permite importar horarios para fichas finalizadas o archivadas.";
                     continue;
                 }
-                $idFichaBD = (int)$fichaBD['id_ficha'];
+                $idFichaBD = (int)($fichaBD['id_ficha'] ?? $fichaBD['id'] ?? 0);
             } else {
                 $idFichaBD = $this->fichasCache[$numFicha]['id'] ?? null;
             }

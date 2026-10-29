@@ -92,60 +92,59 @@ class ExcusaControlador extends ControladorBase
             return;
         }
 
-        Seguridad::imprimirEncabezadoAnimacion();
-
         if ($archivoSubido['error'] !== UPLOAD_ERR_OK) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Error al subir el archivo.']);
+            Seguridad::alertaYRedirigir('error', 'Error al subir archivo', 'No se pudo cargar el archivo adjunto. Verifica su tamaño e inténtalo de nuevo.', $this->urlAccion('excusas'));
+            return;
+        }
+
+        if (($archivoSubido['size'] ?? 0) > 10 * 1024 * 1024) {
+            Seguridad::alertaYRedirigir('warning', 'Archivo muy grande', 'El archivo PDF no puede superar los 10 MB.', $this->urlAccion('excusas'));
             return;
         }
 
         if (!Seguridad::esPdfValido($archivoSubido['tmp_name'])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Solo se permiten archivos PDF.']);
+            Seguridad::alertaYRedirigir('error', 'Formato inválido', 'Solo se permiten archivos en formato PDF válido.', $this->urlAccion('excusas'));
             return;
+        }
+
+        $idUsuario = (int) ($_SESSION['id'] ?? 0);
+        if ($idUsuario <= 0) {
+            $this->redirigirAccion('login');
         }
 
         $directorioDestino  = BASE_PATH . '/assets/excusas/';
         if (!is_dir($directorioDestino)) {
             @mkdir($directorioDestino, 0755, true);
         }
-        $nombreUnico        = Seguridad::generarNombreArchivoUnico($archivoSubido['name']);
+        $nombreUnico        = Seguridad::generarNombreArchivoUnico('soporte.pdf');
         $rutaFisicaCompleta = $directorioDestino . $nombreUnico;
         $rutaRelativaBD     = 'assets/excusas/' . $nombreUnico;
 
         if (!move_uploaded_file($archivoSubido['tmp_name'], $rutaFisicaCompleta)) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Error al mover el archivo al servidor.']);
+            Seguridad::alertaYRedirigir('error', 'Error de almacenamiento', 'No fue posible guardar el archivo en el servidor.', $this->urlAccion('excusas'));
             return;
         }
 
         try {
-            (new ExcusaModelo())->guardarVarios($idsAsistencia, $rutaRelativaBD, $motivo);
+            (new ExcusaModelo())->guardarVarios($idsAsistencia, $rutaRelativaBD, $motivo, $idUsuario);
 
             $totalDias  = count($idsAsistencia);
             $textoExito = $totalDias > 1
                 ? "El soporte fue guardado para las $totalDias fechas seleccionadas y notificado a tus instructores."
                 : 'El soporte ha sido guardado correctamente y notificado a tus instructores.';
 
-            $urlExcusas   = json_encode($this->urlAccion('excusas'));
-            $textoExitoJs = json_encode($textoExito);
-            echo "<script>
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Excusa radicada con éxito!',
-                    text: {$textoExitoJs},
-                    showClass: { popup: 'animate__animated animate__zoomInDown' },
-                    hideClass: { popup: 'animate__animated animate__fadeOutUp' },
-                    confirmButtonColor: '#39a900',
-                    confirmButtonText: 'Continuar'
-                }).then(() => {
-                    window.location.href = {$urlExcusas};
-                });
-            </script>";
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Error al insertar: ' . $e->getMessage()]);
+            Seguridad::alertaYRedirigir('success', '¡Excusa radicada con éxito!', $textoExito, $this->urlAccion('excusas'));
+        } catch (DomainException $e) {
+            if (is_file($rutaFisicaCompleta)) {
+                @unlink($rutaFisicaCompleta);
+            }
+            Seguridad::alertaYRedirigir('error', 'Operación no permitida', $e->getMessage(), $this->urlAccion('excusas'));
+        } catch (Throwable $e) {
+            if (is_file($rutaFisicaCompleta)) {
+                @unlink($rutaFisicaCompleta);
+            }
+            error_log('Error al guardar excusa: ' . $e->getMessage());
+            Seguridad::alertaYRedirigir('error', 'Error al radicar', 'No se pudo guardar la excusa médica. Intenta de nuevo.', $this->urlAccion('excusas'));
         }
     }
 
@@ -162,18 +161,19 @@ class ExcusaControlador extends ControladorBase
 
         $this->exigirCsrfValido('excusas');
 
+        $idUsuario     = (int) ($_SESSION['id'] ?? 0);
         $idExcusa      = (int) ($_POST['id_excusa'] ?? 0);
         $motivo        = trim($_POST['motivo'] ?? '');
         $archivoSubido = $_FILES['archivo'] ?? null;
 
         $modelo = new ExcusaModelo();
-        // Verificación de propiedad: la excusa debe existir y ser de quien
-        // la está reenviando, para que nadie pueda editar una ajena
-        // adivinando el id_excusa en el formulario.
-        $excusa = $idExcusa > 0 ? $modelo->buscarPorIdYAprendiz($idExcusa, (int) $_SESSION['id']) : false;
+        // Verificación de propiedad y estado reenviable: la excusa debe pertenecer al aprendiz
+        // y haber sido devuelta o rechazada previamente.
+        $excusa = ($idExcusa > 0 && $idUsuario > 0) ? $modelo->buscarParaReenvioPorAprendiz($idExcusa, $idUsuario) : false;
 
         if (!$excusa) {
-            $this->redirigirAccion('excusas', ['error' => '13']);
+            Seguridad::alertaYRedirigir('error', 'Operación no permitida', 'No tienes permiso para modificar esta excusa o su estado actual no admite reenvío.', $this->urlAccion('excusas'));
+            return;
         }
 
         if ($motivo === '' || !$archivoSubido || $archivoSubido['error'] === UPLOAD_ERR_NO_FILE) {
@@ -190,17 +190,18 @@ class ExcusaControlador extends ControladorBase
             return;
         }
 
-        Seguridad::imprimirEncabezadoAnimacion();
-
         if ($archivoSubido['error'] !== UPLOAD_ERR_OK) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Error al subir el archivo.']);
+            Seguridad::alertaYRedirigir('error', 'Error al subir archivo', 'No se pudo cargar el archivo adjunto. Verifica su tamaño e inténtalo de nuevo.', $this->urlAccion('excusas'));
+            return;
+        }
+
+        if (($archivoSubido['size'] ?? 0) > 10 * 1024 * 1024) {
+            Seguridad::alertaYRedirigir('warning', 'Archivo muy grande', 'El archivo PDF no puede superar los 10 MB.', $this->urlAccion('excusas'));
             return;
         }
 
         if (!Seguridad::esPdfValido($archivoSubido['tmp_name'])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Solo se permiten archivos PDF.']);
+            Seguridad::alertaYRedirigir('error', 'Formato inválido', 'Solo se permiten archivos en formato PDF válido.', $this->urlAccion('excusas'));
             return;
         }
 
@@ -208,36 +209,29 @@ class ExcusaControlador extends ControladorBase
         if (!is_dir($directorioDestino)) {
             @mkdir($directorioDestino, 0755, true);
         }
-        $nombreUnico        = Seguridad::generarNombreArchivoUnico($archivoSubido['name']);
+        $nombreUnico        = Seguridad::generarNombreArchivoUnico('soporte.pdf');
         $rutaFisicaCompleta = $directorioDestino . $nombreUnico;
         $rutaRelativaBD     = 'assets/excusas/' . $nombreUnico;
 
         if (!move_uploaded_file($archivoSubido['tmp_name'], $rutaFisicaCompleta)) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Error al mover el archivo al servidor.']);
+            Seguridad::alertaYRedirigir('error', 'Error de almacenamiento', 'No fue posible guardar el archivo en el servidor.', $this->urlAccion('excusas'));
             return;
         }
 
         try {
-            $modelo->reenviar($idExcusa, $rutaRelativaBD, $motivo);
-
-            $urlExcusas = json_encode($this->urlAccion('excusas'));
-            echo "<script>
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Excusa reenviada!',
-                    text: 'Tu instructor la revisará de nuevo.',
-                    showClass: { popup: 'animate__animated animate__zoomInDown' },
-                    hideClass: { popup: 'animate__animated animate__fadeOutUp' },
-                    confirmButtonColor: '#39a900',
-                    confirmButtonText: 'Continuar'
-                }).then(() => {
-                    window.location.href = {$urlExcusas};
-                });
-            </script>";
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Error al reenviar: ' . $e->getMessage()]);
+            $modelo->reenviar($idExcusa, $rutaRelativaBD, $motivo, $idUsuario);
+            Seguridad::alertaYRedirigir('success', '¡Excusa reenviada!', 'Tu instructor la revisará de nuevo.', $this->urlAccion('excusas'));
+        } catch (DomainException $e) {
+            if (is_file($rutaFisicaCompleta)) {
+                @unlink($rutaFisicaCompleta);
+            }
+            Seguridad::alertaYRedirigir('error', 'Operación no permitida', $e->getMessage(), $this->urlAccion('excusas'));
+        } catch (Throwable $e) {
+            if (is_file($rutaFisicaCompleta)) {
+                @unlink($rutaFisicaCompleta);
+            }
+            error_log('Error al reenviar excusa: ' . $e->getMessage());
+            Seguridad::alertaYRedirigir('error', 'Error al reenviar', 'No se pudo reenviar la excusa médica. Intenta de nuevo.', $this->urlAccion('excusas'));
         }
     }
 
@@ -251,10 +245,15 @@ class ExcusaControlador extends ControladorBase
 
         $this->exigirCsrfValido('validarExcusas');
 
-        $accion      = $_POST['accion'] ?? '';
-        $idRevision  = (int) $_POST['id_excusa'];
-        $observacion = trim($_POST['observacion'] ?? '');
-        $modelo      = new ExcusaModelo();
+        $idInstructor = (int) ($_SESSION['id'] ?? 0);
+        $accion       = $_POST['accion'] ?? '';
+        $idRevision   = (int) $_POST['id_excusa'];
+        $observacion  = trim($_POST['observacion'] ?? '');
+        $modelo       = new ExcusaModelo();
+
+        if ($idInstructor <= 0 || $idRevision <= 0) {
+            $this->redirigirAccion('validarExcusas', ['error' => '11']);
+        }
 
         $estadoBD = '';
         if ($accion === 'aprobar') {
@@ -268,11 +267,15 @@ class ExcusaControlador extends ControladorBase
         }
 
         try {
-            $detalleAprendiz = $modelo->obtenerDetalleRevision($idRevision);
-            $modelo->procesarRevision($idRevision, $estadoBD, $observacion);
+            $detalleAprendiz = $modelo->obtenerDetalleRevision($idRevision, $idInstructor);
+            if (!$detalleAprendiz) {
+                $this->redirigirAccion('validarExcusas', ['error' => '13']);
+            }
+
+            $modelo->procesarRevision($idRevision, $idInstructor, $estadoBD, $observacion);
 
             // Notificar al aprendiz por correo electrónico el resultado de la revisión sin alterar ni borrar registros
-            if ($detalleAprendiz && !empty($detalleAprendiz['correo_electronico'])) {
+            if (!empty($detalleAprendiz['correo_electronico'])) {
                 $fichaTxt = !empty($detalleAprendiz['numero_ficha'])
                     ? ($detalleAprendiz['numero_ficha'] . ' · ' . ($detalleAprendiz['nombre_programa'] ?? ''))
                     : '';
@@ -289,7 +292,10 @@ class ExcusaControlador extends ControladorBase
             }
 
             $this->redirigirAccion('validarExcusas', ['success' => '1']);
-        } catch (Exception $e) {
+        } catch (DomainException $e) {
+            error_log('Intento no autorizado al procesar excusa ID ' . $idRevision . ': ' . $e->getMessage());
+            $this->redirigirAccion('validarExcusas', ['error' => '13']);
+        } catch (Throwable $e) {
             error_log('Error al procesar excusa: ' . $e->getMessage());
             $this->redirigirAccion('validarExcusas', ['error' => '12']);
         }
@@ -320,9 +326,10 @@ class ExcusaControlador extends ControladorBase
             die('Acceso denegado: No tienes permisos para consultar este documento o no existe.');
         }
 
-        $rutaArchivo = BASE_PATH . '/' . ltrim(str_replace('\\', '/', $excusa['archivo_adjunto']), '/');
+        $dirExcusasBase = realpath(BASE_PATH . '/assets/excusas');
+        $rutaArchivo    = realpath(BASE_PATH . '/' . ltrim(str_replace('\\', '/', $excusa['archivo_adjunto']), '/'));
 
-        if (!file_exists($rutaArchivo) || !is_file($rutaArchivo)) {
+        if ($dirExcusasBase === false || $rutaArchivo === false || !str_starts_with($rutaArchivo, $dirExcusasBase . DIRECTORY_SEPARATOR) || !is_file($rutaArchivo)) {
             http_response_code(404);
             die('El archivo de soporte solicitado no fue localizado en el servidor.');
         }

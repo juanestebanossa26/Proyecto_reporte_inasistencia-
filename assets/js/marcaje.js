@@ -130,20 +130,43 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            // Agregar a la lista de marcajes
+            // Agregar a la lista de marcajes usando creación segura de nodos DOM (prevención XSS)
             if (itemSinMarcajes) itemSinMarcajes.remove();
             const li = document.createElement('li');
             li.className = 'd-flex justify-content-between align-items-center p-2 mb-1 rounded-3 bg-light border animate__animated animate__fadeInDown';
-            li.innerHTML = `
-                <div class="d-flex align-items-center gap-2 text-truncate">
-                    <i class="bi ${esSalida ? 'bi-arrow-up-circle-fill text-info' : (esRetardo ? 'bi-exclamation-circle-fill text-warning' : 'bi-arrow-down-circle-fill text-success')} fs-5"></i>
-                    <div class="text-truncate">
-                        <div class="fw-semibold text-dark text-truncate" style="font-size: .88rem;">${data.nombre}</div>
-                        <div class="text-muted" style="font-size: .72rem;">${data.ficha} · ${esSalida ? 'Salida' : (esRetardo ? 'Retardo' : 'A tiempo')}</div>
-                    </div>
-                </div>
-                <span class="badge bg-white text-secondary border px-2 py-1 ms-2" style="font-size:.75rem;">${data.hora}</span>
-            `;
+
+            const contIzq = document.createElement('div');
+            contIzq.className = 'd-flex align-items-center gap-2 text-truncate';
+
+            const iconEl = document.createElement('i');
+            iconEl.className = `bi ${esSalida ? 'bi-arrow-up-circle-fill text-info' : (esRetardo ? 'bi-exclamation-circle-fill text-warning' : 'bi-arrow-down-circle-fill text-success')} fs-5`;
+
+            const textWrap = document.createElement('div');
+            textWrap.className = 'text-truncate';
+
+            const nombreEl = document.createElement('div');
+            nombreEl.className = 'fw-semibold text-dark text-truncate';
+            nombreEl.style.fontSize = '.88rem';
+            nombreEl.textContent = String(data.nombre || '');
+
+            const subEl = document.createElement('div');
+            subEl.className = 'text-muted';
+            subEl.style.fontSize = '.72rem';
+            const etiquetaEstado = esSalida ? 'Salida' : (esRetardo ? 'Retardo' : 'A tiempo');
+            subEl.textContent = `${String(data.ficha || '')} · ${etiquetaEstado}`;
+
+            textWrap.appendChild(nombreEl);
+            textWrap.appendChild(subEl);
+            contIzq.appendChild(iconEl);
+            contIzq.appendChild(textWrap);
+
+            const badgeEl = document.createElement('span');
+            badgeEl.className = 'badge bg-white text-secondary border px-2 py-1 ms-2';
+            badgeEl.style.fontSize = '.75rem';
+            badgeEl.textContent = String(data.hora || '');
+
+            li.appendChild(contIzq);
+            li.appendChild(badgeEl);
             listaUltimos.prepend(li);
 
         } else {

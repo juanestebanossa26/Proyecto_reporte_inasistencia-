@@ -1,5 +1,13 @@
 <?php
 // scripts/ejecutar_migracion_ciclo_vida.php
+// Script de mantenimiento exclusivo para consola (CLI).
+
+if (!in_array(PHP_SAPI, ['cli', 'phpdbg'], true)) {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    exit('Acceso denegado: este script de migración solo puede ejecutarse desde CLI.');
+}
+
 require_once __DIR__ . '/../config/conexion.php';
 
 $pdo = Conexion::obtener();

@@ -91,7 +91,35 @@ class ExcusaModelo
                 JOIN asistencias ON asistencias.id_asistencia = excusas_medicas.id_asistencia
                 JOIN aprendices ON aprendices.id_aprendiz = asistencias.id_aprendiz
                 WHERE excusas_medicas.id_excusa = :id_excusa
-                  AND aprendices.id_usuario = :id_usuario";
+                  AND aprendices.id_usuario = :id_usuario
+                LIMIT 1";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
+        $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch();
+    }
+
+    // Verifica pertenencia y que la excusa tenga al menos una revisión devuelta o rechazada
+    // (impide reenviar excusas ajenas o ya aprobadas/pendientes).
+    public function buscarParaReenvioPorAprendiz(int $idExcusa, int $idUsuario): array|false
+    {
+        $sql = "SELECT
+                    em.id_excusa,
+                    em.motivo,
+                    em.archivo_adjunto,
+                    SUM(CASE WHEN LOWER(re.estado) IN ('rechazada', 'devuelta') THEN 1 ELSE 0 END) AS reenviables
+                FROM excusas_medicas em
+                JOIN asistencias a ON a.id_asistencia = em.id_asistencia
+                JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
+                LEFT JOIN revision_excusas re ON re.id_excusa = em.id_excusa
+                WHERE em.id_excusa = :id_excusa
+                  AND ap.id_usuario = :id_usuario
+                GROUP BY em.id_excusa, em.motivo, em.archivo_adjunto
+                HAVING reenviables > 0
+                LIMIT 1";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
@@ -145,37 +173,41 @@ class ExcusaModelo
 
     // Guarda una excusa para UNA fecha (se mantiene por compatibilidad;
     // internamente usa el mismo camino que guardarVarios()).
-    public function guardar(int $idAsistencia, string $rutaRelativaArchivo, string $motivo): void
+    public function guardar(int $idAsistencia, string $rutaRelativaArchivo, string $motivo, int $idUsuario): void
     {
-        $this->guardarVarios([$idAsistencia], $rutaRelativaArchivo, $motivo);
+        $this->guardarVarios([$idAsistencia], $rutaRelativaArchivo, $motivo, $idUsuario);
     }
 
     // Guarda LA MISMA excusa (mismo archivo, mismo motivo) para varias
-    // fechas de inasistencia a la vez: una fila en excusas_medicas por
-    // cada fecha marcada, todas dentro de una sola transacción.
-    public function guardarVarios(array $idsAsistencia, string $rutaRelativaArchivo, string $motivo): void
+    // fechas de inasistencia del aprendiz autenticado, todas dentro de una sola transacción.
+    public function guardarVarios(array $idsAsistencia, string $rutaRelativaArchivo, string $motivo, int $idUsuario): void
     {
+        if (empty($idsAsistencia) || $idUsuario <= 0) {
+            throw new DomainException('Solicitud inválida para radicar excusa.');
+        }
+
         $conexion = Conexion::obtener();
 
         try {
             $conexion->beginTransaction();
 
             foreach ($idsAsistencia as $idAsistencia) {
-                $this->insertarExcusaYNotificar($conexion, (int) $idAsistencia, $rutaRelativaArchivo, $motivo);
+                $this->insertarExcusaYNotificar($conexion, (int) $idAsistencia, $rutaRelativaArchivo, $motivo, $idUsuario);
             }
 
             $conexion->commit();
-        } catch (Exception $e) {
-            $conexion->rollBack();
+        } catch (Throwable $e) {
+            if ($conexion->inTransaction()) {
+                $conexion->rollBack();
+            }
             error_log('Error al guardar excusa(s) y notificar instructores: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    // Inserta UNA fila de excusas_medicas para una fecha/bloque puntual, y crea
-    // su revisión pendiente para el instructor que tenía clase en ese bloque
-    // (o para los instructores de la ficha si no había uno asignado en horarios).
-    private function insertarExcusaYNotificar(PDO $conexion, int $idAsistencia, string $rutaRelativaArchivo, string $motivo): void
+    // Inserta UNA fila de excusas_medicas verificando en SQL que la asistencia pertenezca al aprendiz
+    // autenticado, corresponda a una inasistencia activa y no tenga ya excusa asociada.
+    private function insertarExcusaYNotificar(PDO $conexion, int $idAsistencia, string $rutaRelativaArchivo, string $motivo, int $idUsuario): void
     {
         $stmtInfo = $conexion->prepare("
             SELECT 
@@ -187,15 +219,21 @@ class ExcusaModelo
             FROM asistencias a
             JOIN aprendices ap ON a.id_aprendiz = ap.id_aprendiz
             LEFT JOIN horarios h ON a.id_horario = h.id_horario
+            LEFT JOIN excusas_medicas em ON em.id_asistencia = a.id_asistencia
             WHERE a.id_asistencia = :id_asistencia
+              AND ap.id_usuario = :id_usuario
+              AND LOWER(COALESCE(a.estado, '')) != 'anulada_por_auditoria'
+              AND (LOWER(COALESCE(a.estado, '')) IN ('inasistencia', 'falta') OR a.hora_entrada_real IS NULL)
+              AND em.id_excusa IS NULL
             LIMIT 1
         ");
         $stmtInfo->bindParam(':id_asistencia', $idAsistencia, PDO::PARAM_INT);
+        $stmtInfo->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
         $stmtInfo->execute();
         $infoAprendiz = $stmtInfo->fetch(PDO::FETCH_ASSOC);
 
         if (!$infoAprendiz) {
-            throw new Exception("No se encontró el aprendiz para esta asistencia.");
+            throw new DomainException("Uno o más registros de inasistencia no pertenecen a tu usuario o ya tienen una excusa registrada.");
         }
 
         $idAprendiz        = (int) $infoAprendiz['id_aprendiz'];
@@ -247,38 +285,59 @@ class ExcusaModelo
         }
     }
 
-    // Reenvía una excusa YA EXISTENTE (misma fila, mismo id_excusa): se
-    // reemplaza el archivo y el motivo, y se reabren a "Pendiente" solo
-    // las revisiones que no estaban ya aprobadas -- al instructor que ya
-    // la había aprobado no le vuelve a aparecer para revisar de nuevo.
-    public function reenviar(int $idExcusa, string $rutaRelativaArchivo, string $motivo): void
+    // Reenvía una excusa YA EXISTENTE verificando propiedad y estado reenviable en SQL.
+    public function reenviar(int $idExcusa, string $rutaRelativaArchivo, string $motivo, int $idUsuario): void
     {
         $conexion = Conexion::obtener();
 
         try {
             $conexion->beginTransaction();
 
+            $stmtCheck = $conexion->prepare("
+                SELECT COUNT(*)
+                FROM excusas_medicas em
+                JOIN asistencias a ON a.id_asistencia = em.id_asistencia
+                JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
+                JOIN revision_excusas re ON re.id_excusa = em.id_excusa
+                WHERE em.id_excusa = :id_excusa
+                  AND ap.id_usuario = :id_usuario
+                  AND LOWER(re.estado) IN ('rechazada', 'devuelta')
+            ");
+            $stmtCheck->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
+            $stmtCheck->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
+            $stmtCheck->execute();
+
+            if ((int) $stmtCheck->fetchColumn() <= 0) {
+                throw new DomainException('No tienes permiso para reenviar esta excusa o su estado actual no admite reenvío.');
+            }
+
             $stmt = $conexion->prepare("
-                UPDATE excusas_medicas
-                SET archivo_adjunto = :ruta, motivo = :motivo
-                WHERE id_excusa = :id_excusa
+                UPDATE excusas_medicas em
+                JOIN asistencias a ON a.id_asistencia = em.id_asistencia
+                JOIN aprendices ap ON ap.id_aprendiz = a.id_aprendiz
+                SET em.archivo_adjunto = :ruta, em.motivo = :motivo
+                WHERE em.id_excusa = :id_excusa
+                  AND ap.id_usuario = :id_usuario
             ");
             $stmt->bindParam(':ruta', $rutaRelativaArchivo);
             $stmt->bindParam(':motivo', $motivo);
             $stmt->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
+            $stmt->bindParam(':id_usuario', $idUsuario, PDO::PARAM_INT);
             $stmt->execute();
 
             $stmt = $conexion->prepare("
                 UPDATE revision_excusas
                 SET estado = 'Pendiente', observaciones = NULL, fecha_respuesta = NULL
-                WHERE id_excusa = :id_excusa AND estado != 'Aprobada'
+                WHERE id_excusa = :id_excusa AND LOWER(estado) IN ('rechazada', 'devuelta')
             ");
             $stmt->bindParam(':id_excusa', $idExcusa, PDO::PARAM_INT);
             $stmt->execute();
 
             $conexion->commit();
-        } catch (Exception $e) {
-            $conexion->rollBack();
+        } catch (Throwable $e) {
+            if ($conexion->inTransaction()) {
+                $conexion->rollBack();
+            }
             error_log('Error al reenviar excusa: ' . $e->getMessage());
             throw $e;
         }
@@ -332,8 +391,8 @@ class ExcusaModelo
         return (int) $stmt->fetchColumn();
     }
 
-    // Obtiene los datos del aprendiz y la sesión para notificar por correo electrónico el resultado de la revisión
-    public function obtenerDetalleRevision(int $idRevision): ?array
+    // Obtiene los datos del aprendiz y la sesión verificando que la revisión pertenezca al instructor y siga pendiente
+    public function obtenerDetalleRevision(int $idRevision, int $idInstructor): ?array
     {
         $sql = "SELECT
                     usuarios.nombre_completo,
@@ -348,48 +407,73 @@ class ExcusaModelo
                 JOIN usuarios ON aprendices.id_usuario = usuarios.id_usuario
                 JOIN fichas ON aprendices.id_ficha = fichas.id_ficha
                 WHERE re.id_revision = :id_rev
+                  AND re.id_instructor = :id_inst
+                  AND LOWER(re.estado) = 'pendiente'
                 LIMIT 1";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id_rev', $idRevision, PDO::PARAM_INT);
+        $stmt->bindParam(':id_inst', $idInstructor, PDO::PARAM_INT);
         $stmt->execute();
         $res = $stmt->fetch();
 
         return $res ?: null;
     }
 
-    // Procesa la decisión del instructor (Aprobar, Rechazar, Devolver) en un solo método
-    public function procesarRevision(int $idRevision, string $estado, string $observacion): void
+    // Procesa la decisión del instructor autenticado (Aprobar, Rechazar, Devolver) validando autorización en SQL
+    public function procesarRevision(int $idRevision, int $idInstructor, string $estado, string $observacion): void
     {
         $conexion = Conexion::obtener();
 
-        $sql = "UPDATE revision_excusas
-                SET estado = :estado,
-                    observaciones = :obs,
-                    fecha_respuesta = NOW()
-                WHERE id_revision = :id_rev";
+        try {
+            $conexion->beginTransaction();
 
-        $stmt = $conexion->prepare($sql);
-        $stmt->bindParam(':estado', $estado);
-        $stmt->bindParam(':obs', $observacion);
-        $stmt->bindParam(':id_rev', $idRevision, PDO::PARAM_INT);
-        $stmt->execute();
+            $sql = "UPDATE revision_excusas
+                    SET estado = :estado,
+                        observaciones = :obs,
+                        fecha_respuesta = NOW()
+                    WHERE id_revision = :id_rev
+                      AND id_instructor = :id_inst
+                      AND LOWER(estado) = 'pendiente'";
 
-        if (strtolower($estado) === 'aprobada') {
-            $sqlAsistencia = "SELECT em.id_asistencia
-                              FROM revision_excusas re
-                              JOIN excusas_medicas em ON re.id_excusa = em.id_excusa
-                              WHERE re.id_revision = :id_rev";
-            $stmtAsis = $conexion->prepare($sqlAsistencia);
-            $stmtAsis->bindParam(':id_rev', $idRevision, PDO::PARAM_INT);
-            $stmtAsis->execute();
-            $idAsistencia = $stmtAsis->fetchColumn();
+            $stmt = $conexion->prepare($sql);
+            $stmt->bindParam(':estado', $estado);
+            $stmt->bindParam(':obs', $observacion);
+            $stmt->bindParam(':id_rev', $idRevision, PDO::PARAM_INT);
+            $stmt->bindParam(':id_inst', $idInstructor, PDO::PARAM_INT);
+            $stmt->execute();
 
-            if ($idAsistencia) {
-                $stmtUpdate = $conexion->prepare("UPDATE asistencias SET estado = 'asistencia' WHERE id_asistencia = :id_as");
-                $stmtUpdate->bindParam(':id_as', $idAsistencia, PDO::PARAM_INT);
-                $stmtUpdate->execute();
+            if ($stmt->rowCount() !== 1) {
+                throw new DomainException('No tienes autorización para procesar esta revisión o ya fue procesada.');
             }
+
+            if (strtolower($estado) === 'aprobada') {
+                $sqlAsistencia = "SELECT em.id_asistencia
+                                  FROM revision_excusas re
+                                  JOIN excusas_medicas em ON re.id_excusa = em.id_excusa
+                                  WHERE re.id_revision = :id_rev
+                                    AND re.id_instructor = :id_inst
+                                  LIMIT 1";
+                $stmtAsis = $conexion->prepare($sqlAsistencia);
+                $stmtAsis->bindParam(':id_rev', $idRevision, PDO::PARAM_INT);
+                $stmtAsis->bindParam(':id_inst', $idInstructor, PDO::PARAM_INT);
+                $stmtAsis->execute();
+                $idAsistencia = $stmtAsis->fetchColumn();
+
+                if ($idAsistencia) {
+                    $stmtUpdate = $conexion->prepare("UPDATE asistencias SET estado = 'asistencia' WHERE id_asistencia = :id_as");
+                    $stmtUpdate->bindParam(':id_as', $idAsistencia, PDO::PARAM_INT);
+                    $stmtUpdate->execute();
+                }
+            }
+
+            $conexion->commit();
+        } catch (Throwable $e) {
+            if ($conexion->inTransaction()) {
+                $conexion->rollBack();
+            }
+            error_log('Error al procesar revisión de excusa: ' . $e->getMessage());
+            throw $e;
         }
     }
 }

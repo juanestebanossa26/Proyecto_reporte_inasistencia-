@@ -39,8 +39,14 @@ define('DB_USER', $env['DB_USER'] ?? 'root');
 define('DB_PASS', $env['DB_PASS'] ?? '');
 define('DB_CHARSET', $env['DB_CHARSET'] ?? 'utf8mb4');
 
-// Modo depuración (true para ver errores en desarrollo, false en producción)
-define('MODO_DEBUG', filter_var($env['APP_DEBUG'] ?? true, FILTER_VALIDATE_BOOLEAN));
+// Modo depuración (false por defecto por seguridad; habilitar únicamente mediante APP_DEBUG=true en .env)
+define('MODO_DEBUG', filter_var($env['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN));
+
+// Control estricto de errores PHP acorde al entorno
+error_reporting(E_ALL);
+ini_set('log_errors', '1');
+ini_set('display_errors', MODO_DEBUG ? '1' : '0');
+ini_set('display_startup_errors', MODO_DEBUG ? '1' : '0');
 
 // Configuración de Servidor de Correo (SMTP)
 define('SMTP_HOST', $env['SMTP_HOST'] ?? 'smtp.gmail.com');
@@ -51,8 +57,9 @@ define('SMTP_SECURE', $env['SMTP_SECURE'] ?? 'tls');
 define('MAIL_FROM_ADDRESS', !empty($env['MAIL_FROM_ADDRESS']) ? $env['MAIL_FROM_ADDRESS'] : ($env['SMTP_USER'] ?? 'no-reply@sena.edu.co'));
 define('MAIL_FROM_NAME', !empty($env['MAIL_FROM_NAME']) ? $env['MAIL_FROM_NAME'] : 'Control de Asistencias SENA');
 
-// Token de seguridad para la ejecución remota de tareas programadas (CRON)
-define('CRON_SECRET_TOKEN', $env['CRON_SECRET_TOKEN'] ?? 'SENA_CRON_SECURE_2026');
+// Token de seguridad para la ejecución remota de tareas programadas (CRON).
+// Debe configurarse explícitamente en .env para permitir invocación HTTP autorizada.
+define('CRON_SECRET_TOKEN', trim((string) ($env['CRON_SECRET_TOKEN'] ?? '')));
 
 
 // Límite de tamaño máximo para importación de horarios Excel

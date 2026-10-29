@@ -78,9 +78,10 @@ class UsuarioModelo
 
     public function buscarInstructorPorId(int $id): array|false
     {
-        $sql = "SELECT id_usuario, nombre_completo, usuario, area, correo_electronico
+        $sql = "SELECT id_usuario, nombre_completo, usuario, area, correo_electronico, estado
                 FROM usuarios
-                WHERE id_usuario = :id AND id_role = 2";
+                WHERE id_usuario = :id AND id_role = 2
+                LIMIT 1";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -144,7 +145,8 @@ class UsuarioModelo
     }
 
     // Si $passwordHash es null, la contraseña actual se conserva.
-    public function actualizarInstructor(int $id, string $nombre, string $usuario, string $area, string $correo, ?string $passwordHash): void
+    // Restringido estrictamente a usuarios con rol Instructor (id_role = 2).
+    public function actualizarInstructor(int $id, string $nombre, string $usuario, string $area, string $correo, ?string $passwordHash): bool
     {
         $sql = "UPDATE usuarios
                 SET nombre_completo = :nombre,
@@ -152,7 +154,7 @@ class UsuarioModelo
                     area = :area,
                     correo_electronico = :correo" . 
                     ($passwordHash !== null ? ", contrasena = :pass" : "") . "
-                WHERE id_usuario = :id";
+                WHERE id_usuario = :id AND id_role = 2";
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':nombre', $nombre);
@@ -166,6 +168,7 @@ class UsuarioModelo
         }
 
         $stmt->execute();
+        return $stmt->rowCount() > 0;
     }
 
     public function cambiarEstadoInstructor(int $id, string $nuevoEstado): bool
@@ -177,8 +180,9 @@ class UsuarioModelo
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindParam(':estado', $nuevoEstado);
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
 
-        return $stmt->execute();
+        return $stmt->rowCount() > 0;
     }
 
     // Busca un usuario por su ID primario, incluyendo su rol

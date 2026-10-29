@@ -18,32 +18,37 @@
 
 declare(strict_types=1);
 
-$esCli = (PHP_SAPI === 'cli');
-
-// Validación de acceso seguro en llamadas HTTP
-if (!$esCli) {
-    header('Content-Type: application/json; charset=utf-8');
-    
-    // Configuración de token seguro (puede definirse en config o usar por defecto)
-    $tokenConfigurado = defined('CRON_SECRET_TOKEN') ? CRON_SECRET_TOKEN : 'SENA_CRON_SECURE_2026';
-    $tokenRecibido = (string) ($_GET['token'] ?? $_POST['token'] ?? '');
-
-    // Permitir solo desde localhost o con token válido
-    $esLocal = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
-
-    if (!$esLocal && (!hash_equals($tokenConfigurado, $tokenRecibido))) {
-        http_response_code(403);
-        echo json_encode([
-            'success' => false,
-            'error'   => 'Acceso denegado: Se requiere autenticación autorizada para ejecutar la tarea.'
-        ], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-}
+$esCli = in_array(PHP_SAPI, ['cli', 'phpdbg'], true);
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/conexion.php';
 require_once __DIR__ . '/../models/AsistenciaModelo.php';
+
+// Validación estricta de acceso en llamadas HTTP (requiere secreto configurado en .env)
+if (!$esCli) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+    $tokenConfigurado = defined('CRON_SECRET_TOKEN') ? trim((string) CRON_SECRET_TOKEN) : '';
+    $tokenInvalidoPorDefecto = ($tokenConfigurado === '' || strlen($tokenConfigurado) < 16 || $tokenConfigurado === 'SENA_CRON_SECURE_2026');
+
+    $tokenRecibido = trim((string) ($_SERVER['HTTP_X_CRON_TOKEN'] ?? ''));
+    if ($tokenRecibido === '' && isset($_SERVER['HTTP_AUTHORIZATION']) && preg_match('/^Bearer\s+(.+)$/i', $_SERVER['HTTP_AUTHORIZATION'], $m)) {
+        $tokenRecibido = trim($m[1]);
+    }
+    if ($tokenRecibido === '') {
+        $tokenRecibido = trim((string) ($_POST['token'] ?? $_GET['token'] ?? ''));
+    }
+
+    if ($tokenInvalidoPorDefecto || $tokenRecibido === '' || !hash_equals($tokenConfigurado, $tokenRecibido)) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Acceso denegado: Se requiere un token de cron autorizado para ejecutar esta tarea.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
 
 // Parsear banderas CLI
 $forzarEjecucion = false;
@@ -162,7 +167,7 @@ try {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error'   => $errorMsg
+                'error'   => 'Error interno durante la sincronización de inasistencias.'
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }

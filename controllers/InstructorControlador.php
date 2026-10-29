@@ -127,6 +127,11 @@ class InstructorControlador extends ControladorBase
 
         $modelo = new UsuarioModelo();
 
+        if ($id <= 0 || !$modelo->buscarInstructorPorId($id)) {
+            Seguridad::alertaYRedirigir('error', 'Operación no permitida', 'El instructor solicitado no existe o no pertenece al rol permitido.', $this->urlAccion(self::ACCION_LISTADO));
+            return;
+        }
+
         if ($modelo->existeUsuario($usuario, $id)) {
             Seguridad::alertaYRedirigir('warning', 'Usuario en uso', 'El usuario ya está asignado a otra persona.', $this->urlAccion(self::ACCION_LISTADO));
             return;
@@ -157,20 +162,27 @@ class InstructorControlador extends ControladorBase
             return;
         }
 
-        $id = filter_var($_POST['id_usuario'] ?? '', FILTER_SANITIZE_NUMBER_INT);
-        $estadoActual = trim($_POST['estado_actual'] ?? '');
+        $id = (int) filter_var($_POST['id_usuario'] ?? '', FILTER_SANITIZE_NUMBER_INT);
 
-        if (empty($id)) {
+        if ($id <= 0) {
             Seguridad::alertaYRedirigir('warning', 'Atención', 'Identificador de usuario inválido.', $this->urlAccion(self::ACCION_LISTADO));
             return;
         }
 
-        // Alternar estado: si está Activo pasa a Inactivo, de lo contrario pasa a Activo
-        $nuevoEstado = (strtolower($estadoActual) === 'activo') ? 'Inactivo' : 'Activo';
-
         try {
             $modelo = new UsuarioModelo();
-            $modelo->cambiarEstadoInstructor((int) $id, $nuevoEstado);
+            $instructorActual = $modelo->buscarInstructorPorId($id);
+
+            if (!$instructorActual) {
+                Seguridad::alertaYRedirigir('error', 'Operación no permitida', 'El instructor solicitado no existe o no pertenece al rol permitido.', $this->urlAccion(self::ACCION_LISTADO));
+                return;
+            }
+
+            // Determinar el nuevo estado exclusivamente desde el registro real en base de datos
+            $estadoReal = strtolower(trim((string) ($instructorActual['estado'] ?? '')));
+            $nuevoEstado = ($estadoReal === 'activo') ? 'Inactivo' : 'Activo';
+
+            $modelo->cambiarEstadoInstructor($id, $nuevoEstado);
 
             $mensaje = $nuevoEstado === 'Inactivo' ? 'El instructor ha sido inactivado.' : 'El instructor ha sido activado.';
             Seguridad::alertaYRedirigir('success', '¡Estado actualizado!', $mensaje, $this->urlAccion(self::ACCION_LISTADO));
