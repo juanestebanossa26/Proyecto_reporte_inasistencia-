@@ -65,3 +65,26 @@ define('CRON_SECRET_TOKEN', trim((string) ($env['CRON_SECRET_TOKEN'] ?? '')));
 // Límite de tamaño máximo para importación de horarios Excel
 define('LIMITE_EXCEL_HORARIOS_MB', 5);
 define('LIMITE_EXCEL_HORARIOS_BYTES', LIMITE_EXCEL_HORARIOS_MB * 1024 * 1024);
+
+if (!function_exists('versionarRecurso')) {
+    /**
+     * Retorna una versión determinística basada en filemtime() para cache-busting
+     * de archivos locales CSS/JS, evitando usar time().
+     */
+    function versionarRecurso(string $rutaRelativa): string
+    {
+        static $cache = [];
+        $rutaLimpia = ltrim(str_replace('\\', '/', $rutaRelativa), '/');
+
+        if (isset($cache[$rutaLimpia])) {
+            return $cache[$rutaLimpia];
+        }
+
+        $baseDir = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__);
+        $rutaAbsoluta = rtrim(str_replace('\\', '/', $baseDir), '/') . '/' . $rutaLimpia;
+        $version = is_file($rutaAbsoluta) ? (string) filemtime($rutaAbsoluta) : '1.0';
+
+        $cache[$rutaLimpia] = $version;
+        return $version;
+    }
+}

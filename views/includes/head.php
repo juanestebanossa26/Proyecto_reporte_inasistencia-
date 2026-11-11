@@ -22,8 +22,17 @@ if (!isset($tituloPagina)) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://fonts.gstatic.com">
 
-<!-- Constantes y configuración global JS -->
+<!-- Restauración pre-pintura del sidebar para evitar FOUC al cargar/navegar -->
 <script>
+(function () {
+    try {
+        if (window.innerWidth > 991 && localStorage.getItem('sidebar_collapsed') === '1') {
+            document.documentElement.classList.add('sena-sidebar-collapsed-pref');
+        }
+        document.documentElement.classList.add('sena-sidebar-preinit');
+    } catch (e) {}
+})();
+
 window.BASE_URL = <?= json_encode(BASE_URL) ?>;
 var BASE_URL = window.BASE_URL;
 
@@ -38,12 +47,11 @@ window.addEventListener('pageshow', function (event) {
 <!-- Bootstrap 5 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<!-- Bootstrap Icons diferidos para no bloquear la pintura inicial en móviles -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"></noscript>
+<!-- Bootstrap Icons síncrono para evitar parpadeo y salto de ancho en íconos del sidebar -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <!-- Tipografías Google con swap -->
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <!-- Estilos propios -->
-<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=<?= file_exists(BASE_PATH . '/assets/css/style.css') ? filemtime(BASE_PATH . '/assets/css/style.css') : '1.0' ?>">
+<link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css?v=<?= versionarRecurso('assets/css/style.css') ?>">

@@ -133,18 +133,24 @@ class ExcelHorarioHelper
     public function importar(string $rutaArchivo): array
     {
         $this->ultimoErrorEstructura = null;
+        $this->fichasCache = [];
+        $this->instructoresCache = [];
 
         $resultado = [
-            'exito'                => false,
-            'mensaje'              => '',
-            'total_procesados'     => 0,
-            'guardados'            => 0,
-            'festivos_registrados' => 0,
-            'duplicados'           => 0,
-            'fichas_creadas'       => 0,
-            'instructores_creados' => 0,
-            'errores'              => [],
-            'detalles'             => []
+            'exito'                 => false,
+            'mensaje'               => '',
+            'total_procesados'      => 0,
+            'guardados'             => 0,
+            'festivos_registrados'  => 0,
+            'festivos_nuevos'       => 0,
+            'festivos_sin_cambios'  => 0,
+            'festivos_actualizados' => 0,
+            'festivos_invalidos'    => 0,
+            'duplicados'            => 0,
+            'fichas_creadas'        => 0,
+            'instructores_creados'  => 0,
+            'errores'               => [],
+            'detalles'              => []
         ];
 
         try {
@@ -191,50 +197,58 @@ class ExcelHorarioHelper
         }
 
         // ======================================================================
-        // FASE 1: PROCESAMIENTO ESPECIAL DE FESTIVOS (Sin crear usuarios/aprendices)
+        // FASE 1: VALIDACIÓN PREVIA SOLO LECTURA DE FICHA ENCABEZADO Y FESTIVOS
         // ======================================================================
-        $idFichaGlobal = null;
+        $fichaHeaderPendiente = null;
         if (!empty($fichaDetectada['numero_ficha'])) {
-            $numFichaLim = preg_replace('/[\x{00A0}\x{200B}\s]+/u', '', $fichaDetectada['numero_ficha']);
-            $fichaExistente = $this->modelo->buscarFichaPorNumero($numFichaLim);
-            if ($fichaExistente) {
-                if (($fichaExistente['estado'] ?? 'Activa') !== 'Activa') {
-                    $resultado['mensaje'] = "La ficha '{$numFichaLim}' identificada en el archivo se encuentra en estado '{$fichaExistente['estado']}'. Por políticas institucionales, no es posible importar horarios para fichas finalizadas o archivadas.";
-                    return $resultado;
+            $numFichaLim = preg_replace('/[\x{00A0}\x{200B}\s]+/u', '', (string) $fichaDetectada['numero_ficha']);
+            if ($numFichaLim !== '') {
+                $fichaExistente = $this->modelo->buscarFichaPorNumero($numFichaLim);
+                if ($fichaExistente) {
+                    if (($fichaExistente['estado'] ?? 'Activa') !== 'Activa') {
+                        $resultado['mensaje'] = "La ficha '{$numFichaLim}' identificada en el archivo se encuentra en estado '{$fichaExistente['estado']}'. Por políticas institucionales, no es posible importar horarios para fichas finalizadas o archivadas.";
+                        return $resultado;
+                    }
+                    $this->fichasCache[$numFichaLim] = $fichaExistente;
+                } else {
+                    $prog = !empty($fichaDetectada['programa']) ? $fichaDetectada['programa'] : 'Formación SENA';
+                    $fichaHeaderPendiente = ['numero_ficha' => $numFichaLim, 'programa' => $prog];
                 }
-                $idFichaGlobal = (int)$fichaExistente['id_ficha'];
-            } else {
-                $prog = !empty($fichaDetectada['programa']) ? $fichaDetectada['programa'] : 'Formación SENA';
-                $idFichaGlobal = $this->modelo->crearFicha($numFichaLim, $prog);
-                $this->fichasCache[$numFichaLim] = ['id' => $idFichaGlobal, 'nueva' => true];
-                $resultado['fichas_creadas']++;
             }
         }
 
+        $festivosValidados = [];
         foreach ($festivos as $fest) {
-            $fechaFest = $fest['fecha'];
-            $hIniFest  = $fest['hora_inicio'] ?? '06:00:00';
-            $hFinFest  = $fest['hora_fin'] ?? '22:00:00';
-            $esDiaComp = $fest['es_dia_completo'] ?? 1;
+            $fechaFest = trim((string) ($fest['fecha'] ?? ''));
+            $hIniFest  = trim((string) ($fest['hora_inicio'] ?? '06:00:00'));
+            $hFinFest  = trim((string) ($fest['hora_fin'] ?? '22:00:00'));
+            if (strlen($hIniFest) === 5) {
+                $hIniFest .= ':00';
+            }
+            if (strlen($hFinFest) === 5) {
+                $hFinFest .= ':00';
+            }
+            $esDiaComp = (int) ($fest['es_dia_completo'] ?? 1);
+            $descFest  = trim((string) ($fest['descripcion'] ?? 'FESTIVO')) ?: 'FESTIVO';
 
-            // Se registra el festivo a nivel institucional (id_ficha = null) para que aplique
-            // a todas las fichas del centro de formación. Si ya existe un festivo registrado
-            // en el sistema para esta fecha (sea institucional o de cualquier ficha), se omite
-            // para garantizar que los días festivos no se dupliquen al importar múltiples fichas.
-            if ($this->modelo->existeFestivoParaFecha($fechaFest)) {
-                $resultado['duplicados']++;
+            if (!$this->esFechaValida($fechaFest) || !$this->esHoraValida($hIniFest) || !$this->esHoraValida($hFinFest) || $hIniFest >= $hFinFest) {
+                $resultado['festivos_invalidos']++;
+                $resultado['errores'][] = "Festivo con formato inválido omitido (fecha: '{$fechaFest}', franja: {$hIniFest}-{$hFinFest}).";
                 continue;
             }
 
-            $this->modelo->guardarFestivo(null, $fechaFest, $hIniFest, $hFinFest, $esDiaComp, 'FESTIVO');
-            $resultado['festivos_registrados']++;
-            $resultado['detalles'][] = "Festivo oficial institucional registrado para el día {$fechaFest} ({$hIniFest} - {$hFinFest}). Marcador de calendario sin crear instructor.";
+            $festivosValidados[] = [
+                'id_ficha'        => null,
+                'fecha'           => $fechaFest,
+                'hora_inicio'     => $hIniFest,
+                'hora_fin'        => $hFinFest,
+                'es_dia_completo' => $esDiaComp,
+                'descripcion'     => $descFest,
+            ];
         }
 
-        // Si solo venían festivos y ninguna clase regular
-        if (empty($registros)) {
-            $resultado['exito'] = true;
-            $resultado['mensaje'] = "Importación finalizada. Se registraron {$resultado['festivos_registrados']} días festivos oficiales en el calendario.";
+        if (empty($registros) && empty($festivosValidados)) {
+            $resultado['mensaje'] = 'No se encontraron clases ni días festivos válidos en el archivo.';
             return $resultado;
         }
 
@@ -292,9 +306,12 @@ class ExcelHorarioHelper
             $instructor = preg_replace('/[\x{00A0}\x{200B}\s]+/u', ' ', $instructor);
             $instructor = trim($instructor);
 
-            // Regla estricta: FESTIVO no es un instructor
+            // Regla estricta: FESTIVO y tokens numéricos/de relleno no son instructores
             if (strcasecmp($instructor, 'FESTIVO') === 0 || strcasecmp($instructor, 'FESTIVOS') === 0) {
                 continue;
+            }
+            if ($instructor !== '' && preg_match('/^\d+$/', $instructor)) {
+                $instructor = '';
             }
 
             $programaRaw = trim((string)($reg['programa'] ?? ''));
@@ -450,11 +467,39 @@ class ExcelHorarioHelper
         }
 
         // ======================================================================
-        // FASE 6: INSERCIÓN ATÓMICA EN BASE DE DATOS
+        // FASE 6: INSERCIÓN ATÓMICA EN BASE DE DATOS (Festivos + Fichas + Clases)
         // ======================================================================
         $this->modelo->iniciarTransaccion();
 
         try {
+            // 6.1 Registrar ficha de encabezado si aplica y aún no existe
+            if ($fichaHeaderPendiente !== null && !isset($this->fichasCache[$fichaHeaderPendiente['numero_ficha']])) {
+                $numHdr = $fichaHeaderPendiente['numero_ficha'];
+                $idHdrExistente = $this->modelo->buscarIdFichaPorNumero($numHdr);
+                if ($idHdrExistente !== null && $idHdrExistente > 0) {
+                    $this->fichasCache[$numHdr] = ['id_ficha' => $idHdrExistente, 'nueva' => false];
+                } else {
+                    $idHdrNuevo = $this->modelo->crearFicha($numHdr, $fichaHeaderPendiente['programa']);
+                    $this->fichasCache[$numHdr] = ['id_ficha' => $idHdrNuevo, 'nueva' => true];
+                    $resultado['fichas_creadas']++;
+                }
+            }
+
+            // 6.2 Sincronizar festivos en lote dentro de la transacción (sin consultas N+1)
+            if (!empty($festivosValidados)) {
+                $resFest = $this->modelo->sincronizarFestivosEnLote($festivosValidados);
+                $resultado['festivos_nuevos']       = (int) $resFest['nuevos'];
+                $resultado['festivos_sin_cambios']  = (int) $resFest['sin_cambios'];
+                $resultado['festivos_actualizados'] = (int) $resFest['actualizados'];
+                $resultado['festivos_invalidos']   += (int) $resFest['invalidos'];
+                $resultado['festivos_registrados']  = $resultado['festivos_nuevos'] + $resultado['festivos_actualizados'];
+                $resultado['duplicados']           += $resultado['festivos_sin_cambios'];
+                foreach ($resFest['detalles'] as $detFest) {
+                    $resultado['detalles'][] = $detFest;
+                }
+            }
+
+            // 6.3 Procesar registros de clases validados
             foreach ($registrosValidados as $reg) {
                 $fila        = $reg['fila'];
                 $numeroFicha = $reg['numero_ficha'];
@@ -472,19 +517,26 @@ class ExcelHorarioHelper
                 }
 
                 // Ficha
-                if (isset($this->fichasCache[$numeroFicha])) {
-                    $idFicha = $this->fichasCache[$numeroFicha]['id'];
+                $idFichaCache = isset($this->fichasCache[$numeroFicha])
+                    ? (int) ($this->fichasCache[$numeroFicha]['id_ficha'] ?? $this->fichasCache[$numeroFicha]['id'] ?? 0)
+                    : 0;
+
+                if ($idFichaCache > 0) {
+                    $idFicha = $idFichaCache;
+                    if (empty($this->fichasCache[$numeroFicha]['nueva']) && $programa !== '' && $programa !== 'Formación SENA') {
+                        $this->modelo->actualizarFicha($idFicha, $numeroFicha, $programa);
+                    }
                 } else {
                     $idFichaExistente = $this->modelo->buscarIdFichaPorNumero($numeroFicha);
-                    if ($idFichaExistente > 0) {
-                        $this->fichasCache[$numeroFicha] = ['id' => $idFichaExistente, 'nueva' => false];
+                    if ($idFichaExistente !== null && $idFichaExistente > 0) {
+                        $this->fichasCache[$numeroFicha] = ['id_ficha' => $idFichaExistente, 'nueva' => false];
                         $idFicha = $idFichaExistente;
                         if ($programa !== '' && $programa !== 'Formación SENA') {
                             $this->modelo->actualizarFicha($idFicha, $numeroFicha, $programa);
                         }
                     } else {
                         $idFichaNuevo = $this->modelo->crearFicha($numeroFicha, $programa);
-                        $this->fichasCache[$numeroFicha] = ['id' => $idFichaNuevo, 'nueva' => true];
+                        $this->fichasCache[$numeroFicha] = ['id_ficha' => $idFichaNuevo, 'nueva' => true];
                         $resultado['fichas_creadas']++;
                         $idFicha = $idFichaNuevo;
                     }
@@ -524,12 +576,27 @@ class ExcelHorarioHelper
 
             $this->modelo->confirmarTransaccion();
             $resultado['exito'] = true;
-            $msgFestivos = $resultado['festivos_registrados'] > 0 ? " y {$resultado['festivos_registrados']} festivos oficiales registrados" : "";
-            $resultado['mensaje'] = "Importación finalizada exitosamente. {$resultado['guardados']} horarios guardados correctamente{$msgFestivos} (" . $resultado['duplicados'] . " duplicados omitidos).";
+
+            if (empty($registrosValidados)) {
+                $resultado['mensaje'] = "Importación finalizada. Festivos nuevos: {$resultado['festivos_nuevos']}, actualizados: {$resultado['festivos_actualizados']}, sin cambios: {$resultado['festivos_sin_cambios']}.";
+            } else {
+                $msgFestivos = $resultado['festivos_registrados'] > 0
+                    ? " y {$resultado['festivos_registrados']} festivos sincronizados ({$resultado['festivos_nuevos']} nuevos)"
+                    : "";
+                $resultado['mensaje'] = "Importación finalizada exitosamente. {$resultado['guardados']} horarios guardados correctamente{$msgFestivos} (" . $resultado['duplicados'] . " omitidos).";
+            }
 
         } catch (\Throwable $e) {
             $this->modelo->revertirTransaccion();
-            $resultado['exito'] = false;
+            $resultado['exito']                 = false;
+            $resultado['guardados']             = 0;
+            $resultado['festivos_registrados']  = 0;
+            $resultado['festivos_nuevos']       = 0;
+            $resultado['festivos_sin_cambios']  = 0;
+            $resultado['festivos_actualizados'] = 0;
+            $resultado['fichas_creadas']        = 0;
+            $resultado['instructores_creados']  = 0;
+            $resultado['detalles']              = [];
             $resultado['mensaje'] = 'Error durante la inserción en base de datos: ' . $e->getMessage();
             error_log('Error en importación Excel: ' . $e->getMessage());
         }

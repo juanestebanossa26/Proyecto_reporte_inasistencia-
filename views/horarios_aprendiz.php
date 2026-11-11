@@ -51,7 +51,7 @@ if (!empty($resumenAprendiz['proxima_clase'])) {
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
 
     <!-- Estilos de Horarios integrados con SENA -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/horarios.css?v=<?= file_exists(BASE_PATH . '/assets/css/horarios.css') ? filemtime(BASE_PATH . '/assets/css/horarios.css') : '1.0' ?>">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/horarios.css?v=<?= versionarRecurso('assets/css/horarios.css') ?>">
 </head>
 <body>
 <div class="app-shell">
@@ -303,28 +303,8 @@ document.addEventListener('DOMContentLoaded', function () {
         handleWindowResize: true,
         nowIndicator: true,
 
-        // Fuente de eventos: recarga segura vía AJAX mediante el endpoint del servidor
-        events: function (fetchInfo, successCallback, failureCallback) {
-            const startStr = fetchInfo.startStr.substring(0, 10);
-            const endStr = fetchInfo.endStr.substring(0, 10);
-            const url = `index.php?accion=obtenerEventosJson&start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`;
-
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.exito && Array.isArray(data.eventos)) {
-                        successCallback(data.eventos);
-                    } else if (eventosIniciales.length > 0) {
-                        successCallback(eventosIniciales);
-                    } else {
-                        successCallback([]);
-                    }
-                })
-                .catch(err => {
-                    console.warn('Recurriendo a eventos iniciales tras error en fetch:', err);
-                    successCallback(eventosIniciales);
-                });
-        },
+        // Usa eventos pre-cargados en la vista para evitar una solicitud AJAX redundante en la carga inicial
+        events: eventosIniciales,
 
         // Personalización de encabezados de día adaptativos
         dayHeaderContent: function (arg) {
@@ -473,28 +453,16 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         },
 
-        // Actualizar título dinámico de periodo
+        // Actualizar título dinámico de periodo y sincronizar selector de vista
         datesSet: function (info) {
             const tituloEl = document.getElementById('calPeriodoTitulo');
             if (tituloEl && info.view) {
                 tituloEl.innerText = info.view.title || '';
+                actualizarBotonesVista(info.view.type);
             }
         }
     });
 
-    calendar.render();
-
-    // Controles de navegación del calendario
-    const btnToday = document.getElementById('btnToday');
-    if (btnToday) btnToday.addEventListener('click', () => calendar.today());
-
-    const btnPrev = document.getElementById('btnPrev');
-    if (btnPrev) btnPrev.addEventListener('click', () => calendar.prev());
-
-    const btnNext = document.getElementById('btnNext');
-    if (btnNext) btnNext.addEventListener('click', () => calendar.next());
-
-    // Selector de vistas
     const btnMonth = document.getElementById('btnViewMonth');
     const btnWeek = document.getElementById('btnViewWeek');
     const btnDay = document.getElementById('btnViewDay');
@@ -508,25 +476,28 @@ document.addEventListener('DOMContentLoaded', function () {
         if (vistaActiva === 'timeGridDay' && btnDay) btnDay.classList.add('active');
     }
 
+    calendar.render();
+
+    // Controles de navegación del calendario
+    const btnToday = document.getElementById('btnToday');
+    if (btnToday) btnToday.addEventListener('click', () => calendar.today());
+
+    const btnPrev = document.getElementById('btnPrev');
+    if (btnPrev) btnPrev.addEventListener('click', () => calendar.prev());
+
+    const btnNext = document.getElementById('btnNext');
+    if (btnNext) btnNext.addEventListener('click', () => calendar.next());
+
     if (btnMonth) {
-        btnMonth.addEventListener('click', () => {
-            calendar.changeView('dayGridMonth');
-            actualizarBotonesVista('dayGridMonth');
-        });
+        btnMonth.addEventListener('click', () => calendar.changeView('dayGridMonth'));
     }
 
     if (btnWeek) {
-        btnWeek.addEventListener('click', () => {
-            calendar.changeView('timeGridWeek');
-            actualizarBotonesVista('timeGridWeek');
-        });
+        btnWeek.addEventListener('click', () => calendar.changeView('timeGridWeek'));
     }
 
     if (btnDay) {
-        btnDay.addEventListener('click', () => {
-            calendar.changeView('timeGridDay');
-            actualizarBotonesVista('timeGridDay');
-        });
+        btnDay.addEventListener('click', () => calendar.changeView('timeGridDay'));
     }
 });
 </script>

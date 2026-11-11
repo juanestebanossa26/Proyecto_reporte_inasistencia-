@@ -59,45 +59,73 @@ function decodificarTexto(texto) {
 let modalFichaBs, modalDetalleBs, modalEliminarBs, modalProxBs;
 let calendar;
 let eventoActual = null;
+let horariosInicializado = false;
+let listenersHorariosVinculados = false;
 
-// Reemplazar fuentes de eventos en FullCalendar de forma segura evitando duplicaciones
+// Obtiene los eventos activos según checkboxes y búsqueda actual, sincronizando contadores UI
+function obtenerEventosFiltrados() {
+    const checksActivos = Array.from(document.querySelectorAll('.chk-ficha-individual:checked')).map(chk => parseInt(chk.value, 10));
+    const totalIndividuales = document.querySelectorAll('.chk-ficha-individual').length;
+    const chkTodas = document.getElementById('chkTodasFichas');
+
+    if (chkTodas) {
+        chkTodas.checked = (totalIndividuales > 0 && checksActivos.length === totalIndividuales);
+    }
+
+    const badge = document.getElementById('badgeFichasActivas');
+    if (badge) badge.innerText = checksActivos.length;
+
+    const query = (document.getElementById('inputBuscarFicha')?.value || '').toLowerCase().trim();
+
+    return todosLosEventos.filter(ev => {
+        const p = ev.extendedProps || {};
+        if (query !== '') {
+            const cadena = `${p.ficha || ''} ${p.programa || ''} ${p.instructor || ''} ${p.area || ''}`.toLowerCase();
+            if (!cadena.includes(query)) return false;
+        }
+        if (p.es_festivo) {
+            return true;
+        }
+        return checksActivos.includes(p.id_ficha);
+    });
+}
+
+// Reemplazar fuentes de eventos en FullCalendar usando batchRendering para evitar múltiples repintados
 function actualizarEventosCalendario(eventos) {
     if (!calendar) return;
     try {
-        const fuentesActuales = calendar.getEventSources();
-        fuentesActuales.forEach(fuente => fuente.remove());
-        calendar.addEventSource(eventos);
+        calendar.batchRendering(() => {
+            const fuentesActuales = calendar.getEventSources();
+            fuentesActuales.forEach(fuente => fuente.remove());
+            calendar.addEventSource(eventos);
+        });
     } catch (e) {
         console.error('Error al actualizar eventos del calendario:', e);
     }
 }
 
 function inicializarHorarios() {
-    // Si ya existe una instancia previa del calendario, destruirla para evitar acumulaciones
-    if (calendar) {
-        try {
-            calendar.destroy();
-        } catch (e) {
-            console.warn('Destruyendo calendario anterior:', e);
-        }
-        calendar = null;
+    if (horariosInicializado && calendar) {
+        return;
     }
 
-    // Inicializar modales Bootstrap de forma segura
+    // Inicializar modales Bootstrap de forma segura (getOrCreateInstance evita duplicados)
     const modalFichaEl = document.getElementById('modalFicha');
-    if (modalFichaEl && window.bootstrap) modalFichaBs = new bootstrap.Modal(modalFichaEl);
-    
+    if (modalFichaEl && window.bootstrap) modalFichaBs = bootstrap.Modal.getOrCreateInstance(modalFichaEl);
+
     const modalDetalleEl = document.getElementById('modalDetalleHorario');
-    if (modalDetalleEl && window.bootstrap) modalDetalleBs = new bootstrap.Modal(modalDetalleEl);
-    
+    if (modalDetalleEl && window.bootstrap) modalDetalleBs = bootstrap.Modal.getOrCreateInstance(modalDetalleEl);
+
     const modalEliminarEl = document.getElementById('modalEliminarHorario');
-    if (modalEliminarEl && window.bootstrap) modalEliminarBs = new bootstrap.Modal(modalEliminarEl);
+    if (modalEliminarEl && window.bootstrap) modalEliminarBs = bootstrap.Modal.getOrCreateInstance(modalEliminarEl);
 
     const modalProxEl = document.getElementById('modalDetalleProximaClase');
-    if (modalProxEl && window.bootstrap) modalProxBs = new bootstrap.Modal(modalProxEl);
+    if (modalProxEl && window.bootstrap) modalProxBs = bootstrap.Modal.getOrCreateInstance(modalProxEl);
 
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl || !window.FullCalendar) return;
+
+    const eventosInicialesFiltrados = obtenerEventosFiltrados();
 
     calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
@@ -111,7 +139,7 @@ function inicializarHorarios() {
         slotLabelInterval: '01:00:00',
         allDaySlot: false,
         nowIndicator: true, // Línea roja con punto para hora actual
-        events: todosLosEventos,
+        events: eventosInicialesFiltrados,
         eventDisplay: 'block',
         navLinks: true, // Clic en día navega a la vista de día
         navLinkDayClick: function(date, jsEvent) {
@@ -346,8 +374,35 @@ function inicializarHorarios() {
         }
     });
 
+    // Render inicial único (sin filtrarFichas() duplicado posterior)
     calendar.render();
-    filtrarFichas();
+    horariosInicializado = true;
+
+    if (listenersHorariosVinculados) {
+        return;
+    }
+    listenersHorariosVinculados = true;
+
+    // Acciones del encabezado y tarjetas interactivas
+    const btnNuevoHorario = document.getElementById('btnNuevoHorario');
+    if (btnNuevoHorario) btnNuevoHorario.addEventListener('click', () => abrirModalCrear());
+
+    const btnIrHoyHeader = document.getElementById('btnIrHoyHeader');
+    if (btnIrHoyHeader) btnIrHoyHeader.addEventListener('click', irAHoy);
+
+    const cardProximaClase = document.getElementById('cardProximaClase');
+    if (cardProximaClase) {
+        cardProximaClase.addEventListener('click', abrirDetalleProximaClase);
+        cardProximaClase.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                abrirDetalleProximaClase();
+            }
+        });
+    }
+
+    const btnUbicarProxima = document.getElementById('btnUbicarProximaClase');
+    if (btnUbicarProxima) btnUbicarProxima.addEventListener('click', ubicarProximaClaseEnCalendario);
 
     // Controles de navegación superior
     const btnToday = document.getElementById('btnToday');
@@ -359,7 +414,7 @@ function inicializarHorarios() {
     const btnNext = document.getElementById('btnNext');
     if (btnNext) btnNext.addEventListener('click', () => { if (calendar) calendar.next(); });
 
-    // Selectores de vista Día, Semana y Mes
+    // Selectores de vista Día, Semana y Mes (enlace único, sin onclick inline)
     const btnViewDay = document.getElementById('btnViewDay');
     if (btnViewDay) btnViewDay.addEventListener('click', () => cambiarVista('timeGridDay'));
 
@@ -369,9 +424,31 @@ function inicializarHorarios() {
     const btnViewMonth = document.getElementById('btnViewMonth');
     if (btnViewMonth) btnViewMonth.addEventListener('click', () => cambiarVista('dayGridMonth'));
 
-    // Toggle de visualización de panel de filtros
+    // Toggle de visualización de panel de filtros y controles internos del panel
     const btnToggleFiltros = document.getElementById('btnToggleFiltros');
     if (btnToggleFiltros) btnToggleFiltros.addEventListener('click', toggleOcultarFiltros);
+
+    const btnCerrarPanelFiltros = document.getElementById('btnCerrarPanelFiltros');
+    if (btnCerrarPanelFiltros) btnCerrarPanelFiltros.addEventListener('click', toggleOcultarFiltros);
+
+    const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+    if (btnLimpiarFiltros) btnLimpiarFiltros.addEventListener('click', limpiarFiltros);
+
+    const chkTodasFichas = document.getElementById('chkTodasFichas');
+    if (chkTodasFichas) {
+        chkTodasFichas.addEventListener('change', function () {
+            toggleTodasFichas(this);
+        });
+    }
+
+    const listaFichasCheckboxes = document.getElementById('listaFichasCheckboxes');
+    if (listaFichasCheckboxes) {
+        listaFichasCheckboxes.addEventListener('change', function (e) {
+            if (e.target && e.target.classList.contains('chk-ficha-individual')) {
+                filtrarFichas();
+            }
+        });
+    }
 
     // Búsqueda en vivo de fichas / programas / instructores
     const inputBuscar = document.getElementById('inputBuscarFicha');
@@ -785,10 +862,9 @@ function sincronizarBotonesVista(vistaNombre) {
 
 function cambiarVista(vistaNombre) {
     if (!calendar) return;
+    if (calendar.view && calendar.view.type === vistaNombre) return;
     try {
         calendar.changeView(vistaNombre);
-        sincronizarBotonesVista(vistaNombre);
-        actualizarTituloPeriodo();
     } catch (e) {
         console.error('Error al cambiar de vista en el calendario:', e);
     }
@@ -849,10 +925,24 @@ async function recargarEventosServidor() {
 function toggleOcultarFiltros() {
     const sidebar = document.getElementById('panelFiltrosFichas');
     if (!sidebar) return;
+
+    const alFinalizarTransicion = (e) => {
+        if (e.target !== sidebar) return;
+        if (e.propertyName === 'width' || e.propertyName === 'flex-basis' || e.propertyName === 'transform' || e.propertyName === 'margin-left') {
+            sidebar.removeEventListener('transitionend', alFinalizarTransicion);
+            if (calendar) calendar.updateSize();
+        }
+    };
+
+    sidebar.addEventListener('transitionend', alFinalizarTransicion);
     sidebar.classList.toggle('is-collapsed');
-    setTimeout(() => {
+
+    const duracionStr = window.getComputedStyle(sidebar).transitionDuration || '0s';
+    const duracionMax = Math.max(0, ...duracionStr.split(',').map(v => parseFloat(v) || 0));
+    if (duracionMax === 0) {
+        sidebar.removeEventListener('transitionend', alFinalizarTransicion);
         if (calendar) calendar.updateSize();
-    }, 230);
+    }
 }
 
 // ==========================================================================
@@ -890,27 +980,7 @@ function limpiarFiltros() {
 
 function filtrarFichas() {
     if (!calendar) return;
-    const checksActivos = Array.from(document.querySelectorAll('.chk-ficha-individual:checked')).map(chk => parseInt(chk.value));
-    const totalIndividuales = document.querySelectorAll('.chk-ficha-individual').length;
-    const chkTodas = document.getElementById('chkTodasFichas');
-
-    if (chkTodas) {
-        chkTodas.checked = (checksActivos.length === totalIndividuales);
-    }
-
-    // Actualizar badge
-    const badge = document.getElementById('badgeFichasActivas');
-    if (badge) badge.innerText = checksActivos.length;
-
-    // Filtrar eventos en el calendario
-    const eventosFiltrados = todosLosEventos.filter(ev => {
-        const idFicha = ev.extendedProps?.id_ficha;
-        // Todo evento festivo oficial se mantiene visible en el calendario institucional
-        if (ev.extendedProps?.es_festivo) {
-            return true;
-        }
-        return checksActivos.includes(idFicha);
-    });
+    const eventosFiltrados = obtenerEventosFiltrados();
     actualizarEventosCalendario(eventosFiltrados);
 }
 

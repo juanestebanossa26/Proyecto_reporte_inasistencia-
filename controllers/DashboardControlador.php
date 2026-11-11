@@ -8,12 +8,10 @@ declare(strict_types=1);
 class DashboardControlador extends ControladorBase
 {
     private DashboardModelo $modelo;
-    private AsistenciaModelo $asistenciaModelo;
 
     public function __construct()
     {
         $this->modelo = new DashboardModelo();
-        $this->asistenciaModelo = new AsistenciaModelo();
     }
 
     /**
@@ -54,9 +52,6 @@ class DashboardControlador extends ControladorBase
         $rolActivo      = $_SESSION['rol'] ?? 'Administrador';
 
         try {
-            // Sincronizar inasistencias de sesiones finalizadas en segundo plano
-            $this->asistenciaModelo->sincronizarInasistenciasGlobal();
-
             $kpis              = $this->modelo->obtenerKpisAdmin($fechaHoy);
             $ingresosRecientes = $this->modelo->obtenerIngresosRecientesAdmin(20, $fechaHoy);
             $excusasPendientes = $this->modelo->obtenerExcusasRecientesAdmin(6);
@@ -97,9 +92,6 @@ class DashboardControlador extends ControladorBase
         $rolActivo      = $_SESSION['rol'] ?? 'Instructor';
 
         try {
-            // Sincronizar inasistencias de sesiones finalizadas en segundo plano
-            $this->asistenciaModelo->sincronizarInasistenciasGlobal();
-
             $kpis              = $this->modelo->obtenerKpisInstructor($idInstructor, $fechaHoy);
             $horariosHoy       = $this->modelo->obtenerHorariosHoyInstructor($idInstructor, $fechaHoy);
             $ingresosRecientes = $this->modelo->obtenerIngresosRecientesInstructor($idInstructor, 20, $fechaHoy);

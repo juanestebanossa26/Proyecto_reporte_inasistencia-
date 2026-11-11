@@ -206,7 +206,13 @@ a{ text-decoration:none; }
   font-size:.92rem; font-weight:500;
   white-space:nowrap;
 }
-.sidebar-nav .nav-link i{ font-size:1.05rem; width:20px; text-align:center; flex-shrink:0; }
+.sidebar-nav .nav-link i{
+  font-size:1.05rem;
+  width:20px; height:20px;
+  display:inline-flex; align-items:center; justify-content:center;
+  line-height:1;
+  text-align:center; flex-shrink:0;
+}
 .sidebar-nav .nav-link:hover{
   background: rgba(255,255,255,.06);
   color: var(--rail-text-active);
@@ -224,6 +230,22 @@ a{ text-decoration:none; }
   font-size:.78rem; color:#6E8478; white-space:nowrap;
 }
 .app-shell.sidebar-collapsed .sidebar-footer{ display:none; }
+
+/* Estado pre-pintura del sidebar para evitar FOUC y animación inicial */
+html.sena-sidebar-preinit .app-sidebar,
+html.sena-sidebar-preinit .app-main {
+  transition: none !important;
+}
+
+@media (min-width: 992px) {
+  html.sena-sidebar-collapsed-pref .app-sidebar { width: var(--sidebar-w-collapsed); }
+  html.sena-sidebar-collapsed-pref .app-main { margin-left: var(--sidebar-w-collapsed); }
+  html.sena-sidebar-collapsed-pref .brand-text,
+  html.sena-sidebar-collapsed-pref .sidebar-section-label,
+  html.sena-sidebar-collapsed-pref .sidebar-nav .nav-link span,
+  html.sena-sidebar-collapsed-pref .sidebar-footer { display: none; }
+  html.sena-sidebar-collapsed-pref .sidebar-nav .nav-link { justify-content: center; }
+}
 
 /* Main area */
 .app-main{

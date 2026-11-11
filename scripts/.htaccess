@@ -1,7 +1,7 @@
 # Bloquea el acceso web directo a scripts de migración y lanzadores locales.
 # cron_inasistencias.php conserva acceso controlado mediante token en capa PHP cuando CRON_SECRET_TOKEN está configurado en .env.
 
-<Files "ejecutar_migracion_ciclo_vida.php">
+<FilesMatch "^(ejecutar_migracion_ciclo_vida|ejecutar_migracion_fase3)\.php$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -9,7 +9,7 @@
         Order deny,allow
         Deny from all
     </IfModule>
-</Files>
+</FilesMatch>
 
 <FilesMatch "\.(bat|sh|sql)$">
     <IfModule mod_authz_core.c>

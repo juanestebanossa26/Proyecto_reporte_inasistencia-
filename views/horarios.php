@@ -40,7 +40,7 @@ if (!isset($iniciales)) {
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
     
     <!-- Estilos específicos de Horarios integrados con el SENA -->
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/horarios.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/horarios.css?v=<?= versionarRecurso('assets/css/horarios.css') ?>">
 </head>
 <body>
 <div class="app-shell">
@@ -74,7 +74,7 @@ if (!isset($iniciales)) {
                             <i class="bi bi-file-earmark-excel text-success"></i>
                             <span>Importar Excel</span>
                         </button>
-                        <button type="button" class="btn btn-sm btn-sena d-flex align-items-center gap-2" onclick="abrirModalCrear()">
+                        <button type="button" class="btn btn-sm btn-sena d-flex align-items-center gap-2" id="btnNuevoHorario">
                             <i class="bi bi-plus-lg"></i>
                             <span>Nuevo horario</span>
                         </button>
@@ -83,7 +83,7 @@ if (!isset($iniciales)) {
                             <i class="bi bi-file-earmark-medical text-success"></i>
                             <span>Validar excusas</span>
                         </a>
-                        <button type="button" class="btn btn-sm btn-sena d-flex align-items-center gap-2" onclick="irAHoy()" title="Ir al día actual">
+                        <button type="button" class="btn btn-sm btn-sena d-flex align-items-center gap-2" id="btnIrHoyHeader" title="Ir al día actual">
                             <i class="bi bi-calendar2-check"></i>
                             <span>Ir a Hoy</span>
                         </button>
@@ -119,9 +119,9 @@ if (!isset($iniciales)) {
                 <div class="row g-2 align-items-stretch">
                     <!-- Tarjeta 1: Próxima Clase (Interactiva / Clickeable para ver detalles y aprendices) -->
                     <div class="col-12 col-sm-6 col-lg-3 min-w-0" style="min-width: 0;">
-                        <div class="cal-summary-box cal-summary-box-clickable h-100" 
-                             onclick="abrirDetalleProximaClase()" 
-                             role="button" 
+                        <div class="cal-summary-box cal-summary-box-clickable h-100"
+                             id="cardProximaClase"
+                             role="button"
                              tabindex="0"
                              style="min-width: 0; max-width: 100%; overflow: hidden;"
                              title="Clic para ver detalles de la ficha, horario y aprendices matriculados">
@@ -241,7 +241,7 @@ if (!isset($iniciales)) {
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
                         </div>
-                        <button type="button" class="btn btn-sm btn-light border text-nowrap btn-limpiar-filtro" id="btnLimpiarFiltros" onclick="limpiarFiltros()" title="Mostrar todas las clases de nuevo">
+                        <button type="button" class="btn btn-sm btn-light border text-nowrap btn-limpiar-filtro" id="btnLimpiarFiltros" title="Mostrar todas las clases de nuevo">
                             <i class="bi bi-arrow-counterclockwise me-1"></i>Limpiar
                         </button>
                     </div>
@@ -255,9 +255,9 @@ if (!isset($iniciales)) {
                         </button>
 
                         <div class="btn-group cal-view-group" role="group">
-                            <button type="button" class="btn btn-sm" id="btnViewDay" onclick="cambiarVista('timeGridDay')">Día</button>
-                            <button type="button" class="btn btn-sm" id="btnViewWeek" onclick="cambiarVista('timeGridWeek')">Semana</button>
-                            <button type="button" class="btn btn-sm active" id="btnViewMonth" onclick="cambiarVista('dayGridMonth')">Mes</button>
+                            <button type="button" class="btn btn-sm" id="btnViewDay">Día</button>
+                            <button type="button" class="btn btn-sm" id="btnViewWeek">Semana</button>
+                            <button type="button" class="btn btn-sm active" id="btnViewMonth">Mes</button>
                         </div>
                     </div>
                 </div>
@@ -270,14 +270,14 @@ if (!isset($iniciales)) {
                             <span class="fw-bold small text-uppercase text-secondary" style="font-size: 0.72rem; letter-spacing: 0.05em;">
                                 <?= $esInstructor ? 'Mis Fichas Asignadas' : 'Fichas de Formación' ?>
                             </span>
-                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-muted" onclick="toggleOcultarFiltros()" title="Ocultar panel de fichas">
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-muted" id="btnCerrarPanelFiltros" title="Ocultar panel de fichas">
                                 <i class="bi bi-chevron-left"></i>
                             </button>
                         </div>
 
                         <!-- Checkbox maestro -->
                         <label class="cal-ficha-item border-bottom pb-2 mb-2 w-100">
-                            <input type="checkbox" id="chkTodasFichas" checked onchange="toggleTodasFichas(this)">
+                            <input type="checkbox" id="chkTodasFichas" checked>
                             <span class="cal-custom-box" style="--chk-color: var(--cal-verde-sena);">
                                 <i class="bi bi-check-lg"></i>
                             </span>
@@ -299,7 +299,7 @@ if (!isset($iniciales)) {
                                     $nombrePrograma = htmlspecialchars(html_entity_decode($f['nombre_programa'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'));
                                 ?>
                                 <label class="cal-ficha-item item-ficha-filtro" data-ficha-id="<?= $idF ?>" data-ficha-text="<?= strtolower($numeroFicha . ' ' . $nombrePrograma) ?>">
-                                    <input type="checkbox" class="chk-ficha-individual" value="<?= $idF ?>" checked onchange="filtrarFichas()">
+                                    <input type="checkbox" class="chk-ficha-individual" value="<?= $idF ?>" checked>
                                     <span class="cal-custom-box" style="--chk-color: <?= $colorFicha ?>;">
                                         <i class="bi bi-check-lg"></i>
                                     </span>
@@ -474,7 +474,7 @@ if (!isset($iniciales)) {
       </div>
 
       <div class="modal-footer d-flex justify-content-between p-3">
-        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium" onclick="ubicarProximaClaseEnCalendario()">
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium" id="btnUbicarProximaClase">
           <i class="bi bi-calendar2-event me-1 text-success"></i>Ubicar en calendario
         </button>
         <div class="d-flex gap-2">
@@ -658,6 +658,6 @@ if (!isset($iniciales)) {
 </script>
 
 <!-- Script externo con la lógica del Módulo de Horarios -->
-<script src="<?= BASE_URL ?>/assets/js/horarios.js?v=<?= time() ?>"></script>
+<script src="<?= BASE_URL ?>/assets/js/horarios.js?v=<?= versionarRecurso('assets/js/horarios.js') ?>"></script>
 </body>
 </html>

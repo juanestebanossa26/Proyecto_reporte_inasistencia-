@@ -157,7 +157,7 @@ class HorarioControlador extends ControladorBase
                 $sinFicha = true;
             } else {
                 $idFicha = (int) $aprendizInfo['id_ficha'];
-                $horarios = $this->modelo->listarHorariosPorFicha($idFicha);
+                $horarios = $this->modelo->listarHorariosPorFicha($idFicha, null, null, false, false);
                 $festivos = $this->modelo->listarFestivos($idFicha);
 
                 $coloresFicha = [$idFicha => '#39A900']; // Verde SENA institucional
@@ -576,19 +576,29 @@ class HorarioControlador extends ControladorBase
         }
 
         // Construir reporte detallado para el usuario con SweetAlert2
-        $icono = ($resultado['guardados'] > 0 || $resultado['festivos_registrados'] > 0) ? 'success' : 'info';
-        $titulo = ($resultado['guardados'] > 0 || $resultado['festivos_registrados'] > 0) ? '¡Importación exitosa!' : 'Importación finalizada';
+        $festivosNuevos = (int) ($resultado['festivos_nuevos'] ?? $resultado['festivos_registrados'] ?? 0);
+        $festivosSinCambios = (int) ($resultado['festivos_sin_cambios'] ?? 0);
+        $festivosActualizados = (int) ($resultado['festivos_actualizados'] ?? 0);
+        $festivosInvalidos = (int) ($resultado['festivos_invalidos'] ?? 0);
+        $huboCambios = ($resultado['guardados'] > 0 || $resultado['festivos_registrados'] > 0);
+        $icono = $huboCambios ? 'success' : 'info';
+        $titulo = $huboCambios ? '¡Importación exitosa!' : 'Importación finalizada';
 
         $html = '<div style="text-align: left; font-size: 0.95rem; line-height: 1.6;">';
         $html .= '<p style="margin-bottom: 10px;">Se procesó el archivo Excel oficial con los siguientes resultados:</p>';
         $html .= '<ul style="list-style: none; padding-left: 0; margin-bottom: 12px;">';
-        $html .= '<li style="color: #2e7d32; margin-bottom: 4px;">✅ <strong>Horarios registrados:</strong> ' . $resultado['guardados'] . '</li>';
-        if ($resultado['festivos_registrados'] > 0) {
-            $html .= '<li style="color: #546e7a; margin-bottom: 4px;">📅 <strong>Días festivos identificados:</strong> ' . $resultado['festivos_registrados'] . ' (sin crear instructores)</li>';
+        $html .= '<li style="color: #2e7d32; margin-bottom: 4px;">✅ <strong>Horarios registrados:</strong> ' . (int) $resultado['guardados'] . '</li>';
+        if ($festivosNuevos > 0 || $festivosSinCambios > 0 || $festivosActualizados > 0 || $festivosInvalidos > 0) {
+            $html .= '<li style="color: #546e7a; margin-bottom: 4px;">📅 <strong>Festivos sincronizados:</strong> '
+                . $festivosNuevos . ' nuevos, '
+                . $festivosActualizados . ' actualizados, '
+                . $festivosSinCambios . ' sin cambios'
+                . ($festivosInvalidos > 0 ? ', ' . $festivosInvalidos . ' inválidos' : '')
+                . '</li>';
         }
-        $html .= '<li style="color: #0277bd; margin-bottom: 4px;">ℹ️ <strong>Horarios ya existentes (omitidos):</strong> ' . $resultado['duplicados'] . '</li>';
-        $html .= '<li style="color: #555; margin-bottom: 4px;">📋 <strong>Fichas nuevas creadas:</strong> ' . $resultado['fichas_creadas'] . '</li>';
-        $html .= '<li style="color: #555; margin-bottom: 4px;">👨‍🏫 <strong>Instructores nuevos creados:</strong> ' . $resultado['instructores_creados'] . '</li>';
+        $html .= '<li style="color: #0277bd; margin-bottom: 4px;">ℹ️ <strong>Registros ya existentes (omitidos):</strong> ' . (int) $resultado['duplicados'] . '</li>';
+        $html .= '<li style="color: #555; margin-bottom: 4px;">📋 <strong>Fichas nuevas creadas:</strong> ' . (int) $resultado['fichas_creadas'] . '</li>';
+        $html .= '<li style="color: #555; margin-bottom: 4px;">👨‍🏫 <strong>Instructores nuevos creados:</strong> ' . (int) $resultado['instructores_creados'] . '</li>';
         $html .= '</ul>';
 
         if (!empty($resultado['errores'])) {
@@ -720,7 +730,7 @@ class HorarioControlador extends ControladorBase
                 }
 
                 $idFicha = (int) $aprendizInfo['id_ficha'];
-                $horarios = $this->modelo->listarHorariosPorFicha($idFicha, $fechaInicio, $fechaFin);
+                $horarios = $this->modelo->listarHorariosPorFicha($idFicha, $fechaInicio, $fechaFin, false, false);
                 $festivos = $this->modelo->listarFestivos($idFicha, $fechaInicio, $fechaFin);
                 $coloresFicha = [$idFicha => '#39A900'];
 
@@ -816,24 +826,31 @@ class HorarioControlador extends ControladorBase
             ];
         }
 
-        $festivosPorFecha = [];
+        $festivosVistos = [];
         foreach ($festivos as $fest) {
             $fecha = $fest['fecha'];
-            // Deduplicación por fecha para que nunca se rendericen eventos duplicados en FullCalendar
-            if (isset($festivosPorFecha[$fecha])) {
-                continue;
-            }
-            $festivosPorFecha[$fecha] = true;
-
+            $idFichaFest = (int) ($fest['id_ficha'] ?? 0);
             $hIni = substr($fest['hora_inicio'] ?? '06:00:00', 0, 5);
             $hFin = substr($fest['hora_fin'] ?? '22:00:00', 0, 5);
+            $claveFestivo = $fecha . '|' . $idFichaFest . '|' . $hIni . '|' . $hFin;
+
+            // Deduplicación por fecha + ficha + franja para conservar franjas o fichas distintas sin duplicar iguales
+            if (isset($festivosVistos[$claveFestivo])) {
+                continue;
+            }
+            $festivosVistos[$claveFestivo] = true;
+
             $esDiaCompleto = (int)($fest['es_dia_completo'] ?? 1);
             $colorFestivo = '#607d8b';
             $numFichaFest = !empty($fest['numero_ficha']) ? $fest['numero_ficha'] : 'General';
+            $descFestivo = html_entity_decode(trim((string) ($fest['descripcion'] ?? 'FESTIVO')), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($descFestivo === '') {
+                $descFestivo = 'FESTIVO';
+            }
 
             $eventosCalendario[] = [
                 'id'              => 'festivo_' . $fest['id_festivo'],
-                'title'           => 'FESTIVO',
+                'title'           => $descFestivo,
                 'start'           => $fest['fecha'] . 'T' . $hIni . ':00',
                 'end'             => $fest['fecha'] . 'T' . $hFin . ':00',
                 'backgroundColor' => $colorFestivo,
@@ -842,9 +859,10 @@ class HorarioControlador extends ControladorBase
                 'extendedProps'   => [
                     'es_festivo'     => true,
                     'es_dia_completo'=> $esDiaCompleto,
-                    'id_ficha'       => (int)($fest['id_ficha'] ?? 0),
+                    'id_ficha'       => $idFichaFest,
                     'ficha'          => $numFichaFest,
-                    'programa'       => 'Día Festivo Institucional',
+                    'programa'       => $descFestivo !== 'FESTIVO' ? $descFestivo : 'Día Festivo Institucional',
+                    'descripcion'    => $descFestivo,
                     'instructor'     => 'FESTIVO',
                     'id_instructor'  => 0,
                     'area'           => 'Calendario Oficial SENA',

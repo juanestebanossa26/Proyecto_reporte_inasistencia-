@@ -174,11 +174,20 @@ class HorarioModelo
 
     /**
      * Lista los horarios programados correspondientes a una ficha específica.
-     * En consultas ordinarias de aprendices solo incluye horarios 'Programado' de fichas con estado 'Activa'.
+     * En consultas ordinarias de aprendices solo incluye horarios 'Programado' de fichas con estado 'Activa'
+     * y omite el conteo de aprendices salvo cuando se solicita explícitamente.
      */
-    public function listarHorariosPorFicha(int $idFicha, ?string $fechaDesde = null, ?string $fechaHasta = null, bool $incluirCancelados = false): array
-    {
-        $params = [':id_ficha' => $idFicha];
+    public function listarHorariosPorFicha(
+        int $idFicha,
+        ?string $fechaDesde = null,
+        ?string $fechaHasta = null,
+        bool $incluirCancelados = false,
+        bool $incluirTotalAprendices = false
+    ): array {
+        $params = [
+            ':id_ficha'     => $idFicha,
+            ':id_ficha_fhu' => $idFicha,
+        ];
         $whereFiltros = "";
 
         if ($fechaDesde !== null && $fechaDesde !== '') {
@@ -195,6 +204,10 @@ class HorarioModelo
             $whereFiltros .= " AND h.estado = 'Programado' AND f.estado = 'Activa'";
         }
 
+        $selectTotalAprendices = $incluirTotalAprendices
+            ? "(SELECT COUNT(*) FROM aprendices a WHERE a.id_ficha = f.id_ficha) AS total_aprendices"
+            : "0 AS total_aprendices";
+
         $sql = "SELECT
                     h.id_horario,
                     h.id_ficha,
@@ -210,13 +223,14 @@ class HorarioModelo
                     COALESCE(h.id_instructor, fhu.id_instructor) AS id_instructor,
                     COALESCE(u_directo.nombre_completo, u_ficha.nombre_completo, '') AS instructor_nombre,
                     COALESCE(u_directo.area, u_ficha.area, '') AS instructor_area,
-                    (SELECT COUNT(*) FROM aprendices a WHERE a.id_ficha = f.id_ficha) AS total_aprendices
+                    {$selectTotalAprendices}
                 FROM horarios h
                 JOIN fichas f ON f.id_ficha = h.id_ficha
                 LEFT JOIN usuarios u_directo ON u_directo.id_usuario = h.id_instructor
                 LEFT JOIN (
                     SELECT fichas_id_ficha, MIN(id_instructor) AS id_instructor
                     FROM fichas_has_usuarios
+                    WHERE fichas_id_ficha = :id_ficha_fhu
                     GROUP BY fichas_id_ficha
                 ) fhu ON fhu.fichas_id_ficha = f.id_ficha
                 LEFT JOIN usuarios u_ficha ON u_ficha.id_usuario = fhu.id_instructor
@@ -753,9 +767,11 @@ class HorarioModelo
             $area = trim($partesArea[0] ?? '');
         }
 
-        // Ignorar días festivos o recesos que puedan venir en la celda del instructor
-        $terminosIgnorar = ['festivo', 'festivos', 'vacaciones', 'receso', 'semana santa', 'feriado', 'sin instructor', 'por definir'];
-        if (in_array(mb_strtolower($nombreCompleto, 'UTF-8'), $terminosIgnorar, true) || $nombreCompleto === '') {
+        // Ignorar días festivos, recesos o tokens puramente numéricos/de relleno que puedan venir en la celda del instructor
+        $terminosIgnorar = ['festivo', 'festivos', 'vacaciones', 'receso', 'semana santa', 'feriado', 'sin instructor', 'por definir', '123'];
+        if (in_array(mb_strtolower($nombreCompleto, 'UTF-8'), $terminosIgnorar, true)
+            || $nombreCompleto === ''
+            || preg_match('/^\d+$/', $nombreCompleto)) {
             return [
                 'id_usuario' => 0,
                 'nombre'     => $nombreCompleto,
@@ -780,7 +796,7 @@ class HorarioModelo
         $usuarioBase = strtolower($this->normalizarTexto($nombreCompleto));
         $usuarioBase = preg_replace('/[^a-z0-9]/', '', $usuarioBase);
         if ($usuarioBase === '') {
-            $usuarioBase = 'inst_' . time();
+            $usuarioBase = 'inst_' . bin2hex(random_bytes(4));
         }
 
         if ($area === '') {
@@ -790,7 +806,9 @@ class HorarioModelo
         }
 
         $db = Conexion::obtener();
-        $passHash = password_hash('123', PASSWORD_BCRYPT);
+        // Credencial temporal aleatoria de alta entropía; nunca se asignan contraseñas débiles predecibles
+        $contrasenaAleatoria = bin2hex(random_bytes(16));
+        $passHash = password_hash($contrasenaAleatoria, PASSWORD_DEFAULT);
 
         // Garantizar unicidad de usuario y correo para cumplir con restricciones NOT NULL y UNIQUE
         $usuarioGenerado = substr($usuarioBase, 0, 40);
@@ -960,25 +978,235 @@ class HorarioModelo
         return $filas;
     }
 
-    // Registra un día festivo en la base de datos de forma segura
-    public function guardarFestivo(?int $idFicha, string $fecha, string $horaInicio = '06:00:00', string $horaFin = '22:00:00', int $esDiaCompleto = 1, string $descripcion = 'FESTIVO'): void
+    /**
+     * Normaliza franja horaria y descripción de un día festivo para alinear inserciones
+     * con las columnas virtuales normalizadas de `dias_festivos`.
+     */
+    private function normalizarFranjaFestivo(?string $horaInicio, ?string $horaFin, int $esDiaCompleto): array
     {
-        $sql = "INSERT INTO dias_festivos (id_ficha, fecha, hora_inicio, hora_fin, es_dia_completo, descripcion)
-                VALUES (:id_ficha, :fecha, :hora_inicio, :hora_fin, :es_dia_completo, :descripcion)";
-        $stmt = Conexion::obtener()->prepare($sql);
-        $stmt->bindValue(':id_ficha', $idFicha > 0 ? $idFicha : null, PDO::PARAM_INT);
-        $stmt->bindValue(':fecha', $fecha);
-        $stmt->bindValue(':hora_inicio', $horaInicio);
-        $stmt->bindValue(':hora_fin', $horaFin);
-        $stmt->bindValue(':es_dia_completo', $esDiaCompleto, PDO::PARAM_INT);
-        $stmt->bindValue(':descripcion', $descripcion);
-        $stmt->execute();
+        $hIni = trim((string) $horaInicio);
+        $hFin = trim((string) $horaFin);
+
+        if ($hIni === '') {
+            $hIni = '06:00:00';
+        } elseif (strlen($hIni) === 5) {
+            $hIni .= ':00';
+        }
+
+        if ($hFin === '') {
+            $hFin = '22:00:00';
+        } elseif (strlen($hFin) === 5) {
+            $hFin .= ':00';
+        }
+
+        return [$hIni, $hFin, $esDiaCompleto ? 1 : 0];
     }
 
-    // Consulta festivos registrados con filtros opcionales
+    /**
+     * Registra o sincroniza un día festivo de forma idempotente usando la restricción única
+     * `uq_festivo_fecha_ficha_franja` (sin duplicar filas ante reimportaciones).
+     *
+     * @return string 'insertado' | 'actualizado' | 'sin_cambios'
+     */
+    public function guardarFestivo(
+        ?int $idFicha,
+        string $fecha,
+        string $horaInicio = '06:00:00',
+        string $horaFin = '22:00:00',
+        int $esDiaCompleto = 1,
+        string $descripcion = 'FESTIVO'
+    ): string {
+        $idFichaNorm = ($idFicha !== null && $idFicha > 0) ? $idFicha : null;
+        [$hIni, $hFin, $esDia] = $this->normalizarFranjaFestivo($horaInicio, $horaFin, $esDiaCompleto);
+        $descLimpia = trim($descripcion);
+        if ($descLimpia === '') {
+            $descLimpia = 'FESTIVO';
+        } elseif (mb_strlen($descLimpia) > 150) {
+            $descLimpia = mb_substr($descLimpia, 0, 150);
+        }
+
+        $sql = "INSERT INTO dias_festivos (id_ficha, fecha, hora_inicio, hora_fin, es_dia_completo, descripcion)
+                VALUES (:id_ficha, :fecha, :hora_inicio, :hora_fin, :es_dia_completo, :descripcion)
+                ON DUPLICATE KEY UPDATE
+                    es_dia_completo = VALUES(es_dia_completo),
+                    descripcion = VALUES(descripcion)";
+
+        $stmt = Conexion::obtener()->prepare($sql);
+        $stmt->bindValue(':id_ficha', $idFichaNorm, $idFichaNorm === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+        $stmt->bindValue(':fecha', $fecha);
+        $stmt->bindValue(':hora_inicio', $hIni);
+        $stmt->bindValue(':hora_fin', $hFin);
+        $stmt->bindValue(':es_dia_completo', $esDia, PDO::PARAM_INT);
+        $stmt->bindValue(':descripcion', $descLimpia);
+        $stmt->execute();
+
+        $afectadas = $stmt->rowCount();
+        if ($afectadas === 1) {
+            return 'insertado';
+        }
+        if ($afectadas >= 2) {
+            return 'actualizado';
+        }
+        return 'sin_cambios';
+    }
+
+    /**
+     * Sincroniza un lote de días festivos en BD dentro de una transacción evitando consultas N+1.
+     * Pre-carga las fechas del rango y ejecuta un único statement preparado ON DUPLICATE KEY UPDATE.
+     */
+    public function sincronizarFestivosEnLote(array $festivos): array
+    {
+        $resumen = [
+            'nuevos'      => 0,
+            'sin_cambios' => 0,
+            'actualizados'=> 0,
+            'invalidos'   => 0,
+            'detalles'    => [],
+        ];
+
+        if (empty($festivos)) {
+            return $resumen;
+        }
+
+        // Deduplicar y validar en memoria primero
+        $unicos = [];
+        $fechasValidas = [];
+        foreach ($festivos as $fest) {
+            $fecha = trim((string) ($fest['fecha'] ?? ''));
+            $dt = DateTime::createFromFormat('Y-m-d', $fecha);
+            if (!$dt || $dt->format('Y-m-d') !== $fecha) {
+                $resumen['invalidos']++;
+                continue;
+            }
+
+            $idFichaRaw = $fest['id_ficha'] ?? null;
+            $idFicha = ($idFichaRaw !== null && (int) $idFichaRaw > 0) ? (int) $idFichaRaw : null;
+            $esDia = isset($fest['es_dia_completo']) ? (int) $fest['es_dia_completo'] : 1;
+            [$hIni, $hFin, $esDiaNorm] = $this->normalizarFranjaFestivo(
+                $fest['hora_inicio'] ?? '06:00:00',
+                $fest['hora_fin'] ?? '22:00:00',
+                $esDia
+            );
+
+            if ($hIni >= $hFin) {
+                $resumen['invalidos']++;
+                continue;
+            }
+
+            $desc = trim((string) ($fest['descripcion'] ?? 'FESTIVO'));
+            if ($desc === '') {
+                $desc = 'FESTIVO';
+            } elseif (mb_strlen($desc) > 150) {
+                $desc = mb_substr($desc, 0, 150);
+            }
+
+            $clave = $fecha . '|' . ($idFicha ?? 0) . '|' . $hIni . '|' . $hFin;
+            $unicos[$clave] = [
+                'id_ficha'        => $idFicha,
+                'fecha'           => $fecha,
+                'hora_inicio'     => $hIni,
+                'hora_fin'        => $hFin,
+                'es_dia_completo' => $esDiaNorm,
+                'descripcion'     => $desc,
+            ];
+            $fechasValidas[$fecha] = true;
+        }
+
+        if (empty($unicos)) {
+            return $resumen;
+        }
+
+        $db = Conexion::obtener();
+        $transaccionPropia = !$db->inTransaction();
+        if ($transaccionPropia) {
+            $db->beginTransaction();
+        }
+
+        try {
+            // Precargar festivos existentes del rango en 1 sola consulta
+            $listaFechas = array_keys($fechasValidas);
+            sort($listaFechas);
+            $fechaMin = $listaFechas[0];
+            $fechaMax = $listaFechas[count($listaFechas) - 1];
+
+            $stmtPre = $db->prepare("
+                SELECT id_festivo,
+                       fecha,
+                       COALESCE(id_ficha, 0) AS id_ficha_norm,
+                       COALESCE(hora_inicio, '00:00:00') AS hi_norm,
+                       COALESCE(hora_fin, '23:59:59') AS hf_norm,
+                       es_dia_completo,
+                       descripcion
+                FROM dias_festivos
+                WHERE fecha BETWEEN :desde AND :hasta
+            ");
+            $stmtPre->execute([':desde' => $fechaMin, ':hasta' => $fechaMax]);
+            $existentes = [];
+            foreach ($stmtPre->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $k = $row['fecha'] . '|' . (int) $row['id_ficha_norm'] . '|' . $row['hi_norm'] . '|' . $row['hf_norm'];
+                $existentes[$k] = $row;
+            }
+
+            $stmtUpsert = $db->prepare("
+                INSERT INTO dias_festivos (id_ficha, fecha, hora_inicio, hora_fin, es_dia_completo, descripcion)
+                VALUES (:id_ficha, :fecha, :hora_inicio, :hora_fin, :es_dia_completo, :descripcion)
+                ON DUPLICATE KEY UPDATE
+                    es_dia_completo = VALUES(es_dia_completo),
+                    descripcion = VALUES(descripcion)
+            ");
+
+            foreach ($unicos as $clave => $item) {
+                $prev = $existentes[$clave] ?? null;
+                if ($prev !== null
+                    && (int) $prev['es_dia_completo'] === $item['es_dia_completo']
+                    && trim((string) $prev['descripcion']) === $item['descripcion']) {
+                    $resumen['sin_cambios']++;
+                    continue;
+                }
+
+                $stmtUpsert->bindValue(':id_ficha', $item['id_ficha'], $item['id_ficha'] === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmtUpsert->bindValue(':fecha', $item['fecha']);
+                $stmtUpsert->bindValue(':hora_inicio', $item['hora_inicio']);
+                $stmtUpsert->bindValue(':hora_fin', $item['hora_fin']);
+                $stmtUpsert->bindValue(':es_dia_completo', $item['es_dia_completo'], PDO::PARAM_INT);
+                $stmtUpsert->bindValue(':descripcion', $item['descripcion']);
+                $stmtUpsert->execute();
+
+                if ($prev === null) {
+                    $resumen['nuevos']++;
+                    $resumen['detalles'][] = "Festivo oficial institucional registrado para el día {$item['fecha']} ({$item['hora_inicio']} - {$item['hora_fin']}).";
+                } else {
+                    $resumen['actualizados']++;
+                    $resumen['detalles'][] = "Festivo oficial actualizado para el día {$item['fecha']} ({$item['hora_inicio']} - {$item['hora_fin']}).";
+                }
+            }
+
+            if ($transaccionPropia) {
+                $db->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($transaccionPropia && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+
+        return $resumen;
+    }
+
+    // Consulta festivos registrados con filtros opcionales (columnas explícitas)
     public function listarFestivos(?int $idFicha = null, ?string $fechaDesde = null, ?string $fechaHasta = null): array
     {
-        $sql = "SELECT df.*, f.numero_ficha, f.nombre_programa
+        $sql = "SELECT df.id_festivo,
+                       df.id_ficha,
+                       df.fecha,
+                       df.hora_inicio,
+                       df.hora_fin,
+                       df.es_dia_completo,
+                       df.descripcion,
+                       df.created_at,
+                       f.numero_ficha,
+                       f.nombre_programa
                 FROM dias_festivos df
                 LEFT JOIN fichas f ON f.id_ficha = df.id_ficha
                 WHERE 1=1";
@@ -999,13 +1227,12 @@ class HorarioModelo
             $params[':hasta'] = $fechaHasta;
         }
 
-        $sql .= " ORDER BY df.fecha ASC, df.hora_inicio ASC";
+        $sql .= " ORDER BY df.fecha ASC, df.hora_inicio ASC, df.id_festivo ASC";
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Comprueba si un festivo ya fue registrado para una fecha y ficha
     // Comprueba si ya existe un festivo registrado para una fecha determinada (a nivel general o institucional)
     public function existeFestivoParaFecha(string $fecha): bool
     {
@@ -1015,21 +1242,28 @@ class HorarioModelo
         return (bool)$stmt->fetchColumn();
     }
 
+    /**
+     * Comprueba si existe un festivo vigente para la fecha y ficha indicadas (o institucional global).
+     * Evita fugas cruzadas entre fichas distintas.
+     */
     public function existeFestivo(?int $idFicha, string $fecha, ?string $horaInicio = null, ?string $horaFin = null): bool
     {
-        $sql = "SELECT id_festivo FROM dias_festivos
-                WHERE fecha = :fecha
-                  AND (
-                      id_ficha IS NULL
-                      OR id_ficha = 0
-                      OR (:id_ficha IS NOT NULL AND id_ficha = :id_ficha2)
-                      OR UPPER(TRIM(COALESCE(descripcion, ''))) IN ('FESTIVO', 'FESTIVOS', 'FERIADO', 'VACACIONES', 'RECESO')
-                  )";
+        $idFichaNorm = ($idFicha !== null && $idFicha > 0) ? $idFicha : null;
+
+        if ($idFichaNorm !== null) {
+            $sql = "SELECT id_festivo FROM dias_festivos
+                    WHERE fecha = :fecha
+                      AND (id_ficha IS NULL OR id_ficha = 0 OR id_ficha = :id_ficha)";
+        } else {
+            $sql = "SELECT id_festivo FROM dias_festivos
+                    WHERE fecha = :fecha
+                      AND (id_ficha IS NULL OR id_ficha = 0)";
+        }
 
         if ($horaInicio !== null && $horaFin !== null) {
             $sql .= " AND (
-                es_dia_completo = 1 
-                OR hora_inicio IS NULL 
+                es_dia_completo = 1
+                OR hora_inicio IS NULL
                 OR hora_fin IS NULL
                 OR (:h_ini < hora_fin AND :h_fin > hora_inicio)
             )";
@@ -1039,9 +1273,9 @@ class HorarioModelo
 
         $stmt = Conexion::obtener()->prepare($sql);
         $stmt->bindValue(':fecha', $fecha);
-        $idFichaNorm = ($idFicha !== null && $idFicha > 0) ? $idFicha : null;
-        $stmt->bindValue(':id_ficha', $idFichaNorm, PDO::PARAM_INT);
-        $stmt->bindValue(':id_ficha2', $idFichaNorm, PDO::PARAM_INT);
+        if ($idFichaNorm !== null) {
+            $stmt->bindValue(':id_ficha', $idFichaNorm, PDO::PARAM_INT);
+        }
 
         if ($horaInicio !== null && $horaFin !== null) {
             $stmt->bindValue(':h_ini', $horaInicio);

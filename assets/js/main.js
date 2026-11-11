@@ -2,19 +2,38 @@
    Sidebar colapsable — recuerda el estado en localStorage
    ============================================================ */
 (function () {
+  if (window.__senaMainInit) return;
+  window.__senaMainInit = true;
+
   const shell = document.querySelector(".app-shell");
   const toggleBtn = document.getElementById("sidebarToggle");
   const mobileToggleBtn = document.getElementById("sidebarMobileToggle");
   const backdrop = document.querySelector(".sidebar-backdrop");
   const STORAGE_KEY = "sidebar_collapsed";
+  const docEl = document.documentElement;
 
-  if (!shell) return;
+  const liberarPreinit = function () {
+    docEl.classList.remove("sena-sidebar-preinit");
+  };
 
-  // Restaurar estado guardado (solo escritorio)
+  if (!shell) {
+    liberarPreinit();
+    return;
+  }
+
+  // Restaurar estado guardado (solo escritorio) antes de habilitar transiciones
   if (window.innerWidth > 991) {
     const collapsed = localStorage.getItem(STORAGE_KEY) === "1";
-    if (collapsed) shell.classList.add("sidebar-collapsed");
+    if (collapsed) {
+      shell.classList.add("sidebar-collapsed");
+    } else {
+      shell.classList.remove("sidebar-collapsed");
+    }
   }
+  docEl.classList.remove("sena-sidebar-collapsed-pref");
+  requestAnimationFrame(function () {
+    requestAnimationFrame(liberarPreinit);
+  });
 
   // Toggle escritorio: colapsa a solo íconos
   if (toggleBtn) {
@@ -39,10 +58,12 @@
     });
   }
 
-  // Activar tooltips de Bootstrap (útiles cuando el sidebar está colapsado)
-  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
-    new bootstrap.Tooltip(el);
-  });
+  // Activar tooltips de Bootstrap sin duplicar instancias
+  if (window.bootstrap && bootstrap.Tooltip) {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+      bootstrap.Tooltip.getOrCreateInstance(el);
+    });
+  }
 })();
 
 
