@@ -1,10 +1,12 @@
 <?php
 declare(strict_types=1);
+
 // Punto de entrada único de la aplicación.
 // Configura la sesión de forma segura, carga las dependencias y enruta
 // la petición hacia el Controlador correspondiente, según ?accion=...
 
-
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 define('BASE_PATH', __DIR__);
 
